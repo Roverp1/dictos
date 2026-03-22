@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // App settings - no emit, Bun runs TypeScript directly
+    "noEmit": true,
+    "moduleDetection": "force",
+
+    // Use latest features for Bun runtime
+    "target": "ESNext"
+  }
+}
