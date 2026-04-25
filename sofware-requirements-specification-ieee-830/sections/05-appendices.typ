@@ -1,10 +1,10 @@
-#let sql-table(rows) = {
+#let sql-table(..rows) = {
   table(
     columns: (auto, auto, auto, auto, 1fr),
     table.header(
       [*Name*], [*Type*], [*Null?*], [*Constraint*], [*Description*]
     ),
-    ..rows.flatten(),
+    ..rows.pos().flatten(),
   )
 }
 
@@ -129,40 +129,248 @@ Scope:
 
 == Appendix III: Database Schema
 
-This appendix defines the physical database schema of Dictos. The schema is split into two scopes: the local database used in V1 and the central database introduced in V2. This separation preserves the local-first architecture while allowing future shared and social features.
+This appendix defines the physical database schema of Dictos. The schema is split into two scopes: the local database used in V1 and the central database introduced in V2. This separation preserves the local-first architecture while allowing later shared and social features.
 
-== V1 Local Database
+=== V1 Local Database
 
-The local database stores all core used data and must function without network access. It contains the entities needed for capture management, definition storage, directory organization, prompt storage, and local statistics tracking
+The local database stores all core user data and must function without network access. It contains the entities needed for capture management, definition storage, directory organization, prompt storage, and local activity tracking.
 
 #figure(
   sql-table(
     ([id], [integer], [No], [PK], [Primary key]),
+    ([text], [text], [No], [-], [Raw text fragment saved by the user.]),
+    ([directory_id], [integer], [No], [FK], [References `directories.id`.]),
+    ([created_at], [timestamptz], [No], [-], [Creation timestamp.]),
+    (
+      [modified_at],
+      [timestamptz],
+      [No],
+      [-],
+      [Updated by trigger on `captures` when the row changes.],
+    ),
   ),
+
   caption: [Captures table],
 )
 
+#figure(
+  sql-table(
+    ([id], [integer], [No], [PK], [Primary key]),
+    ([capture_id], [integer], [No], [FK], [References `captures.id`.]),
+    (
+      [text],
+      [text],
+      [No],
+      [-],
+      [Generated or manually entered definition attached to a capture.],
+    ),
+    ([created_at], [timestamptz], [No], [-], [Creation timestamp.]),
+    (
+      [modified_at],
+      [timestamptz],
+      [No],
+      [-],
+      [Updated by trigger on `definitions` when the row changes.],
+    ),
+  ),
 
-// Physical schema for words, categories, schemas, and prompts.
-SQL tables used in Release 1, where each user will have his own database:
-- captures: id, text, directory_id, source, created_at, modified_at
-- definitions: id, capture_id, text, created_at, modified_at
-- directories: id, name, parent_id, privacy (public, unlisted, private), created_at, modified_at
-  - all directories all private by default - only synced in private db
-  - public and unlisted directories - will be synced to the central db
-  - Note: modified_at is updated automatically via database triggers whenever a child capture is added or edited.
-- prompts: id, name, text, created_at, modified_at
-- captures_added: id, date, count
-// might need sync_metadata table
+  caption: [Definitions table],
+)
 
+#figure(
+  sql-table(
+    ([id], [integer], [No], [PK], [Primary key]),
+    (
+      [name],
+      [text],
+      [No],
+      [-],
+      [Directory label used in the hierarchical tree.],
+    ),
+    (
+      [parent_id],
+      [integer],
+      [Yes],
+      [FK],
+      [References `directories.id` for nested directories.],
+    ),
+    (
+      [privacy],
+      [text],
+      [No],
+      [-],
+      [Defaults to `private`; controls whether the directory may later be shared as `public` or `unlisted`.],
+    ),
+    ([created_at], [timestamptz], [No], [-], [Creation timestamp.]),
+    (
+      [modified_at],
+      [timestamptz],
+      [No],
+      [-],
+      [Updated by trigger on `directories` and by related capture changes under that directory.],
+    ),
+  ),
 
-Release 2 will introduce central database, where we will save registred user's data, in the following tables:
-- users: id, username, email, password_hash, bio, avatar_url, created_at, last_logit_at
-  - handles jwt-based authentication
-- friends: id, user_id, friend_user_id, status ('pending', 'accepted'), created_at
-- devices: id, user_id, device_name, last_sync_at (mb needed for preventing useless syncs, and only syncing when device lacs some data, but it might be redundant if turso/libsql already handles it)
-- captures_added: id, user_id, date, count
-  - synced from private db
+  caption: [Directories table],
+)
 
-// == Appendix IV: TUI Wireframes
-// Draft layout of the terminal interface.
+#figure(
+  sql-table(
+    ([id], [integer], [No], [PK], [Primary key]),
+    ([name], [text], [Yes], [-], [Human-readable prompt label.]),
+    ([text], [text], [No], [-], [Prompt text entered by the user.]),
+    ([created_at], [timestamptz], [No], [-], [Creation timestamp.]),
+    (
+      [modified_at],
+      [timestamptz],
+      [No],
+      [-],
+      [Updated by trigger on `prompts` when the row changes.],
+    ),
+  ),
+
+  caption: [Prompts table],
+)
+
+#figure(
+  sql-table(
+    ([id], [integer], [No], [PK], [Primary key]),
+    ([date], [date], [No], [UNIQUE], [Calendar day of the aggregate.]),
+    (
+      [count],
+      [integer],
+      [No],
+      [-],
+      [Defaults to `0`; total captures added on that day.],
+    ),
+  ),
+
+  caption: [Captures added table],
+)
+
+=== V2 Central Database
+
+The central database stores account and social data. It does not replace the local database. It only supports functionality that requires cross-user visibility or server-side coordination.
+
+#figure(
+  sql-table(
+    ([id], [integer], [No], [PK], [Primary key]),
+    (
+      [username],
+      [text],
+      [No],
+      [UNIQUE],
+      [Public display name used by friends and leaderboards.],
+    ),
+    (
+      [email],
+      [text],
+      [No],
+      [UNIQUE],
+      [Account email address used for authentication.],
+    ),
+    (
+      [password_hash],
+      [text],
+      [No],
+      [-],
+      [Hashed password stored for login verification.],
+    ),
+    ([bio], [text], [Yes], [-], [Optional short profile description.]),
+    ([avatar_url], [text], [Yes], [-], [Optional profile image URL.]),
+    ([created_at], [timestamptz], [No], [-], [Account creation timestamp.]),
+    (
+      [last_login_at],
+      [timestamptz],
+      [No],
+      [-],
+      [Timestamp of the most recent successful login.],
+    ),
+  ),
+
+  caption: [Users table],
+)
+
+#figure(
+  sql-table(
+    ([id], [integer], [No], [PK], [Primary key]),
+    (
+      [user_id],
+      [integer],
+      [No],
+      [FK],
+      [References `users.id` for the owner of the friendship record.],
+    ),
+    (
+      [friend_user_id],
+      [integer],
+      [No],
+      [FK],
+      [References `users.id` for the other user.],
+    ),
+    (
+      [status],
+      [text],
+      [No],
+      [-],
+      [Defaults to `pending`; becomes `accepted` after approval.],
+    ),
+    (
+      [created_at],
+      [timestamptz],
+      [No],
+      [-],
+      [Friend request creation timestamp.],
+    ),
+  ),
+
+  caption: [Friends table],
+)
+
+#figure(
+  sql-table(
+    ([id], [integer], [No], [PK], [Primary key]),
+    ([user_id], [integer], [No], [FK], [References `users.id`.]),
+    ([device_name], [text], [No], [-], [Human-readable name of the device.]),
+    (
+      [last_sync_at],
+      [timestamptz],
+      [No],
+      [-],
+      [Timestamp of the most recent sync from this device.],
+    ),
+  ),
+
+  caption: [Devices table],
+)
+
+#figure(
+  sql-table(
+    ([id], [integer], [No], [PK], [Primary key]),
+    ([user_id], [integer], [No], [FK], [References `users.id`.]),
+    ([date], [date], [No], [UNIQUE], [Calendar day of the aggregate.]),
+    (
+      [count],
+      [integer],
+      [No],
+      [-],
+      [Defaults to `0`; total captures added for the given day.],
+    ),
+  ),
+
+  caption: [Central captures added table],
+)
+
+=== Schema Notes
+
+- `captures.directory_id` references `directories.id`.
+- `definitions.capture_id` references `captures.id`.
+- `directories.parent_id` references `directories.id` for nested structure.
+- `modified_at` is maintained by table-specific triggers in `captures`, `definitions`, `directories`, and `prompts`.
+- `captures_added.count` defaults to `0` and stores a daily aggregate, not raw events.
+- `directories.privacy` defaults to `private`.
+- `friends.status` defaults to `pending`.
+- `users.last_login_at` is updated after successful authentication.
+
+// == Appendix IV: Tui Wireframes
+// draft layout of the terminal interface.
