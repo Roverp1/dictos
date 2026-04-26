@@ -1,69 +1,147 @@
 = Specific Requirements
-// The technical core. Precise definitions only.
 
 == External Interface Requirements
+
 === User Interfaces
-// TUI Layout: Sidebar for categories, main list for captures, footer for commands.
-// Detailed editing view for schema-specific fields.
-The TUI will be built using OpenTUI framework. It will focus on quick keyboard-driven navigation.
-- Main View: two-pane layout with a Directory tree sidebar on the left and main action pane on the right
-- Main action pane (MAP): will display preview of the hovered item, with all its defenitions when navigating Directory tree. When pressing ENTER on the hovered item in the Directory tree - cursor will be taken to MAP, and user will be able to scroll and select and modify definitions.
-- Prompt menu: will apear dinymicly based on what activity user performs. If user is currently in MAP and selecting an option to generate definition, prompt menu will apear on the left - in place of Directory tree. And if user selects many captures in te Directory tree - Prompt menu will appear on the right, in place of MAP // not sure about this one
-- Modifications of elements such as prompts, captures and definitions - will happen 'in place'. When user presses modification shortcut when hovering over an item - the item will get temporary replaced with input box containing the item, after saving or canceling modification - the item's row in database will be modified accordingly. If user would press modification shortcut while having selected multiples items - external editor will be opened with all the items for modification (planned for later).
+Dictos uses a terminal user interface built with OpenTUI. The interface is optimized for keyboard-driven navigation and quick access to capture data, prompt input, and definition editing.
+
+The main screen uses a two-panel layout:
+- Left pane: directory tree for browsing and selecting captures.
+- Right pane: main action pane for previewing and editing the selected item.
+
+The interface supports in-place editing for captures, definitions, directories, and prompts. When the user activaties an edit command, the selected row is temporarily replaced with an input field. After confirmation or cancellation, the database record is updated or left unchanged.
+
+The prompt selection flow is dynamic. When the user requests definition generation, the interface will present prompt menu based on current action user performs:
+- if user is trying to generate a single definition for current capture - prompt menu will appear in place of left pane, leaving capture menu visible.
+- if user is trying to generate definitions for multiple captures selected in the directory tree - prompt menu will appear in place of right pane, leaving directory tree visible.
+
+The prompt menu will display all of the saved prompts, with search bar at the top, allowing for instant search of the saved prompts. With press of a hot key, an input field will appear, for creation of a new prompt - which user can use once or save and use.
 
 
 === Hardware Interfaces
-// Standard keyboard for all navigation and data entry.
-Dictos is a software-only tool. It requires a standard keyboard (for TUI interface) for all navigation, shortcuts, and text entry.
+Dictos is a software-only application. It requires:
+- a standard keyboard for navigation, editing, ad commands
+- a terminal emulator that supports interactive text user interfaces.
 
 === Software Interfaces
-// Google Gemini API (HTTPS/JSON).
-// SQLite/libSQL for persistence.
-// Local file system for .txt and .json imports.
-- Gemini API: Used via HTTPS for generating definitiions. Requires user's API_KEY
-- libSQL: Local file-based storage for each user
+Dictos interacts with the following external software components:
+- Gemini API: used for automatic definition generation.
+- libSQL: used for local persistence
+- local file system: used for importing TXT and ReadEra backups and exporting saved data
 
 === Communications Interfaces
-// HTTPS protocol for LLM requests.
-All externalCommunication is performed via HTTPS. This includes requests to the Gemini API and future synchronization tasks with Turso-hosted central database.
+All communication with external services uses HTTPS.
+
+- Gemini requests are sent over HTTPS in JSON format.
+- Future synchronization features will also use HTTPS communication with the central server.
 
 == Functional Requirements
-// Format: FR-ID | Title | Description | Rationale.
 
-ID: FR-A | Title: Importing ReadEra notes
-DESC: The app must prvoide an option to import e-book notes from ReadEra backup
-RAT: ReadEra is a primary source of captures for the target user base
+=== V1 Functional Requirements
+
+ID: FR-V1-01 | Title: Manual capture entry
+DESC: The system must allow the user to create a capture manually from the TUI.
+RAT: tusers need a fast way to add one capture manually from the TUI.
+DEP: None.
+
+ID: FR-V1-02 | Title: Importing ReadEra notes
+DESC: The app must allow the user to import e-book notes from a ReadEra backup file.
+RAT: ReadEra is a major source of captures for the target users.
 DEP: None
 
-ID: FR-2 | Title: LLM definition generation
-DESC: The user can select one ore many Captures for definition generation. The system will process them sequentially using the selected LLM prompt template.
-RAT: Allows users to automate the "dictionary look-up" phase of learning
-DEP: Gemini API integration
-
-ID: FR-3 | Title: Request retries
-DESC: In the event of a network error during LLM generation, the system must automatically retry the request up to 3 times before skipping to the next item and logging the failure
-RAT: Prevents bulk operations from crashing due to minor connection issues
-DEP: FR-2
-
-ID: FR-4 | Title: Template management
-DESC: The system must allow users to create, store, and edit custom prmopt templates (e.g. "Translate to polish wiiith grammar notes", "Define using maximum 10 words and B2 english")
-RAT: Users have different llearning needs for different types of content
+ID: FR-V1-03 | Title: Import text files
+DESC: Te system must allow the user to import raw text captures from TXT files.
+RAT: TXT imports supports fast capture transfers from external sources.
 DEP: None
+
+ID: FR-V1-04 | Title: Manage directories
+DESC: The system must allow the user to create, rename, delete, copy, move and nest directories and captures for capture organization.
+RAT: The directory tree is the main structure for organizing study material.
+DEP: None
+
+ID: FR-V1-05 | Title: Edit captures and definitions
+DESC: The system must allow the user to edit captures and definitions directly in the TUI.
+RAT: In-place editing reduces friction and keeps the workflow keyboard-centric.
+DEP: FR-V1-04
+
+ID: FR-V1-06 | Title: Gemini definition generation
+DESC: The system must allow the user to select one or more captures and generate definitions using a chosen prompt with Gemini API
+RAT: This is the core value of Dictos, since it automates the dictionary lookup step.
+DEP: Gemini API access, FR-V1-01
+
+ID: FR-V1-07 Title: Retry failed requests
+DESC: tif definition generation fails due to a temporary netwrok error, the system must retry the request up to three times before reporting failure and continuing with the next capture.
+RAT: Prevents bulk operations from failing because of a temporary connection issue.
+DEP: FR-V1-06
+
+ID: FR-V1-08 Title: Prompt management
+DESC: The sytem must allow the user to enter a prompt for definition generation and optionally save it for later reuse.
+RAT: Users have different learning needs for different types of content
+DEP: None
+
+ID: FR-V1-09 | Title: Export local data
+DESC: The system must allow the user to export captures and definitions into Anki decs and JSON formats.
+RAT: Exoprt is required to move data into spaced-repetition tools and other external apps.
+DEP: None.
+
+=== V2 Functional Requirements
+
+ID: FR-V2-01 | Title: User registration
+DESC: The system must allow the user to create an account for cloud-enabled features.
+RAT: Registration is required for social and synchronization features.
+DEP: Central server
+
+ID: FR-V2-02 | Title: Sync local data
+DESC: The system must allow the user to select an option to synchronization local data stored in libSQL database across all of the user's devices using Turso SDK
+RAT: Sync enables cross-device consistency
+DEP: FR-V2-01
+
+ID: FR-V2-03 | Title: Sync shared data to central database
+DESC: The system must allow the user to manually synchronize selected shared data and activity aggregates with the central database.
+RAT: Central database enables shared features.
+DEP: FR-V2-01
+
+ID: FR-V2-04 | Title: Friend relationships
+DESC: The sytem must allow the user to add, accept, and manage friend relationships.
+RAT: Friend relationships are required for social visibility and profile-based features.
+DEP: FR-V2-01
+
+ID: FR-V2-05 | Title: View social statistics
+DESC: The sytem must allow the user to view public profile data and activity statistics for themselves and their friends.
+RAT: This supports leaderboards and fiend comparison features
+DEP: FR-V2-01, FR-V2-04
+
+=== V3 Functional Requirements
+
+ID: FR-V3-01 | Title: Mobile access
+DESC: The system must allow the user to access and manage core Dictos features from a mobile application.
+RAT: Users need the same core workflow on mobile devices.
+DEP: V1 complete
+
+ID: FR-V3-02 | Title: Mobile capture
+DESC: The system must allow the user to capture text from the mobile select or share menu.
+RAT: Mobile capture expands the application beyond terminal workflow, allowing for fast capture creation on mobile.
+DEP: FR-V3-01
 
 == Performance Requirements
-// Local SQLite operations MUST be near-instant (< 50ms).
-// LLM requests SHOULD NOT block the UI.
-- Database Latency: Local libSQL read/write operations must complete in under 50ms to maintain TUI responsiveness.
-- Non blocking requests: LLM requests must be handled background threads. The TUI must remain interactive, while waiting for an LLM response
-- Startup time: The application must reach an interactive state in less than 1 second on standard hardware.
+The system shall satisfy the following performance constraints:
+
+- Local libSQL read/write operations must complete in under 50ms.
+- LLM requests must not block the user interface.
+- The application shall reach an interactive state in under 1 second on standard hardware.
 
 == Design Constraints
-// App core MUST be provider agnostic to allow switching LLMs.
-// Data integrity MUST be preserved locally if sync fails.
-- Local first: Core features (CRUD, local import/export) must function Ntirely without an internet connection
-- Architecture: The system must follow Hexagonal Architecture principles to keep core logic isolated from the Gemini Api and runtime environment
+The system shall satisfy the following design constraints:
+
+- The application shall remain local-first in Release 1.
+- Core features such as capture creation, editing, importing, and exporting must function without internet access.
+- The architecture must follow Hexagonal Architecture principles.
+- The core domain must remain independent from Gemini, libSQL, terminal framework and operating system/runtime.
 
 == Software System Attributes
-// Reliability: Transactional SQLite writes to prevent corruption.
-- Reliability: The system must use database transaction to ensure data integrity during crashes or powr failures
+The system shall satisfy the following quality attributes:
+
+- Reliability: Database operations must use transactions to preserve integrity during crashes or power loss.
 - Portability: The application must run on any POSIX-compliant terminal (Linux, MacOS) and Windows terminal
+- Maintainability: The application must keep business logic isolated from external adapters.
+- Security: Sensitive network communication must use HTTPS, and user credentials must not be stored in plain text.
