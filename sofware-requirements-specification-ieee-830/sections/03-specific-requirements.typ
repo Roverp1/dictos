@@ -41,7 +41,7 @@ All communication with external services uses HTTPS.
 
 ID: FR-V1-01 | Title: Manual capture entry
 DESC: The system must allow the user to create a capture manually from the TUI.
-RAT: tusers need a fast way to add one capture manually from the TUI.
+RAT: Users need a fast way to add one capture manually from the TUI.
 DEP: None.
 
 ID: FR-V1-02 | Title: Importing ReadEra notes
@@ -50,8 +50,8 @@ RAT: ReadEra is a major source of captures for the target users.
 DEP: None
 
 ID: FR-V1-03 | Title: Import text files
-DESC: Te system must allow the user to import raw text captures from TXT files.
-RAT: TXT imports supports fast capture transfers from external sources.
+DESC: The system must allow the user to import raw text captures from TXT files.
+RAT: TXT imports support fast capture transfers from external sources.
 DEP: None
 
 ID: FR-V1-04 | Title: Manage directories
@@ -65,24 +65,24 @@ RAT: In-place editing reduces friction and keeps the workflow keyboard-centric.
 DEP: FR-V1-04
 
 ID: FR-V1-06 | Title: Gemini definition generation
-DESC: The system must allow the user to select one or more captures and generate definitions using a chosen prompt with Gemini API
+DESC: The system must allow the user to select one or more captures and generate definitions using a chosen prompt with Gemini API.
 RAT: This is the core value of Dictos, since it automates the dictionary lookup step.
 DEP: Gemini API access, FR-V1-01
 
-ID: FR-V1-07 Title: Retry failed requests
-DESC: tif definition generation fails due to a temporary netwrok error, the system must retry the request up to three times before reporting failure and continuing with the next capture.
+ID: FR-V1-07 | Title: Retry failed requests
+DESC: If definition generation fails due to a temporary network error, the system must retry the request up to three times before reporting failure and continuing with the next capture.
 RAT: Prevents bulk operations from failing because of a temporary connection issue.
 DEP: FR-V1-06
 
-ID: FR-V1-08 Title: Prompt management
-DESC: The sytem must allow the user to enter a prompt for definition generation and optionally save it for later reuse.
-RAT: Users have different learning needs for different types of content
+ID: FR-V1-08 | Title: Prompt management
+DESC: The system must allow the user to enter a prompt for definition generation and optionally save it for later reuse.
+RAT: Users have different learning needs for different types of content.
 DEP: None
 
 ID: FR-V1-09 | Title: Export local data
-DESC: The system must allow the user to export captures and definitions into Anki decs and JSON formats.
-RAT: Exoprt is required to move data into spaced-repetition tools and other external apps.
-DEP: None.
+DESC: The system must allow the user to export captures and definitions into Anki decks and JSON formats.
+RAT: Export is required to move data into spaced-repetition tools and other external apps.
+DEP: None
 
 === V2 Functional Requirements
 
@@ -92,8 +92,8 @@ RAT: Registration is required for social and synchronization features.
 DEP: Central server
 
 ID: FR-V2-02 | Title: Sync local data
-DESC: The system must allow the user to select an option to synchronization local data stored in libSQL database across all of the user's devices using Turso SDK
-RAT: Sync enables cross-device consistency
+DESC: The system must allow the user to select an option to synchronize local data stored in the libSQL database across all of the user's devices using the Turso SDK.
+RAT: Sync enables cross-device consistency.
 DEP: FR-V2-01
 
 ID: FR-V2-03 | Title: Sync shared data to central database
@@ -102,13 +102,13 @@ RAT: Central database enables shared features.
 DEP: FR-V2-01
 
 ID: FR-V2-04 | Title: Friend relationships
-DESC: The sytem must allow the user to add, accept, and manage friend relationships.
+DESC: The system must allow the user to add, accept, and manage friend relationships.
 RAT: Friend relationships are required for social visibility and profile-based features.
 DEP: FR-V2-01
 
 ID: FR-V2-05 | Title: View social statistics
-DESC: The sytem must allow the user to view public profile data and activity statistics for themselves and their friends.
-RAT: This supports leaderboards and fiend comparison features
+DESC: The system must allow the user to view public profile data and activity statistics for themselves and their friends.
+RAT: This supports leaderboards and friend comparison features.
 DEP: FR-V2-01, FR-V2-04
 
 === V3 Functional Requirements
@@ -116,7 +116,7 @@ DEP: FR-V2-01, FR-V2-04
 ID: FR-V3-01 | Title: Mobile access
 DESC: The system must allow the user to access and manage core Dictos features from a mobile application.
 RAT: Users need the same core workflow on mobile devices.
-DEP: V1 complete
+DEP: FR-V1-09
 
 ID: FR-V3-02 | Title: Mobile capture
 DESC: The system must allow the user to capture text from the mobile select or share menu.
