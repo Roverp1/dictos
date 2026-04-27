@@ -292,6 +292,7 @@ The central database stores account and social data. It does not replace the loc
 )
 
 #figure(
+  // can probably get rid id, and make user_id + friend_user_id a pk
   sql-table(
     ([id], [integer], [No], [PK], [Primary key]),
     (
