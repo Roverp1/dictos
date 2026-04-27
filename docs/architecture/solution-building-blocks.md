@@ -1,201 +1,203 @@
 ---
-date: July 2025
+date: April 2026
 title: "Solution Strategy and Building Block View"
 ---
 
 # Solution Strategy
 
-::: formalpara-title
-**Contents**
-:::
+Dictos uses a local-first, modular monorepo architecture.
 
-A short summary and explanation of the fundamental decisions and solution strategies, that shape system architecture. It includes
+Main strategy:
 
-- technology decisions
+- keep domain rules in a platform-agnostic core
+- keep app orchestration in a separate service layer
+- keep TUI, storage, LLM, and future platform UIs as adapters
+- let V1 prove the core, while V2 and V3 reuse it instead of cloning it
 
-- decisions about the top-level decomposition of the system, e.g. usage of an architectural pattern or design pattern
+This is not a fat-client app with some helpers around it. The whole point is to avoid that trap.
 
-- decisions on how to achieve key quality goals
+## Architectural Decisions
 
-- relevant organizational decisions, e.g. selecting a development process or delegating certain tasks to third parties.
+| Decision               | Why                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| Local-first V1         | Core use must work offline and keep user data on device.                       |
+| Modular monorepo       | Future mobile, web, and GUI clients need shared core logic.                    |
+| TypeScript everywhere  | One language across core, services, and adapters lowers friction.              |
+| Bun runtime/tooling    | Fast local dev loop and simple project tooling.                                |
+| OpenTUI UI layer       | Keyboard-driven terminal workflow fits V1 and quick capture work.              |
+| libSQL persistence     | Local transactional store for captures, prompts, definitions, and directories. |
+| Gemini adapter at edge | LLM use stays outside core so it can be swapped later.                         |
 
-::: formalpara-title
-**Motivation**
-:::
+## Structure
 
-These decisions form the cornerstones for your architecture. They are the foundation for many other detailed decisions or implementation rules.
+Planned module split:
 
-::: formalpara-title
-**Form**
-:::
+- `core/domain` - pure entities, value objects, rules, and invariants
+- `core/application` - use cases and orchestration services
+- `adapters/tui` - OpenTUI + React bindings
+- `adapters/libsql` - local libSQL repositories
+- `adapters/gemini` - Gemini request adapter
+- `adapters/import-export` - TXT, ReadEra, Anki, JSON handling
+- `platform/mobile` - future mobile client on shared core
+- `platform/web` - future web client on shared core
+- `platform/gui` - future desktop GUI client on shared core
 
-Keep the explanations of such key decisions short.
+Core rule:
 
-Motivate what was decided and why it was decided that way, based upon problem statement, quality goals and key constraints. Refer to details in the following sections.
-
-::: formalpara-title
-**Further Information**
-:::
-
-See [Solution Strategy](https://docs.arc42.org/section-4/) in the arc42 documentation.
+- no adapter imports inside domain code
+- no direct DB/API calls from UI code
+- use ports at the core boundary
 
 # Building Block View {#section-building-block-view}
 
-::: formalpara-title
-**Content**
-:::
+## Whitebox Overall System {#\_whitebox_overall_system}
 
-The building block view shows the static decomposition of the system into building blocks (modules, components, subsystems, classes, interfaces, packages, libraries, frameworks, layers, partitions, tiers, functions, macros, operations, data structures, ...​) as well as their dependencies (relationships, associations, ...​)
+Dictos splits into a small core and several edges.
 
-This view is mandatory for every architecture documentation. In analogy to a house this is the *floor plan*.
+### Level 1 Blocks
 
-::: formalpara-title
-**Motivation**
-:::
+| Name                     | Responsibility                                                    |
+| ------------------------ | ----------------------------------------------------------------- |
+| Domain Core              | Own capture, definition, directory, prompt, and validation rules. |
+| Application Services     | Execute use cases and coordinate ports.                           |
+| TUI Adapter              | Present keyboard workflow and send actions to services.           |
+| Persistence Adapter      | Store and load local data in libSQL.                              |
+| LLM Adapter              | Send prompt and capture text to Gemini and return results.        |
+| Import/Export Adapter    | Parse TXT/ReadEra and produce Anki/JSON exports.                  |
+| Future Platform Adapters | Reuse same core from mobile, web, or GUI later.                   |
 
-Maintain an overview of your source code by making its structure understandable through abstraction.
+### Core Relations
 
-This allows you to communicate with your stakeholder on an abstract level without disclosing implementation details.
+- TUI calls application services
+- services call ports, not concrete adapters
+- domain core stays free of UI, network, and DB details
+- persistence adapter owns libSQL schema access
+- LLM adapter owns Gemini communication
+- import/export adapter owns file format specifics
 
-::: formalpara-title
-**Form**
-:::
+### Important Interfaces
 
-The building block view is a hierarchical collection of black boxes and white boxes and their descriptions.
+- `CaptureRepository`
+- `DefinitionRepository`
+- `DirectoryRepository`
+- `PromptRepository`
+- `LlmPort`
+- `ImportPort`
+- `ExportPort`
 
-**Level 1** is the white box description of the overall system together with black box descriptions of all contained building blocks.
+These ports are the seam. They keep V1 stable and V2/V3 possible.
 
-**Level 2** zooms into some building blocks of level 1. Thus it contains the white box description of selected building blocks of level 1, together with black box descriptions of their internal building blocks.
+## Level 2
 
-**Level 3** zooms into selected building blocks of level 2, and so on.
+### Domain Core
 
-::: formalpara-title
-**Further Information**
-:::
+Purpose:
 
-See [Building Block View](https://docs.arc42.org/section-5/) in the arc42 documentation.
+- model local dictionary data and rules
 
-## Whitebox Overall System {#_whitebox_overall_system}
+Contains:
 
-Here you describe the decomposition of the overall system using the following white box template. It contains
+- Capture
+- Definition
+- Directory
+- Prompt
+- local activity aggregate for later stats/sync
 
-- an overview diagram
+Responsibilities:
 
-- a motivation for the decomposition
+- validate capture text
+- keep directory nesting sane
+- handle one-to-many capture to definition relation
+- preserve local-first invariants
 
-- black box descriptions of the contained building blocks. For these we offer you alternatives:
+### Application Services
 
-  - use *one* table for a short and pragmatic overview of all contained building blocks and their interfaces
+Purpose:
 
-  - use a list of black box descriptions of the building blocks according to the black box template (see below). Depending on your choice of tool this list could be sub-chapters (in text files), sub-pages (in a Wiki) or nested elements (in a modeling tool).
+- run use cases end to end
 
-- (optional:) important interfaces, that are not explained in the black box templates of a building block, but are very important for understanding the white box. Since there are so many ways to specify interfaces why do not provide a specific template for them. In the worst case you have to specify and describe syntax, semantics, protocols, error handling, restrictions, versions, qualities, necessary compatibilities and many things more. In the best case you will get away with examples or simple signatures.
+Contains:
 
-***<Overview Diagram>***
+- CaptureService
+- DirectoryService
+- PromptService
+- DefinitionService
+- ImportService
 
-Motivation
+Responsibilities:
 
-:   *<text explanation>*
+- coordinate validation, storage, and adapter calls
+- keep orchestration out of UI
+- retry transient LLM failures up to 3 times
+- support bulk definition generation
 
-Contained Building Blocks
+### TUI Adapter
 
-:   *<Description of contained building block (black boxes)>
+Purpose:
 
-Important Interfaces
+- expose capture/edit/import/generate/export workflows in terminal
 
-:   *<Description of important interfaces>*
+Responsibilities:
 
-Insert your explanations of black boxes from level 1:
+- render two-pane workflow
+- support in-place editing
+- show prompt picker for one or many captures
+- keep UI responsive while requests run
 
-If you use tabular form you will only describe your black boxes with name and responsibility according to the following schema:
+### Persistence Adapter
 
-| Name | Responsibility |
-|---|---|
-| *<black box 1>* | *<Text>* |
-| *<black box 2>* | *<Text>* |
+Purpose:
 
-If you use a list of black box descriptions then you fill in a separate black box template for every important building block. Its headline is the name of the black box.
+- own libSQL persistence details
 
-### <Name black box 1> {#_name_black_box_1}
+Responsibilities:
 
-Here you describe <black box 1> according the the following black box template:
+- transactions
+- schema mapping
+- query performance
+- local-only storage for V1
 
-- Purpose/Responsibility
+### LLM Adapter
 
-- Interface(s), when they are not extracted as separate paragraphs. This interfaces may include qualities and performance characteristics.
+Purpose:
 
-- (Optional) Quality-/Performance characteristics of the black box, e.g.availability, run time behavior, ...​.
+- isolate Gemini calls
 
-- (Optional) directory/file location
+Responsibilities:
 
-- (Optional) Fulfilled requirements (if you need traceability to requirements).
+- send HTTPS requests
+- normalize prompt/capture input
+- return generated definition text
+- report transient failures cleanly
 
-- (Optional) Open issues/problems/risks
+### Import/Export Adapter
 
-*<Purpose/Responsibility>*
+Purpose:
 
-*<Interface(s)>*
+- handle file boundaries
 
-*<(Optional) Quality/Performance Characteristics>*
+Responsibilities:
 
-*<(Optional) Directory/File Location>*
+- parse TXT and ReadEra backups
+- export to Anki and JSON
+- keep file format junk out of core
 
-*<(Optional) Fulfilled Requirements>*
+## Level 3
 
-*<(optional) Open Issues/Problems/Risks>*
+Likely deeper splits later:
 
-### <Name black box 2> {#_name_black_box_2}
+- `core/domain/capture`
+- `core/domain/directory`
+- `core/domain/prompt`
+- `core/domain/definition`
+- `core/application/import`
+- `core/application/definition-generation`
+- `adapters/libsql/schema`
+- `adapters/tui/screens`
+- `adapters/gemini/client`
 
-*<black box template>*
+Do not split these too early unless code pressure says so. Keep it boring until it hurts.
 
-### <Name black box n> {#_name_black_box_n}
+Related SRS: `02-overall-description.typ`, `03-specific-requirements.typ`, `05-appendices.typ`
 
-*<black box template>*
-
-### <Name interface 1> {#_name_interface_1}
-
-...​
-
-### <Name interface m> {#_name_interface_m}
-
-## Level 2 {#_level_2}
-
-Here you can specify the inner structure of (some) building blocks from level 1 as white boxes.
-
-You have to decide which building blocks of your system are important enough to justify such a detailed description. Please prefer relevance over completeness. Specify important, surprising, risky, complex or volatile building blocks. Leave out normal, simple, boring or standardized parts of your system
-
-### White Box *<building block 1>* {#_white_box_building_block_1}
-
-...​describes the internal structure of *building block 1*.
-
-*<white box template>*
-
-### White Box *<building block 2>* {#_white_box_building_block_2}
-
-*<white box template>*
-
-...​
-
-### White Box *<building block m>* {#_white_box_building_block_m}
-
-*<white box template>*
-
-## Level 3 {#_level_3}
-
-Here you can specify the inner structure of (some) building blocks from level 2 as white boxes.
-
-When you need more detailed levels of your architecture please copy this part of arc42 for additional levels.
-
-### White Box <_building block x.1_> {#_white_box_building_block_x_1}
-
-Specifies the internal structure of *building block x.1*.
-
-*<white box template>*
-
-### White Box <_building block x.2_> {#_white_box_building_block_x_2}
-
-*<white box template>*
-
-### White Box <_building block y.1_> {#_white_box_building_block_y_1}
-
-*<white box template>*
+Next: [Runtime and Deployment View](runtime-deployment.md)
