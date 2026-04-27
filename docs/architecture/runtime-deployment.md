@@ -1,152 +1,152 @@
 ---
-date: July 2025
+date: April 2026
 title: "Runtime and Deployment View"
 ---
 
 # Runtime View {#section-runtime-view}
 
-::: formalpara-title
-**Contents**
-:::
+## Runtime Scenarios
 
-The runtime view describes concrete behavior and interactions of the system's building blocks in form of scenarios from the following areas:
+### 1. Manual capture entry
 
-- important use cases or features: how do building blocks execute them?
+Source:
 
-- interactions at critical external interfaces: how do building blocks cooperate with users and neighboring systems?
+- user typing in TUI
 
-- operation and administration: launch, start-up, stop
+Flow:
 
-- error and exception scenarios
+1. User opens capture screen.
+2. TUI sends request to `CaptureService`.
+3. Service validates capture text.
+4. Service stores capture in local libSQL.
+5. TUI refreshes view and shows saved item.
 
-Remark: The main criterion for the choice of possible scenarios (sequences, workflows) is their **architectural relevance**. It is **not** important to describe a large number of scenarios. You should rather document a representative selection.
+What matters:
 
-::: formalpara-title
-**Motivation**
-:::
+- works offline
+- keeps editing keyboard-driven
+- stores data locally without external services
 
-You should understand how (instances of) building blocks of your system perform their job and communicate at runtime. You will mainly capture scenarios in your documentation to communicate your architecture to stakeholders that are less willing or able to read and understand the static models (building block view, deployment view).
+### 2. Import from TXT or ReadEra
 
-::: formalpara-title
-**Form**
-:::
+Source:
 
-There are many notations for describing scenarios, e.g.
+- file chosen by user
 
-- numbered list of steps (in natural language)
+Flow:
 
-- activity diagrams or flow charts
+1. User selects import action.
+2. TUI sends file path to `ImportService`.
+3. Import adapter parses file format.
+4. Parsed captures go through `CaptureService`.
+5. Service stores each capture locally.
+6. TUI reports success or import errors.
 
-- sequence diagrams
+What matters:
 
-- BPMN or EPCs (event process chains)
+- import is file-boundary logic, not core logic
+- parser failures must not poison stored data
 
-- state machines
+### 3. Generate definitions with Gemini
 
-- ...​
+Source:
 
-::: formalpara-title
-**Further Information**
-:::
+- user choosing one or many captures plus prompt
 
-See [Runtime View](https://docs.arc42.org/section-6/) in the arc42 documentation.
+Flow:
 
-## <Runtime Scenario 1> {#_runtime_scenario_1}
+1. User selects capture(s).
+2. User picks saved prompt or enters temporary prompt.
+3. TUI calls `DefinitionService` through application layer.
+4. Service reads capture text and prompt from local store.
+5. Service calls `LlmPort` through Gemini adapter.
+6. Adapter sends HTTPS request to Gemini.
+7. Service stores returned definition locally.
+8. On temporary failure, service retries up to 3 times.
+9. TUI shows success or failure and keeps UI moving.
 
-- *<insert runtime diagram or textual description of the scenario>*
+What matters:
 
-- *<insert description of the notable aspects of the interactions between the building block instances depicted in this diagram.>*
+- LLM is optional dependency
+- UI must not block hard while request runs
+- failure must not break local data
 
-## <Runtime Scenario 2> {#_runtime_scenario_2}
+### 4. Edit capture, definition, directory, or prompt
 
-## ...​
+Source:
 
-## <Runtime Scenario n> {#_runtime_scenario_n}
+- user editing a selected row in place
 
-# Deployment View {#section-deployment-view}
+Flow:
 
-::: formalpara-title
-**Content**
-:::
+1. User starts edit command.
+2. TUI swaps row into input mode.
+3. User confirms or cancels.
+4. Application service validates and persists if confirmed.
+5. UI returns to list view.
 
-The deployment view describes:
+What matters:
 
-1. technical infrastructure used to execute your system, with infrastructure elements like geographical locations, environments, computers, processors, channels and net topologies as well as other infrastructure elements and
+- low-friction terminal workflow
+- editing stays close to selection state
 
-2. mapping of (software) building blocks to that infrastructure elements.
+### 5. Export to Anki or JSON
 
-Often systems are executed in different environments, e.g. development environment, test environment, production environment. In such cases you should document all relevant environments.
+Source:
 
-Especially document a deployment view if your software is executed as distributed system with more than one computer, processor, server or container or when you design and construct your own hardware processors and chips.
+- user export action
 
-From a software perspective it is sufficient to capture only those elements of an infrastructure that are needed to show a deployment of your building blocks. Hardware architects can go beyond that and describe an infrastructure to any level of detail they need to capture.
+Flow:
 
-::: formalpara-title
-**Motivation**
-:::
+1. User picks export target.
+2. Application service reads local data.
+3. Export adapter converts records into output format.
+4. File is written locally.
 
-Software does not run without hardware. This underlying infrastructure can and will influence a system and/or some cross-cutting concepts. Therefore, there is a need to know the infrastructure.
+What matters:
 
-::: formalpara-title
-**Form**
-:::
+- export is deterministic and local
+- external study tool integration happens at file boundary
 
-Maybe a highest level deployment diagram is already contained in section 3.2. as technical context with your own infrastructure as ONE black box. In this section one can zoom into this black box using additional deployment diagrams:
+## Deployment View {#section-deployment-view}
 
-- UML offers deployment diagrams to express that view. Use it, probably with nested diagrams, when your infrastructure is more complex.
+### V1 Deployment
 
-- When your (hardware) stakeholders prefer other kinds of diagrams rather than a deployment diagram, let them use any kind that is able to show nodes and channels of the infrastructure.
+Dictos V1 runs as a single local application on user machine.
 
-::: formalpara-title
-**Further Information**
-:::
+Nodes:
 
-See [Deployment View](https://docs.arc42.org/section-7/) in the arc42 documentation.
+- terminal emulator
+- Bun runtime
+- TypeScript app
+- local libSQL database file
+- local file system for import/export
+- remote Gemini API over HTTPS
 
-## Infrastructure Level 1 {#_infrastructure_level_1}
+### V1 Mapping
 
-Describe (usually in a combination of diagrams, tables, and text):
+| Building block        | Deployed where                  |
+| --------------------- | ------------------------------- |
+| Domain Core           | Bun process, in memory          |
+| Application Services  | Bun process, in memory          |
+| TUI Adapter           | Terminal emulator               |
+| Persistence Adapter   | Bun process + local libSQL file |
+| LLM Adapter           | Bun process + HTTPS client      |
+| Import/Export Adapter | Bun process + local file system |
 
-- distribution of a system to multiple locations, environments, computers, processors, .., as well as physical connections between them
+### V2 Deployment
 
-- important justifications or motivations for this deployment structure
+- local client remains on user device
+- central server added for auth, sync, and shared data
+- token-based auth layer, likely JWT or similar
+- sync uses HTTPS between client and backend
 
-- quality and/or performance features of this infrastructure
+### V3 Deployment
 
-- mapping of software artifacts to elements of this infrastructure
+- mobile client added
+- shared core logic reused by another adapter set
+- platform-specific UI and share/select capture hooks added
 
-For multiple environments or alternative deployments please copy and adapt this section of arc42 for all relevant environments.
+Related SRS: `03-specific-requirements.typ`, `05-appendices.typ`
 
-***<Overview Diagram>***
-
-Motivation
-
-:   *<explanation in text form>*
-
-Quality and/or Performance Features
-
-:   *<explanation in text form>*
-
-Mapping of Building Blocks to Infrastructure
-
-:   *<description of the mapping>*
-
-## Infrastructure Level 2 {#_infrastructure_level_2}
-
-Here you can include the internal structure of (some) infrastructure elements from level 1.
-
-Please copy the structure from level 1 for each selected element.
-
-### <Infrastructure Element 1> {#_infrastructure_element_1}
-
-*<diagram + explanation>*
-
-### <Infrastructure Element 2> {#_infrastructure_element_2}
-
-*<diagram + explanation>*
-
-...​
-
-### <Infrastructure Element n> {#_infrastructure_element_n}
-
-*<diagram + explanation>*
+Next: [Cross-cutting Concepts, Decisions and Quality](crosscutting-decisions-quality.md)

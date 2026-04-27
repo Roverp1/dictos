@@ -1,71 +1,32 @@
 ---
-date: July 2025
+date: April 2026
 title: "Risks, Technical Debt and Glossary"
 ---
 
 # Risks and Technical Debts {#section-technical-risks}
 
-::: formalpara-title
-**Contents**
-:::
-
-A list of identified technical risks or technical debts, ordered by priority
-
-::: formalpara-title
-**Motivation**
-:::
-
-"Risk management is project management for grown-ups" (Tim Lister, Atlantic Systems Guild.)
-
-This should be your motto for systematic detection and evaluation of risks and technical debts in the architecture, which will be needed by management stakeholders (e.g. project managers, product owners) as part of the overall risk analysis and measurement planning.
-
-::: formalpara-title
-**Form**
-:::
-
-List of risks and/or technical debts, probably including suggested measures to minimize, mitigate or avoid risks or reduce technical debts.
-
-::: formalpara-title
-**Further Information**
-:::
-
-See [Risks and Technical Debt](https://docs.arc42.org/section-11/) in the arc42 documentation.
+| Risk                                  | Impact                                     | Mitigation                                     |
+| ------------------------------------- | ------------------------------------------ | ---------------------------------------------- |
+| Core logic leaks into TUI or adapters | Future mobile/web/gui reuse gets ugly fast | Enforce module boundaries and ports.           |
+| Gemini becomes too central            | Offline and portability regress            | Keep LLM behind adapter and optional workflow. |
+| Local schema drifts across versions   | Data migration pain                        | Keep schema changes explicit and versioned.    |
+| Sync design gets bolted on later      | V2 becomes a mess                          | Keep local core sync-ready now.                |
+| Prompt handling stays ad hoc          | Reuse and traceability suffer              | Model prompts as first-class local records.    |
 
 # Glossary {#section-glossary}
 
-::: formalpara-title
-**Contents**
-:::
+| Term        | Definition                                             |
+| ----------- | ------------------------------------------------------ |
+| Capture     | Raw text fragment saved from an external source.       |
+| Word        | Capture that consists of a single word.                |
+| Definition  | Explanation or translation attached to a capture.      |
+| Directory   | Nested folder used to organize captures.               |
+| Prompt      | Reusable text template for Gemini requests.            |
+| Local-first | App works offline by default and keeps cloud optional. |
+| Anki        | Spaced-repetition tool used as export target.          |
+| libSQL      | Local transactional database used for V1 persistence.  |
+| Gemini      | LLM service used for definition generation.            |
 
-The most important domain and technical terms that your stakeholders use when discussing the system.
+Related SRS: `01-introduction.typ`, `02-overall-description.typ`, `03-specific-requirements.typ`, `05-appendices.typ`
 
-You can also see the glossary as source for translations if you work in multi-language teams.
-
-::: formalpara-title
-**Motivation**
-:::
-
-You should clearly define your terms, so that all stakeholders
-
-- have an identical understanding of these terms
-
-- do not use synonyms and homonyms
-
-::: formalpara-title
-**Form**
-:::
-
-A table with columns <Term> and <Definition>.
-
-Potentially more columns in case you need translations.
-
-::: formalpara-title
-**Further Information**
-:::
-
-See [Glossary](https://docs.arc42.org/section-12/) in the arc42 documentation.
-
-| Term | Definition |
-|---|---|
-| *<Term-1>* | *<definition-1>* |
-| *<Term-2>* | *<definition-2>* |
+Back to [Architecture Documentation](index.md)

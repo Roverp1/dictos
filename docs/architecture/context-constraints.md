@@ -1,114 +1,56 @@
 ---
-date: July 2025
+date: April 2026
 title: "Architecture Constraints and Context"
 ---
 
 # Architecture Constraints
 
-::: formalpara-title
-**Contents**
-:::
+Dictos architecture is constrained by these hard rules:
 
-Any requirement that constraints software architects in their freedom of design and implementation decisions or decision about the development process. These constraints sometimes go beyond individual systems and are valid for whole organizations and companies.
+- V1 must be local-first and usable offline
+- core domain must stay platform-agnostic
+- TUI must use OpenTUI with React bindings
+- implementation language is TypeScript
+- runtime and tooling use Bun
+- local persistence uses libSQL
+- LLM generation uses Gemini in V1
+- later V2/V3 platforms must be able to reuse core logic
+- future auth should stay cross-platform friendly, likely JWT or another token-based mechanism
 
-::: formalpara-title
-**Motivation**
-:::
+Architectural consequence:
 
-Architects should know exactly where they are free in their design decisions and where they must adhere to constraints. Constraints must always be dealt with; they may be negotiable, though.
+- do not put business rules inside UI code
+- do not bind core domain to libSQL, Gemini, or terminal-only abstractions
+- treat adapters as disposable edges
 
-::: formalpara-title
-**Form**
-:::
+## Context and Scope {#section-context-and-scope}
 
-Simple tables of constraints with explanations. If needed you can subdivide them into technical constraints, organizational and political constraints and conventions (e.g. programming or versioning guidelines, documentation or naming conventions)
+Dictos is a personal dictionary builder. It sits between reading sources and study tools.
 
-::: formalpara-title
-**Further Information**
-:::
+### Business Context {#\_business_context}
 
-See [Architecture Constraints](https://docs.arc42.org/section-2/) in the arc42 documentation.
+| Communication partner | Input                                             | Output                                      |
+| --------------------- | ------------------------------------------------- | ------------------------------------------- |
+| User                  | Raw text, edits, prompt choice, directory actions | Captures, definitions, exports, feedback    |
+| ReadEra backup file   | Notes and captured text                           | Imported captures                           |
+| TXT file              | Raw text                                          | Imported captures                           |
+| Gemini API            | Capture text plus prompt                          | Generated definition text                   |
+| Anki                  | Export package or JSON-fed import flow            | Study decks                                 |
+| Future sync backend   | Local data and change sets                        | Synced account/device state                 |
+| Future mobile client  | Shared core actions                               | Captures, definitions, directory operations |
+| Future web/gui client | Shared core actions                               | Same domain behavior through another UI     |
 
-# Context and Scope {#section-context-and-scope}
+### Technical Context {#\_technical_context}
 
-::: formalpara-title
-**Contents**
-:::
+| Channel                         | Used for                 | Notes                                                                                          |
+| ------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| Local terminal UI               | V1 interaction           | OpenTUI with React bindings                                                                    |
+| Local libSQL store              | Persistence              | Offline-first storage for captures, definitions, prompts, directories, and activity aggregates |
+| HTTPS to Gemini                 | Definition generation    | Requires internet and user API key                                                             |
+| Local file system               | Import/export            | TXT, ReadEra backups, Anki, JSON                                                               |
+| Future HTTPS sync channel       | Cross-device sync        | Planned for V2                                                                                 |
+| Future token-based auth channel | Account/session handling | JWT or another cross-platform friendly auth mechanism                                          |
 
-Context and scope - as the name suggests - delimits your system (i.e. your scope) from all its communication partners (neighboring systems and users, i.e. the context of your system). It thereby specifies the external interfaces.
+Related SRS: `03-specific-requirements.typ`, `04-prioritization.typ`
 
-If necessary, differentiate the business context (domain specific inputs and outputs) from the technical context (channels, protocols, hardware).
-
-::: formalpara-title
-**Motivation**
-:::
-
-The domain interfaces and technical interfaces to communication partners are among your system's most critical aspects. Make sure that you completely understand them.
-
-::: formalpara-title
-**Form**
-:::
-
-Various options:
-
-- Context diagrams
-
-- Lists of communication partners and their interfaces.
-
-::: formalpara-title
-**Further Information**
-:::
-
-See [Context and Scope](https://docs.arc42.org/section-3/) in the arc42 documentation.
-
-## Business Context {#_business_context}
-
-::: formalpara-title
-**Contents**
-:::
-
-Specification of **all** communication partners (users, IT-systems, ...​) with explanations of domain specific inputs and outputs or interfaces. Optionally you can add domain specific formats or communication protocols.
-
-::: formalpara-title
-**Motivation**
-:::
-
-All stakeholders should understand which data are exchanged with the environment of the system.
-
-::: formalpara-title
-**Form**
-:::
-
-All kinds of diagrams that show the system as a black box and specify the domain interfaces to communication partners.
-
-Alternatively (or additionally) you can use a table. The title of the table is the name of your system, the three columns contain the name of the communication partner, the inputs, and the outputs.
-
-**<Diagram or Table>**
-
-**<optionally: Explanation of external domain interfaces>**
-
-## Technical Context {#_technical_context}
-
-::: formalpara-title
-**Contents**
-:::
-
-Technical interfaces (channels and transmission media) linking your system to its environment. In addition a mapping of domain specific input/output to the channels, i.e. an explanation which I/O uses which channel.
-
-::: formalpara-title
-**Motivation**
-:::
-
-Many stakeholders make architectural decision based on the technical interfaces between the system and its context. Especially infrastructure or hardware designers decide these technical interfaces.
-
-::: formalpara-title
-**Form**
-:::
-
-E.g. UML deployment diagram describing channels to neighboring systems, together with a mapping table showing the relationships between channels and input/output.
-
-**<Diagram or Table>**
-
-**<optionally: Explanation of technical interfaces>**
-
-**<Mapping Input/Output to Channels>**
+Next: [Solution Strategy and Building Block View](solution-building-blocks.md)

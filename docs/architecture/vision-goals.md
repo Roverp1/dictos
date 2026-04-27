@@ -1,106 +1,85 @@
 ---
-date: July 2025
+date: April 2026
 title: "Introduction and Goals"
 ---
 
 # Introduction and Goals
 
-**About arc42**
+## Overview
 
-arc42, the template for documentation of software and system architecture.
+Dictos is a local-first text processing app for turning raw reading fragments into structured study material.
 
-Template Version 9.0-EN. (based upon AsciiDoc version), July 2025
+This doc set is the architecture view for Dictos. The SRS is the requirement source; these markdown files explain how the system should be shaped so Release 1 can grow into V2 and V3 without repainting everything from scratch.
 
-Created, maintained and © by Dr. Peter Hruschka, Dr. Gernot Starke and contributors. See <https://arc42.org>.
+Core idea:
 
-:::: note
-::: title
-:::
+- local-first by default
+- platform-agnostic core domain
+- thin adapters for TUI, storage, LLM access, and later mobile/web/gui clients
+- no hard tie between domain logic and any one UI or platform
 
-This version of the template contains some help and explanations. It is used for familiarization with arc42 and the understanding of the concepts. For documentation of your own system you use better the *plain* version.
-::::
+## Requirements Overview {#\_requirements_overview}
 
-## Requirements Overview {#_requirements_overview}
+Dictos handles these main jobs in Release 1:
 
-::: formalpara-title
-**Contents**
-:::
+- capture raw text from TXT files and ReadEra backups
+- create, edit, move, copy, and delete captures in nested directories
+- store multiple definitions per capture
+- generate definitions with Gemini using saved or temporary prompts
+- export local data to Anki decks and JSON
+- keep all core data local and usable offline
+- provide everything through a keyboard-driven TUI
 
-Short description of the functional requirements, driving forces, extract (or abstract) of requirements. Link to (hopefully existing) requirements documents (with version number and information where to find it).
+Roadmap pressure from later releases:
 
-::: formalpara-title
-**Motivation**
-:::
+- V2 adds user accounts, cross-device sync, shared data, and social features
+- V3 adds mobile capture and mobile access to core workflows
+- the architecture must keep core domain logic reusable across these later platforms
 
-From the point of view of the end users a system is created or modified to improve support of a business activity and/or improve the quality.
+Primary source:
 
-::: formalpara-title
-**Form**
-:::
+- `software-requirements-specification-ieee-830/`
 
-Short textual description, probably in tabular use-case format. If requirements documents exist this overview should refer to these documents.
+## Quality Goals {#\_quality_goals}
 
-Keep these excerpts as short as possible. Balance readability of this document with potential redundancy w.r.t to requirements documents.
+Top quality goals for Dictos:
 
-::: formalpara-title
-**Further Information**
-:::
+1. Local sovereignty
 
-See [Introduction and Goals](https://docs.arc42.org/section-1/) in the arc42 documentation.
+- User data stays on device in V1.
+- Core workflows must work offline.
+- External services are optional, not a hard dependency for basic use.
 
-## Quality Goals {#_quality_goals}
+2. Portability
 
-::: formalpara-title
-**Contents**
-:::
+- Core logic must not depend on TUI, Gemini, libSQL, or any specific runtime edge.
+- Future mobile, web, and GUI clients should reuse the same domain and service layer.
 
-The top three (max five) quality goals for the architecture whose fulfillment is of highest importance to the major stakeholders. We really mean quality goals for the architecture. Don't confuse them with project goals. They are not necessarily identical.
+3. Maintainability
 
-Consider this overview of potential topics (based upon the ISO 25010 standard). If you need the original visual, copy it in from the arc42 template.
+- Keep business rules isolated from adapters.
+- Add new interfaces without rewriting the core.
+- Prefer explicit module boundaries over one tangled app blob.
 
-::: formalpara-title
-**Motivation**
-:::
+4. Fast keyboard workflow
 
-You should know the quality goals of your most important stakeholders, since they will influence fundamental architectural decisions. Make sure to be very concrete about these qualities, avoid buzzwords. If you as an architect do not know how the quality of your work will be judged...​
+- TUI use must stay quick and low-friction.
+- Editing, importing, and definition generation should feel immediate.
 
-::: formalpara-title
-**Form**
-:::
+5. Reliability
 
-A table with quality goals and concrete scenarios, ordered by priorities
+- Local writes must survive crashes and power loss through transactional storage.
+- Failed LLM requests must not corrupt local data.
 
-## Stakeholders {#_stakeholders}
+## Stakeholders {#\_stakeholders}
 
-::: formalpara-title
-**Contents**
-:::
+| Role/Name           | Contact                                          | Expectations                                                             |
+| ------------------- | ------------------------------------------------ | ------------------------------------------------------------------------ |
+| Solo developer      | You                                              | Keep architecture simple now, but not dumb. V1 must not block V2/V3.     |
+| Academic evaluator  | Course review                                    | Clear requirements traceability, sound architecture, and readable docs.  |
+| Future contributors | Unknown                                          | Separate modules, obvious boundaries, and docs that explain intent fast. |
+| Future users        | Language learners, developers, local-first users | Fast capture workflow, offline core, and no cloud hostage game.          |
 
-Explicit overview of stakeholders of the system, i.e. all person, roles or organizations that
+Related SRS: `01-introduction.typ`, `02-overall-description.typ`, `04-prioritization.typ`
 
-- should know the architecture
-
-- have to be convinced of the architecture
-
-- have to work with the architecture or with code
-
-- need the documentation of the architecture for their work
-
-- have to come up with decisions about the system or its development
-
-::: formalpara-title
-**Motivation**
-:::
-
-You should know all parties involved in development of the system or affected by the system. Otherwise, you may get nasty surprises later in the development process. These stakeholders determine the extent and the level of detail of your work and its results.
-
-::: formalpara-title
-**Form**
-:::
-
-Table with role names, person names, and their expectations with respect to the architecture and its documentation.
-
-| Role/Name | Contact | Expectations |
-|---|---|---|
-| *<Role-1>* | *<Contact-1>* | *<Expectation-1>* |
-| *<Role-2>* | *<Contact-2>* | *<Expectation-2>* |
+Next: [Architecture Constraints and Context](context-constraints.md)
