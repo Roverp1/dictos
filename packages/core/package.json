@@ -1,0 +1,11 @@
+{
+  "name": "@dictos/core",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0"
+  }
+}
