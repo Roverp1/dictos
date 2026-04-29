@@ -6,6 +6,12 @@
     ".": "./src/index.ts"
   },
   "devDependencies": {
+    "drizzle-kit": "^0.31.10",
     "typescript": "^6.0.0"
+  },
+  "dependencies": {
+    "@dictos/core": "workspace:*",
+    "@libsql/client": "^0.17.3",
+    "drizzle-orm": "^0.45.2"
   }
 }
