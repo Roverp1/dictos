@@ -1,16 +1,17 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
+    "strictPropertyInitialization": false,
+
     // Package build settings - emit type declarations
     "declaration": true,
     "declarationMap": true,
     "composite": true,
     "incremental": true,
     "sourceMap": true,
-    
+
     // Output settings
     "outDir": "./dist",
-    "rootDir": "./src",
     "noEmit": false
   }
 }
