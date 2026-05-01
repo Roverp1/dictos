@@ -10,15 +10,14 @@ import {
 export const capturesTable = sqliteTable("captures", {
   id: int().primaryKey({ autoIncrement: true }),
   text: text().notNull(), // text + directoryId primary key or unique constraint?
-  directoryId: int("directory_id")
-    .notNull()
-    .references(() => directoriesTable.id, { onDelete: "cascade" }),
+  directoryId: int("directory_id").notNull(),
+  // .references(() => directoriesTable.id, { onDelete: "cascade" }),
   createdAt: int("created_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`strftime('%s', 'now')`),
-  modifiedAt: int("created_at", { mode: "timestamp" })
+    .default(sql`(strftime('%s', 'now'))`),
+  modifiedAt: int("modified_at", { mode: "timestamp" })
     .notNull()
-    .default(sql`strftime('%s', 'now')`),
+    .default(sql`(strftime('%s', 'now'))`),
 });
 
 export const directoriesTable = sqliteTable(
@@ -34,10 +33,10 @@ export const directoriesTable = sqliteTable(
       .default("private"),
     createdAt: int("created_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`strftime('%s', 'now')`),
+      .default(sql`(strftime('%s', 'now'))`),
     modifiedAt: int("modified_at", { mode: "timestamp" })
       .notNull()
-      .default(sql`strftime('%s', 'now')`),
+      .default(sql`(strftime('%s', 'now'))`),
   },
 
   (table) => [
