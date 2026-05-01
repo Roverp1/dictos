@@ -13,7 +13,7 @@ title: "Cross-cutting Concepts, Decisions and Quality"
 
 ## Port and adapter boundaries
 
-- domain and services depend on interfaces
+- core depends on ports
 - adapters depend on concrete tech
 - UI never talks directly to DB or Gemini
 
@@ -37,7 +37,7 @@ title: "Cross-cutting Concepts, Decisions and Quality"
 
 ## Future platform reuse
 
-- mobile, web, and GUI clients reuse same core use cases
+- mobile, web, and GUI clients reuse same core flows
 - platform-specific behavior stays in adapters
 - sync and auth added later without rewriting dictionary logic
 

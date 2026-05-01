@@ -16,9 +16,9 @@ Source:
 Flow:
 
 1. User opens capture screen.
-2. TUI sends request to `CaptureService`.
-3. Service validates capture text.
-4. Service stores capture in local libSQL.
+2. TUI sends request to CaptureService.
+3. Core validates capture text.
+4. CaptureService uses libsql adapter to store capture in local libSQL.
 5. TUI refreshes view and shows saved item.
 
 What matters:
@@ -36,10 +36,10 @@ Source:
 Flow:
 
 1. User selects import action.
-2. TUI sends file path to `ImportService`.
+2. TUI sends file path to an `ImportService`.
 3. Import adapter parses file format.
-4. Parsed captures go through `CaptureService`.
-5. Service stores each capture locally.
+4. Parsed captures go through the capture input port.
+5. Core accepts each capture, then the persistence adapter stores it locally.
 6. TUI reports success or import errors.
 
 What matters:
@@ -57,12 +57,12 @@ Flow:
 
 1. User selects capture(s).
 2. User picks saved prompt or enters temporary prompt.
-3. TUI calls `DefinitionService` through application layer.
-4. Service reads capture text and prompt from local store.
-5. Service calls `LlmPort` through Gemini adapter.
+3. TUI calls a `DefinitionService.
+4. Core reads capture text and prompt through output ports.
+5. Core calls the LLM output port through the Gemini adapter.
 6. Adapter sends HTTPS request to Gemini.
-7. Service stores returned definition locally.
-8. On temporary failure, service retries up to 3 times.
+7. Persistence adapter stores returned definition locally.
+8. On temporary failure, the core retries up to 3 times.
 9. TUI shows success or failure and keeps UI moving.
 
 What matters:
@@ -82,7 +82,7 @@ Flow:
 1. User starts edit command.
 2. TUI swaps row into input mode.
 3. User confirms or cancels.
-4. Application service validates and persists if confirmed.
+4. Core validates and persists if confirmed.
 5. UI returns to list view.
 
 What matters:
@@ -99,7 +99,7 @@ Source:
 Flow:
 
 1. User picks export target.
-2. Application service reads local data.
+2. Core reads local data through output ports.
 3. Export adapter converts records into output format.
 4. File is written locally.
 
@@ -127,8 +127,7 @@ Nodes:
 
 | Building block        | Deployed where                  |
 | --------------------- | ------------------------------- |
-| Domain Core           | Bun process, in memory          |
-| Application Services  | Bun process, in memory          |
+| Core                  | Bun process, in memory          |
 | TUI Adapter           | Terminal emulator               |
 | Persistence Adapter   | Bun process + local libSQL file |
 | LLM Adapter           | Bun process + HTTPS client      |
