@@ -19,7 +19,7 @@ export class LibSqlCaptureRepository implements CaptureRepository {
 
     await migrate(this.db, {
       // not sure if its correct
-      migrationsFolder: "./packages/adapters/libsql/drizzle",
+      migrationsFolder: "./packages/adapters/libsql/drizzle/migrations",
     });
   }
 
