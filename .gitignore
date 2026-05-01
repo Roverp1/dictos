@@ -10,6 +10,7 @@ out
 !**/src/**/out
 dist
 *.tgz
+/**/*.db
 
 # code coverage
 coverage
