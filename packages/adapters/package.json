@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./index.ts"
   },
   "devDependencies": {
     "drizzle-kit": "^0.31.10",
