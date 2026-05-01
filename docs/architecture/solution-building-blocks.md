@@ -5,196 +5,132 @@ title: "Solution Strategy and Building Block View"
 
 # Solution Strategy
 
-Dictos uses a local-first, modular monorepo architecture.
+Dictos follows local-first hexagonal monorepo architecture.
 
 Main strategy:
 
-- keep domain rules in a platform-agnostic core
-- keep app orchestration in a separate service layer
-- keep TUI, storage, LLM, and future platform UIs as adapters
-- let V1 prove the core, while V2 and V3 reuse it instead of cloning it
+- keep the application core independent from UI, persistence, and external services
+- let inbound adapters drive the core through ports
+- let outbound adapters implement ports declared by the core
 
-This is not a fat-client app with some helpers around it. The whole point is to avoid that trap.
+This is not a UI app with a few helper modules. The center is the system. Everything else is replaceable.
 
 ## Architectural Decisions
 
-| Decision               | Why                                                                            |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| Local-first V1         | Core use must work offline and keep user data on device.                       |
-| Modular monorepo       | Future mobile, web, and GUI clients need shared core logic.                    |
-| TypeScript everywhere  | One language across core, services, and adapters lowers friction.              |
-| Bun runtime/tooling    | Fast local dev loop and simple project tooling.                                |
-| OpenTUI UI layer       | Keyboard-driven terminal workflow fits V1 and quick capture work.              |
-| libSQL persistence     | Local transactional store for captures, prompts, definitions, and directories. |
-| Gemini adapter at edge | LLM use stays outside core so it can be swapped later.                         |
+| Decision              | Why                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------- |
+| Local-first           | Core features must work offline, to keep user's data private, and not depend on the internet connection |
+| Hexagonal core        | Business rules stay isolated from frameworks and infrastructure.                                        |
+| TypeScript everywhere | One language across core and adapters lowers friction.                                                  |
+| Bun runtime/tooling   | Fast local dev loop and simple project tooling.                                                         |
+| OpenTUI UI layer      | Keyboard-driven terminal workflow fits the first capture slice.                                         |
+| libSQL persistence    | Local transactional store for captures and other local records.                                         |
+| Thin adapters         | UI, storage, and external services stay outside the core.                                               |
 
 ## Structure
 
 Planned module split:
 
-- `core/domain` - pure entities, value objects, rules, and invariants
-- `core/application` - use cases and orchestration services
-- `adapters/tui` - OpenTUI + React bindings
-- `adapters/libsql` - local libSQL repositories
-- `adapters/gemini` - Gemini request adapter
-- `adapters/import-export` - TXT, ReadEra, Anki, JSON handling
-- `platform/mobile` - future mobile client on shared core
-- `platform/web` - future web client on shared core
-- `platform/gui` - future desktop GUI client on shared core
+- `packages/core` - domain model and port interfaces
+- `packages/adapters` - concrete outbound adapters like persistence and future integrations
+- `apps/tui` - inbound adapter for terminal interaction
+- `apps/web` - future inbound adapter for browser interaction
+- `apps/backend` - future inbound adapter for API interaction
+- `apps/mobile` - future inbound adapter for mobile interaction
+- `apps/gui` - future inbound adapter for desktop interaction
 
 Core rule:
 
-- no adapter imports inside domain code
-- no direct DB/API calls from UI code
-- use ports at the core boundary
+- no adapter imports inside core code
+- no direct DB/API calls from app code when a port already exists
+- adapters depend on the core, not the other way around
 
 # Building Block View {#section-building-block-view}
 
 ## Whitebox Overall System {#\_whitebox_overall_system}
 
-Dictos splits into a small core and several edges.
+Dictos splits into a hexagonal core and outer adapters.
 
 ### Level 1 Blocks
 
-| Name                     | Responsibility                                                    |
-| ------------------------ | ----------------------------------------------------------------- |
-| Domain Core              | Own capture, definition, directory, prompt, and validation rules. |
-| Application Services     | Execute use cases and coordinate ports.                           |
-| TUI Adapter              | Present keyboard workflow and send actions to services.           |
-| Persistence Adapter      | Store and load local data in libSQL.                              |
-| LLM Adapter              | Send prompt and capture text to Gemini and return results.        |
-| Import/Export Adapter    | Parse TXT/ReadEra and produce Anki/JSON exports.                  |
-| Future Platform Adapters | Reuse same core from mobile, web, or GUI later.                   |
+| Name                | Responsibility                                                  |
+| ------------------- | --------------------------------------------------------------- |
+| Core                | Own domain rules and port interfaces.                           |
+| TUI adapter         | Translate keyboard actions into core calls.                     |
+| Persistence adapter | Implement storage ports with libSQL.                            |
+| Future adapters     | Add other input or output technologies while keeping core pure. |
 
 ### Core Relations
 
-- TUI calls application services
-- services call ports, not concrete adapters
-- domain core stays free of UI, network, and DB details
-- persistence adapter owns libSQL schema access
-- LLM adapter owns Gemini communication
-- import/export adapter owns file format specifics
+- inbound adapters call the core through input ports
+- the core owns the decision logic
+- the core calls output ports, never concrete adapters
+- outbound adapters handle libSQL, file system, or other external concerns
 
 ### Important Interfaces
 
-- `CaptureRepository`
-- `DefinitionRepository`
-- `DirectoryRepository`
-- `PromptRepository`
-- `LlmPort`
-- `ImportPort`
-- `ExportPort`
+- inbound port for capture actions
+- outbound port for capture persistence
 
-These ports are the seam. They keep V1 stable and V2/V3 possible.
+These ports are the seam. They keep the core stable while adapters change.
 
 ## Level 2
 
-### Domain Core
+### Core
 
 Purpose:
 
-- model local dictionary data and rules
+- hold the business rules and port contracts
 
 Contains:
 
-- Capture
-- Definition
-- Directory
-- Prompt
-- local activity aggregate for later stats/sync
+- capture model
+- input port for capture workflows
+- output port for capture storage
+- validation and coordination logic around the capture flow
 
 Responsibilities:
 
 - validate capture text
-- keep directory nesting sane
-- handle one-to-many capture to definition relation
-- preserve local-first invariants
+- preserve core invariants
+- decide what data is acceptable before persistence
+- stay ignorant of TUI, libSQL, or any other concrete adapter
 
-### Application Services
-
-Purpose:
-
-- run use cases end to end
-
-Contains:
-
-- CaptureService
-- DirectoryService
-- PromptService
-- DefinitionService
-- ImportService
-
-Responsibilities:
-
-- coordinate validation, storage, and adapter calls
-- keep orchestration out of UI
-- retry transient LLM failures up to 3 times
-- support bulk definition generation
-
-### TUI Adapter
+### Inbound Adapter: TUI
 
 Purpose:
 
-- expose capture/edit/import/generate/export workflows in terminal
+- let the user create and inspect captures from the terminal
 
 Responsibilities:
 
-- render two-pane workflow
-- support in-place editing
-- show prompt picker for one or many captures
-- keep UI responsive while requests run
+- render terminal screens
+- collect user input
+- call the core through inbound ports
+- present success and failure states
 
-### Persistence Adapter
+### Outbound Adapter: Persistence
 
 Purpose:
 
-- own libSQL persistence details
+- store and load captures locally
 
 Responsibilities:
 
-- transactions
-- schema mapping
-- query performance
-- local-only storage for V1
-
-### LLM Adapter
-
-Purpose:
-
-- isolate Gemini calls
-
-Responsibilities:
-
-- send HTTPS requests
-- normalize prompt/capture input
-- return generated definition text
-- report transient failures cleanly
-
-### Import/Export Adapter
-
-Purpose:
-
-- handle file boundaries
-
-Responsibilities:
-
-- parse TXT and ReadEra backups
-- export to Anki and JSON
-- keep file format junk out of core
+- map core objects to storage records
+- execute libSQL operations
+- handle transactions and schema details
+- keep database details out of the core
 
 ## Level 3
 
 Likely deeper splits later:
 
-- `core/domain/capture`
-- `core/domain/directory`
-- `core/domain/prompt`
-- `core/domain/definition`
-- `core/application/import`
-- `core/application/definition-generation`
-- `adapters/libsql/schema`
-- `adapters/tui/screens`
-- `adapters/gemini/client`
+- `packages/core/src/capture`
+- `packages/core/src/ports/in`
+- `packages/core/src/ports/out`
+- `packages/adapters/libsql/src`
+- `apps/tui/src`
 
 Do not split these too early unless code pressure says so. Keep it boring until it hurts.
 

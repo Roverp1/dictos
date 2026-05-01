@@ -53,7 +53,8 @@ Top quality goals for Dictos:
 2. Portability
 
 - Core logic must not depend on TUI, Gemini, libSQL, or any specific runtime edge.
-- Future mobile, web, and GUI clients should reuse the same domain and service layer.
+- Future mobile, web, and GUI clients should reuse the same core and ports.
+- Future mobile, web, and GUI clients should reuse the same core and ports.
 
 3. Maintainability
 
