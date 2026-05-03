@@ -5,7 +5,7 @@ import path from "path";
 
 import * as schema from "../../schema/schema";
 
-export async function creatLibSqlDatabase(dbUrl: string) {
+export async function createLibSqlDatabase(dbUrl: string) {
   const client = createClient({ url: dbUrl });
   await client.execute("PRAGMA foreign_keys = ON;");
 
@@ -14,4 +14,6 @@ export async function creatLibSqlDatabase(dbUrl: string) {
   await migrate(db, {
     migrationsFolder: path.resolve(__dirname, "../../drizzle/migrations/"),
   });
+
+  return db;
 }
