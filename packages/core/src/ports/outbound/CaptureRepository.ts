@@ -6,5 +6,5 @@ export interface CaptureRepository {
     capture: Omit<Capture, "id" | "createdAt" | "modifiedAt">
   ): Promise<Capture>;
   findById(id: number): Promise<Capture | null>;
-  getAll(): Promise<Capture[] | null>;
+  getAll(): Promise<Capture[]>;
 }
