@@ -1,10 +1,10 @@
 import type { Capture, CaptureRepository } from "@dictos/core";
 import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
-
-import * as schema from "./schema";
 import { createClient, type Client } from "@libsql/client";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { eq } from "drizzle-orm";
+
+import * as schema from "./schema";
 
 export class LibSqlCaptureRepository implements CaptureRepository {
   private db: LibSQLDatabase<typeof schema>;
@@ -15,7 +15,9 @@ export class LibSqlCaptureRepository implements CaptureRepository {
   }
 
   async initialize(): Promise<void> {
-    this.db = drizzle({ client: this.client, schema });
+    await this.client.execute("PRAGMA foreign_keys = ON;");
+
+    this.db = drizzle({ client: this.client, schema, casing: "snake_case" });
 
     await migrate(this.db, {
       // not sure if its correct
