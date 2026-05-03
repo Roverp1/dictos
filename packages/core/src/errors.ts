@@ -14,3 +14,8 @@ export class DbError extends errore.createTaggedError({
   name: "DbError",
   message: "Database operation $operation failed",
 }) {}
+
+export class LlmError extends errore.createTaggedError({
+  name: "LlmError",
+  message: "Llm operation $operation failed",
+}) {}
