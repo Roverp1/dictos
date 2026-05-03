@@ -3,6 +3,7 @@ import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
 import { createClient, type Client } from "@libsql/client";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { eq } from "drizzle-orm";
+import path from "path";
 
 import * as schema from "./schema";
 
@@ -21,7 +22,7 @@ export class LibSqlCaptureRepository implements CaptureRepository {
 
     await migrate(this.db, {
       // not sure if its correct
-      migrationsFolder: "./packages/adapters/libsql/drizzle/migrations",
+      migrationsFolder: path.resolve(__dirname, "../drizzle/migrations"),
     });
   }
 
