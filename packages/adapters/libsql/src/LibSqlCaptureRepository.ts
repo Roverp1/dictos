@@ -54,8 +54,7 @@ export class LibSqlCaptureRepository implements CaptureRepository {
     return capture;
   }
 
-  // remove null?
-  async getAll(): Promise<Capture[] | null> {
+  async getAll(): Promise<Capture[]> {
     const captures = await this.db.select().from(schema.capturesTable);
 
     return captures;
