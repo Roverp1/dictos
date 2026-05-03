@@ -1,1 +1,1 @@
-export * from "./libsql/";
+export * from "./db/libsql-adapter";
