@@ -12,7 +12,7 @@ export class NotFoundError extends errore.createTaggedError({
 
 export class DbError extends errore.createTaggedError({
   name: "DbError",
-  message: "Database operation $operation failed",
+  message: "Database operation $operation failed. Reason: $reason",
 }) {}
 
 export class LlmError extends errore.createTaggedError({
