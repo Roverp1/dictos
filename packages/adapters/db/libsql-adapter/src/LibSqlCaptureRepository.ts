@@ -4,11 +4,8 @@ import {
   type NewCapture,
   DbError,
 } from "@dictos/core";
-import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
-import { createClient, type Client } from "@libsql/client";
-import { migrate } from "drizzle-orm/libsql/migrator";
+import { LibSQLDatabase } from "drizzle-orm/libsql";
 import { eq } from "drizzle-orm";
-import path from "path";
 
 import * as schema from "../../schema/schema";
 
