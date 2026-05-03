@@ -1,5 +1,5 @@
 import type { Capture } from "@models/Capture";
-import type { CaptureRepository } from "@ports/out/CaptureRepository";
+import type { CaptureRepository } from "@ports/outbound/CaptureRepository";
 
 export class CaptureService {
   constructor(private repo: CaptureRepository) {}
