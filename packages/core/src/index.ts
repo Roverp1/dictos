@@ -1,4 +1,6 @@
-export type { Capture } from "@models/Capture";
-export type { CaptureRepository } from "@ports/outbound/CaptureRepository";
+export * from "./models/";
+export * from "@ports/outbound/";
 
 export { CaptureService } from "@services/CaptureService";
+
+export * from "./errors";
