@@ -49,10 +49,7 @@ export class LibSqlCaptureRepository implements CaptureRepository {
       .from(schema.capturesTable)
       .where(eq(schema.capturesTable.id, id));
 
-    if (!capture)
-      throw new Error("Select failed: No row returned from database");
-
-    return capture;
+    return capture || null;
   }
 
   async getAll(): Promise<Capture[]> {
