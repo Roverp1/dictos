@@ -235,7 +235,13 @@ The local database stores all core user data and must function without network a
 #figure(
   sql-table(
     ([id], [integer], [No], [PK], [Primary key]),
-    ([date], [date], [No], [UNIQUE], [Calendar day of the aggregate.]),
+    (
+      [date],
+      [text],
+      [No],
+      [UNIQUE],
+      [Calendar day of the aggregate in iso 8601 format],
+    ),
     (
       [count],
       [integer],
@@ -368,7 +374,7 @@ The central database stores account and social data. It does not replace the loc
 - `definitions.capture_id` references `captures.id`.
 - `directories.parent_id` references `directories.id` for nested structure.
 - `modified_at` is maintained by table-specific triggers in `captures`, `definitions`, `directories`, and `prompts`.
-- `captures_added.count` defaults to `0` and stores a daily aggregate, not raw events.
+- `captures_added.count` defaults to `1` and stores a daily aggregate, and is updated by database trigger.
 - `directories.privacy` defaults to `private`.
 - `friends.status` defaults to `pending`.
 - `users.last_login_at` is updated after successful authentication.
