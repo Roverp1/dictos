@@ -1,27 +1,43 @@
-import type { Capture } from "@models/Capture";
+import {
+  validateNewCapture,
+  type Capture,
+  type NewCapture,
+} from "@models/Capture";
 import type { CaptureRepository } from "@ports/outbound/CaptureRepository";
+import type { DbError, ValidationError } from "errors";
 
 export class CaptureService {
   constructor(private repo: CaptureRepository) {}
 
-  async createCapture(text: string, directoryId: number): Promise<Capture> {
-    if (!text || text.trim().length === 0)
-      throw new Error("Validation: text required");
+  async createCapture(
+    data: NewCapture
+  ): Promise<Capture | DbError | ValidationError> {
+    const valErr = validateNewCapture(data);
+    if (valErr instanceof Error) return valErr;
 
-    const toSave = {
-      text: text.trim(),
-      directoryId,
-    };
-
-    const saved = await this.repo.save(toSave);
-    return saved;
+    const capture = await this.repo.save(data);
+    return capture;
   }
 
-  async getCapture(id: number): Promise<Capture | null> {
-    return this.repo.findById(id);
+  async getCaptureById(id: number): Promise<Capture | DbError | null> {
+    return await this.repo.findById(id);
   }
 
-  async getAll(): Promise<Capture[] | null> {
-    return this.repo.getAll();
+  async getCapturesInDirectory(
+    directoryId: number
+  ): Promise<Capture[] | DbError> {
+    return await this.repo.findByDirectory(directoryId);
+  }
+
+  async updateCapture(
+    id: number,
+    data: Partial<NewCapture>
+  ): Promise<Capture | DbError> {
+    /* @todo: validate data later */
+    return await this.repo.update(id, data);
+  }
+
+  async deleteCapture(id: number): Promise<Capture | DbError> {
+    return await this.repo.delete(id);
   }
 }
