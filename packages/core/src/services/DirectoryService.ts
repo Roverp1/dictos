@@ -4,7 +4,11 @@ import {
   type NewDirectory,
 } from "@models/Directory";
 import type { DirectoryRepository } from "@ports/outbound";
-import { ValidationError, type DbError } from "errors";
+import { DbError, ValidationError } from "errors";
+
+export interface DirectoryNode extends Directory {
+  children: DirectoryNode[];
+}
 
 export class DirectoryService {
   constructor(private repo: DirectoryRepository) {}
@@ -19,9 +23,41 @@ export class DirectoryService {
     return capture;
   }
 
-  async getDirectoryTree(): Promise<Directory[] | DbError> {
-    /* @todo: transform flat list into tree object or smth */
-    return await this.repo.findAll();
+  async getDirectoryTree(): Promise<DirectoryNode | DbError> {
+    const dirs = await this.repo.findAll();
+    if (dirs instanceof Error) return dirs;
+
+    const nodeMap = new Map<number, DirectoryNode>();
+    let rootNode: DirectoryNode | undefined = undefined;
+
+    for (const dir of dirs) {
+      const node: DirectoryNode = {
+        ...dir,
+        children: [],
+      };
+
+      nodeMap.set(dir.id, node);
+    }
+
+    for (const dir of dirs) {
+      if (dir.parentId === null) {
+        rootNode = nodeMap.get(dir.id);
+
+        continue;
+      }
+
+      const parent = nodeMap.get(dir.parentId);
+      const currentNode = nodeMap.get(dir.id);
+
+      if (parent && currentNode) {
+        parent.children.push(currentNode);
+      }
+    }
+    if (!rootNode) {
+      throw new Error("Root directory not found in the database");
+    }
+
+    return rootNode;
   }
 
   async renameDirectory(
