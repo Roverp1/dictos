@@ -1,12 +1,12 @@
 import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
+import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import path from "path";
-import { exit } from "process";
 
 import * as schema from "../../schema/schema";
+import { isNull } from "drizzle-orm";
 
-export async function createLibSqlDatabase(dbUrl: string) {
+export const createLibSqlDatabase = async (dbUrl: string) => {
   const client = createClient({ url: dbUrl });
   await client.execute("PRAGMA foreign_keys = ON;");
 
@@ -16,6 +16,19 @@ export async function createLibSqlDatabase(dbUrl: string) {
     migrationsFolder: path.resolve(__dirname, "../../drizzle/migrations/"),
   });
 
+  await seedDbOnInit(db);
+
+  return db;
+};
+
+const seedDbOnInit = async (db: LibSQLDatabase<typeof schema>) => {
+  const [rootDir] = await db
+    .select()
+    .from(schema.directoriesTable)
+    .where(isNull(schema.directoriesTable.parentId));
+
+  if (rootDir !== undefined) return;
+
   await db
     .insert(schema.directoriesTable)
     .values({
@@ -23,16 +36,8 @@ export async function createLibSqlDatabase(dbUrl: string) {
       parentId: null,
       privacy: "private",
     })
-    .onConflictDoNothing({
-      target: [schema.directoriesTable.name, schema.directoriesTable.parentId],
-    })
     .catch((e) => {
       console.error("Failed to seed root directory:", e);
-      throw new Error(
-        "Database intialization failed: Could not seed root directory:",
-        e
-      );
+      throw new Error("Could not seed root directory", { cause: e });
     });
-
-  return db;
-}
+};
