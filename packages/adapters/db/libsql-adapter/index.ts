@@ -1,1 +1,4 @@
-export { LibSqlCaptureRepository } from "./src/CaptureRepository";
+export * from "./src/LibSqlCaptureRepository";
+export * from "./src/LibSqlDirectoryRepository";
+
+export { createLibSqlDatabase } from "./src/db";
