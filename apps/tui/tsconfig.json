@@ -27,7 +27,13 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
 
-    "types": ["bun"]
+    "types": ["bun"],
+
+    "baseUrl": "./src/",
+    "paths": {
+      "@app/*": ["app/*"],
+      "@pages/*": ["pages/*"]
+    }
   },
   "references": [{ "path": "../../packages/core" }]
 }
