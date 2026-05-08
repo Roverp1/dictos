@@ -64,7 +64,11 @@ export const DictionaryPage = ({
       {focusMode === "deleteConfimModal" && (
         <DeleteConfirmModal
           focusMode={focusMode}
-          itemName={selectedItem?.label}
+          itemName={
+            selectedItem?.type === "dir"
+              ? `${selectedItem.data.name}/`
+              : selectedItem?.data.text
+          }
           onConfirm={handleDeleteConfirmModalConfirm}
           onCancel={handleDeleteConfirmModalCancel}
         />

@@ -1,7 +1,7 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
-import { useKeyboard, type ScrollBoxProps } from "@opentui/react";
-import { useRef, useState } from "react";
-import type { TreeItem } from "./dictionary-page";
+import { type ScrollBoxProps } from "@opentui/react";
+import { useRef } from "react";
+import type { TreeItem } from "../model/use-dictionary";
 
 interface TreeSelectProps extends ScrollBoxProps {
   items: TreeItem[];
@@ -24,7 +24,7 @@ export const TreeSelect = ({
     >
       {items.map((item, i) => (
         <text
-          key={i}
+          key={item.id}
           bg={selectedIndex === i ? "#78716c" : "#000"}
         >
           {item.label}
