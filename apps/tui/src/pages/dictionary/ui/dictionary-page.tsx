@@ -23,6 +23,7 @@ export const DictionaryPage = ({
     selectedIndex,
     selectedItem,
     handleCreateSubmit,
+    handleRenameSubmit,
     handleDeleteConfirmModalConfirm,
     handleDeleteConfirmModalCancel,
   } = useDictionary({ captureService, directoryService });
@@ -46,6 +47,10 @@ export const DictionaryPage = ({
           focused={focusMode === "tree"}
           items={itemsToDisplay}
           selectedIndex={selectedIndex}
+          isRenaming={focusMode === "renameTreeItem"}
+          renameValue={inputValue}
+          onRenameChange={setInputValue}
+          onRenameSubmit={handleRenameSubmit}
         />
       ) : (
         <text>Loading or Empty...</text>

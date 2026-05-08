@@ -13,7 +13,11 @@ interface UseDictionaryProps {
   directoryService: DirectoryService;
 }
 
-export type FocusMode = "tree" | "createInput" | "deleteConfimModal";
+export type FocusMode =
+  | "tree"
+  | "createInput"
+  | "deleteConfimModal"
+  | "renameTreeItem";
 
 interface DirectoryTreeItem {
   /** format: "dir-${dbId}" */
@@ -88,6 +92,27 @@ export const useDictionary = ({
     setFocusMode("tree");
   };
 
+  const handleRenameSubmit = async (val: string) => {
+    const trimmed = val.trim();
+    if (!trimmed || !selectedItem) {
+      setFocusMode("tree");
+      return;
+    }
+
+    if (selectedItem.type === "dir") {
+      await directoryService
+        .renameDirectory(selectedItem.data.id, trimmed)
+        .catch(console.error);
+    } else {
+      await captureService
+        .updateCapture(selectedItem.data.id, { text: trimmed })
+        .catch(console.error);
+    }
+
+    setRefreshTrigger((prev) => prev + 1);
+    setFocusMode("tree");
+  };
+
   const handleDeleteConfirmModalConfirm = async () => {
     if (selectedItem!.type === "capture") {
       await captureService
@@ -131,6 +156,18 @@ export const useDictionary = ({
 
       if (key.name === "d") {
         setFocusMode("deleteConfimModal");
+      }
+
+      if (key.name === "r") {
+        if (itemsToDisplay.length === 0 || !selectedItem) return;
+
+        const rawName =
+          selectedItem.type === "dir"
+            ? selectedItem.data.name
+            : selectedItem.data.text;
+
+        setInputValue(rawName);
+        setFocusMode("renameTreeItem");
       }
 
       if (key.name === "j" || key.name === "down") {
@@ -249,6 +286,7 @@ export const useDictionary = ({
     selectedIndex,
     selectedItem,
     handleCreateSubmit,
+    handleRenameSubmit,
     handleDeleteConfirmModalConfirm,
     handleDeleteConfirmModalCancel,
   };
