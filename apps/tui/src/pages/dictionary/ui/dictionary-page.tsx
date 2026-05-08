@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   CaptureService,
@@ -9,15 +9,16 @@ import {
 } from "@dictos/core";
 
 import { TreeSelect } from "./tree-select";
+import { useKeyboard } from "@opentui/react";
 
 interface DictionaryPageProps {
   captureService: CaptureService;
   directoryService: DirectoryService;
 }
 
-interface TreeItem {
+export interface TreeItem {
   type: "dir" | "capture";
-  data: Directory | Capture;
+  data: DirectoryNode | Capture;
   label: string;
 }
 
@@ -26,9 +27,10 @@ export const DictionaryPage = ({
   directoryService,
 }: DictionaryPageProps) => {
   const [pathStack, setPathStack] = useState<DirectoryNode[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [itemsToDisplay, setItemsToDisplay] = useState<TreeItem[]>([]);
 
-  const currentDir = pathStack[pathStack.length - 1];
+  const currentDir = pathStack[pathStack.length - 1]!;
   const isAtRoot = pathStack.length === 1;
 
   const navigateInto = (selectedDirNode: DirectoryNode) => {
@@ -40,6 +42,46 @@ export const DictionaryPage = ({
 
     setPathStack((prevStack) => prevStack.slice(0, -1));
   };
+
+  useKeyboard((key) => {
+    // how to handle focused logic?
+    // if (!focused) return;
+
+    console.log("key.name:", key.name);
+    console.log("selectedIndex:", selectedIndex);
+
+    if (key.name === "j" || key.name === "down") {
+      setSelectedIndex((prev) => {
+        if (prev + 1 >= itemsToDisplay.length) return 0;
+
+        return prev + 1;
+      });
+    }
+
+    if (key.name === "k" || key.name === "up") {
+      setSelectedIndex((prev) => {
+        if (itemsToDisplay.length === 0) return 0;
+        if (prev - 1 < 0) return itemsToDisplay.length - 1;
+
+        return prev - 1;
+      });
+    }
+
+    if (key.name === "return" || key.name === "l" || key.name === "right") {
+      if (itemsToDisplay.length === 0) return;
+
+      const item = itemsToDisplay[selectedIndex]!;
+      if (item.type === "capture") return;
+
+      navigateInto(item.data as DirectoryNode);
+      setSelectedIndex(0);
+    }
+
+    if (key.name === "backspace" || key.name === "h" || key.name === "left") {
+      navigateUp();
+      setSelectedIndex(0);
+    }
+  });
 
   useEffect(() => {
     const onMount = async () => {
@@ -97,13 +139,21 @@ export const DictionaryPage = ({
         marginBottom={1}
         paddingX={1}
       >
-        <text>{pathStack.map((node) => node.name).join("/")}</text>
+        <text>
+          {pathStack
+            .map((node) => {
+              if (pathStack.length > 1 && node.name === "/") return;
+              return node.name;
+            })
+            .join("/")}
+        </text>
       </box>
       {itemsToDisplay.length > 0 ? (
         <TreeSelect
           height={50}
           focused
-          children={itemsToDisplay.map((item, id) => item.label)}
+          items={itemsToDisplay}
+          selectedIndex={selectedIndex}
         />
       ) : (
         <text>Loading or Empty...</text>
