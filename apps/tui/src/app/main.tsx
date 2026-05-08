@@ -21,7 +21,7 @@ export const bootstrap = async () => {
 
   const renderer = await createCliRenderer({
     consoleOptions: {
-      position: ConsolePosition.RIGHT,
+      position: ConsolePosition.BOTTOM,
       sizePercent: 40,
     },
   });
