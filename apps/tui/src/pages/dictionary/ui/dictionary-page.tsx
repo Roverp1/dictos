@@ -73,6 +73,20 @@ export const DictionaryPage = ({
     setFocusMode("tree");
   };
 
+  const handleDeleteItem = async () => {
+    if (itemsToDisplay.length === 0) return;
+
+    const item = itemsToDisplay[selectedIndex]!;
+
+    if (item.type === "capture") {
+      await captureService.deleteCapture(item.data.id).catch(console.error);
+    } else if (item.type === "dir") {
+      await directoryService.deleteDirectory(item.data.id).catch(console.error);
+    }
+
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
   useKeyboard((key) => {
     if (focusMode === "createInput") {
       console.log("focusMode:", focusMode);
@@ -91,8 +105,12 @@ export const DictionaryPage = ({
     if (key.name === "a") {
       setInputValue("");
       setFocusMode("createInput");
-      return;
     }
+
+    if (key.name === "d") {
+      handleDeleteItem();
+    }
+
     if (key.name === "j" || key.name === "down") {
       setSelectedIndex((prev) => {
         if (prev + 1 >= itemsToDisplay.length) return 0;
