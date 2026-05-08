@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   CaptureService,
@@ -18,7 +18,7 @@ interface DictionaryPageProps {
 
 export interface TreeItem {
   type: "dir" | "capture";
-  data: DirectoryNode | Capture;
+  data: Directory | Capture;
   label: string;
 }
 
@@ -26,9 +26,14 @@ export const DictionaryPage = ({
   captureService,
   directoryService,
 }: DictionaryPageProps) => {
-  const [pathStack, setPathStack] = useState<DirectoryNode[]>([]);
+  const [pathStack, setPathStack] = useState<Directory[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [itemsToDisplay, setItemsToDisplay] = useState<TreeItem[]>([]);
+
+  const [focusMode, setFocusMode] = useState<"tree" | "createInput">("tree");
+  const [inputValue, setInputValue] = useState<string>("");
+
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const currentDir = pathStack[pathStack.length - 1]!;
   const isAtRoot = pathStack.length === 1;
@@ -43,13 +48,51 @@ export const DictionaryPage = ({
     setPathStack((prevStack) => prevStack.slice(0, -1));
   };
 
+  const handleCreateSubmit = async (val: string) => {
+    const trimmed = val.trim();
+    if (!trimmed) {
+      setFocusMode("tree");
+      return;
+    }
+
+    if (trimmed.endsWith("/")) {
+      const name = trimmed.slice(0, -1);
+      await directoryService
+        .createDirectory({
+          name: name,
+          parentId: currentDir.id,
+        })
+        .catch(console.error);
+    } else {
+      await captureService
+        .createCapture({ text: trimmed, directoryId: currentDir.id })
+        .catch(console.error);
+    }
+
+    setRefreshTrigger((prev) => prev + 1);
+    setFocusMode("tree");
+  };
+
   useKeyboard((key) => {
-    // how to handle focused logic?
-    // if (!focused) return;
+    if (focusMode === "createInput") {
+      console.log("focusMode:", focusMode);
+      if (key.name === "escape") {
+        setFocusMode("tree");
+      }
+
+      return;
+    }
 
     console.log("key.name:", key.name);
     console.log("selectedIndex:", selectedIndex);
 
+    if (focusMode !== "tree") return;
+
+    if (key.name === "a") {
+      setInputValue("");
+      setFocusMode("createInput");
+      return;
+    }
     if (key.name === "j" || key.name === "down") {
       setSelectedIndex((prev) => {
         if (prev + 1 >= itemsToDisplay.length) return 0;
@@ -85,13 +128,13 @@ export const DictionaryPage = ({
 
   useEffect(() => {
     const onMount = async () => {
-      const rootNode = await directoryService.getDirectoryTree();
-      if (rootNode instanceof Error) {
-        console.error("Failed to get directory tree:", rootNode);
+      const rootDir = await directoryService.getRootDirectory();
+      if (rootDir instanceof Error) {
+        console.error("Failed to get root directory:", rootDir);
         return;
       }
 
-      setPathStack([rootNode]);
+      setPathStack([rootDir]);
     };
 
     onMount();
@@ -101,9 +144,29 @@ export const DictionaryPage = ({
     if (!currentDir) return;
 
     const loadItems = async () => {
+      const [dirsResult, capturesResult] = await Promise.all([
+        directoryService.getSubDirectories(currentDir.id),
+        captureService.getCapturesInDirectory(currentDir.id),
+      ]);
+
+      if (dirsResult instanceof Error) {
+        console.error(
+          "Failed to get sub-directories in current directory:",
+          dirsResult
+        );
+        return;
+      }
+      if (capturesResult instanceof Error) {
+        console.error(
+          "Failed to get captures in current directory:",
+          capturesResult
+        );
+        return;
+      }
+
       const items: TreeItem[] = [];
 
-      for (const childDir of currentDir.children) {
+      for (const childDir of dirsResult) {
         items.push({
           type: "dir",
           data: childDir,
@@ -111,15 +174,7 @@ export const DictionaryPage = ({
         });
       }
 
-      const captures = await captureService.getCapturesInDirectory(
-        currentDir.id
-      );
-      if (captures instanceof Error) {
-        console.error("Failed to get captures in current directory:", captures);
-        return;
-      }
-
-      for (const capture of captures) {
+      for (const capture of capturesResult) {
         items.push({
           type: "capture",
           data: capture,
@@ -131,19 +186,16 @@ export const DictionaryPage = ({
     };
 
     loadItems();
-  }, [pathStack]);
+  }, [pathStack, refreshTrigger]);
 
   return (
     <box flexDirection="column">
-      <box
-        marginBottom={1}
-        paddingX={1}
-      >
-        <text>
+      <box marginBottom={1}>
+        <text fg="#22c55e">
           {pathStack
-            .map((node) => {
-              if (pathStack.length > 1 && node.name === "/") return;
-              return node.name;
+            .map((dir) => {
+              if (pathStack.length > 1 && dir.name === "/") return;
+              return dir.name;
             })
             .join("/")}
         </text>
@@ -151,12 +203,34 @@ export const DictionaryPage = ({
       {itemsToDisplay.length > 0 ? (
         <TreeSelect
           height={50}
-          focused
+          focused={focusMode === "tree"}
           items={itemsToDisplay}
           selectedIndex={selectedIndex}
         />
       ) : (
         <text>Loading or Empty...</text>
+      )}
+
+      {focusMode === "createInput" && (
+        <box
+          position="absolute"
+          left="50%"
+          top="12%"
+          width="30%"
+          height={3}
+          border
+          borderColor="#57534e"
+          title="Create:"
+          titleAlignment="left"
+        >
+          <input
+            value={inputValue}
+            onChange={setInputValue}
+            // @ts-expect-error opentui type collision bug
+            onSubmit={handleCreateSubmit}
+            focused
+          />
+        </box>
       )}
     </box>
   );

@@ -23,6 +23,14 @@ export class DirectoryService {
     return capture;
   }
 
+  async getRootDirectory(): Promise<Directory | DbError> {
+    return await this.repo.findRoot();
+  }
+
+  async getSubDirectories(parentId: number): Promise<Directory[] | DbError> {
+    return await this.repo.findByParentId(parentId);
+  }
+
   async getDirectoryTree(): Promise<DirectoryNode | DbError> {
     const dirs = await this.repo.findAll();
     if (dirs instanceof Error) return dirs;
