@@ -15,11 +15,23 @@ interface UseDictionaryProps {
 
 export type FocusMode = "tree" | "createInput" | "deleteConfimModal";
 
-export interface TreeItem {
-  type: "dir" | "capture";
-  data: Directory | Capture;
+interface DirectoryTreeItem {
+  /** format: "dir-${dbId}" */
+  id: string;
+  type: "dir";
+  data: Directory;
   label: string;
 }
+
+interface CaptureTreeItem {
+  /** format: "capture-${dbId}" */
+  id: string;
+  type: "capture";
+  data: Capture;
+  label: string;
+}
+
+export type TreeItem = DirectoryTreeItem | CaptureTreeItem;
 
 export const useDictionary = ({
   captureService,
@@ -198,6 +210,7 @@ export const useDictionary = ({
 
       for (const childDir of dirsResult) {
         items.push({
+          id: `dir-${childDir.id}`,
           type: "dir",
           data: childDir,
           label: ` ${childDir.name}`,
@@ -206,6 +219,7 @@ export const useDictionary = ({
 
       for (const capture of capturesResult) {
         items.push({
+          id: `capture-${capture.id}`,
           type: "capture",
           data: capture,
           label: `${capture.text}`,
