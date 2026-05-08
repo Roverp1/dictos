@@ -2,6 +2,8 @@ import { CaptureService, DirectoryService } from "@dictos/core";
 
 import { TreeSelect } from "./tree-select";
 import { useDictionary } from "../model/use-dictionary";
+import { CreateModal } from "./modals/create-modal";
+import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 
 interface DictionaryPageProps {
   captureService: CaptureService;
@@ -19,7 +21,10 @@ export const DictionaryPage = ({
     setInputValue,
     pathStack,
     selectedIndex,
+    selectedItem,
     handleCreateSubmit,
+    handleDeleteConfirmModalConfirm,
+    handleDeleteConfirmModalCancel,
   } = useDictionary({ captureService, directoryService });
 
   return (
@@ -34,6 +39,7 @@ export const DictionaryPage = ({
             .join("/")}
         </text>
       </box>
+
       {itemsToDisplay.length > 0 ? (
         <TreeSelect
           height={50}
@@ -46,25 +52,22 @@ export const DictionaryPage = ({
       )}
 
       {focusMode === "createInput" && (
-        <box
-          position="absolute"
-          left="50%"
-          top="12%"
-          width="30%"
-          height={3}
-          border
-          borderColor="#57534e"
-          title="Create:"
-          titleAlignment="left"
-        >
-          <input
-            value={inputValue}
-            onChange={setInputValue}
-            // @ts-expect-error opentui type collision bug
-            onSubmit={handleCreateSubmit}
-            focused
-          />
-        </box>
+        <CreateModal
+          value={inputValue}
+          onChange={setInputValue}
+          // @ts-expect-error opentui type collision bug
+          onSubmit={handleCreateSubmit}
+          focused
+        />
+      )}
+
+      {focusMode === "deleteConfimModal" && (
+        <DeleteConfirmModal
+          focusMode={focusMode}
+          itemName={selectedItem?.label}
+          onConfirm={handleDeleteConfirmModalConfirm}
+          onCancel={handleDeleteConfirmModalCancel}
+        />
       )}
     </box>
   );

@@ -13,6 +13,8 @@ interface UseDictionaryProps {
   directoryService: DirectoryService;
 }
 
+export type FocusMode = "tree" | "createInput" | "deleteConfimModal";
+
 export interface TreeItem {
   type: "dir" | "capture";
   data: Directory | Capture;
@@ -28,7 +30,7 @@ export const useDictionary = ({
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [itemsToDisplay, setItemsToDisplay] = useState<TreeItem[]>([]);
 
-  const [focusMode, setFocusMode] = useState<"tree" | "createInput">("tree");
+  const [focusMode, setFocusMode] = useState<FocusMode>("tree");
   const [inputValue, setInputValue] = useState<string>("");
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -36,6 +38,7 @@ export const useDictionary = ({
   // helper vars
   const currentDir = pathStack[pathStack.length - 1]!;
   const isAtRoot = pathStack.length === 1;
+  const selectedItem = itemsToDisplay[selectedIndex];
 
   // actions
   const navigateInto = (selectedDir: Directory) => {
@@ -73,24 +76,32 @@ export const useDictionary = ({
     setFocusMode("tree");
   };
 
-  const handleDeleteItem = async () => {
-    if (itemsToDisplay.length === 0) return;
-
-    const item = itemsToDisplay[selectedIndex]!;
-
-    if (item.type === "capture") {
-      await captureService.deleteCapture(item.data.id).catch(console.error);
-    } else if (item.type === "dir") {
-      await directoryService.deleteDirectory(item.data.id).catch(console.error);
+  const handleDeleteConfirmModalConfirm = async () => {
+    if (selectedItem!.type === "capture") {
+      await captureService
+        .deleteCapture(selectedItem!.data.id)
+        .catch(console.error);
+    } else if (selectedItem!.type === "dir") {
+      await directoryService
+        .deleteDirectory(selectedItem!.data.id)
+        .catch(console.error);
     }
 
     setRefreshTrigger((prev) => prev + 1);
+    setFocusMode("tree");
+  };
+  useEffect(() => {
+    console.log("selectedIndex", selectedIndex);
+    console.log("itemsToDisplay.length", itemsToDisplay.length);
+  }, [selectedIndex]);
+
+  const handleDeleteConfirmModalCancel = () => {
+    setFocusMode("tree");
   };
 
   // keyboard logic
   useKeyboard((key) => {
-    if (focusMode === "createInput") {
-      console.log("focusMode:", focusMode);
+    if (focusMode !== "tree") {
       if (key.name === "escape") {
         setFocusMode("tree");
       }
@@ -99,49 +110,48 @@ export const useDictionary = ({
     }
 
     console.log("key.name:", key.name);
-    console.log("selectedIndex:", selectedIndex);
 
-    if (focusMode !== "tree") return;
+    if (focusMode === "tree") {
+      if (key.name === "a") {
+        setInputValue("");
+        setFocusMode("createInput");
+      }
 
-    if (key.name === "a") {
-      setInputValue("");
-      setFocusMode("createInput");
-    }
+      if (key.name === "d") {
+        setFocusMode("deleteConfimModal");
+      }
 
-    if (key.name === "d") {
-      handleDeleteItem();
-    }
+      if (key.name === "j" || key.name === "down") {
+        setSelectedIndex((prev) => {
+          if (prev + 1 >= itemsToDisplay.length) return 0;
 
-    if (key.name === "j" || key.name === "down") {
-      setSelectedIndex((prev) => {
-        if (prev + 1 >= itemsToDisplay.length) return 0;
+          return prev + 1;
+        });
+      }
 
-        return prev + 1;
-      });
-    }
+      if (key.name === "k" || key.name === "up") {
+        setSelectedIndex((prev) => {
+          if (itemsToDisplay.length === 0) return 0;
+          if (prev - 1 < 0) return itemsToDisplay.length - 1;
 
-    if (key.name === "k" || key.name === "up") {
-      setSelectedIndex((prev) => {
-        if (itemsToDisplay.length === 0) return 0;
-        if (prev - 1 < 0) return itemsToDisplay.length - 1;
+          return prev - 1;
+        });
+      }
 
-        return prev - 1;
-      });
-    }
+      if (key.name === "return" || key.name === "l" || key.name === "right") {
+        if (itemsToDisplay.length === 0) return;
 
-    if (key.name === "return" || key.name === "l" || key.name === "right") {
-      if (itemsToDisplay.length === 0) return;
+        const item = itemsToDisplay[selectedIndex]!;
+        if (item.type === "capture") return;
 
-      const item = itemsToDisplay[selectedIndex]!;
-      if (item.type === "capture") return;
+        navigateInto(item.data as Directory);
+        setSelectedIndex(0);
+      }
 
-      navigateInto(item.data as Directory);
-      setSelectedIndex(0);
-    }
-
-    if (key.name === "backspace" || key.name === "h" || key.name === "left") {
-      navigateUp();
-      setSelectedIndex(0);
+      if (key.name === "backspace" || key.name === "h" || key.name === "left") {
+        navigateUp();
+        setSelectedIndex(0);
+      }
     }
   });
 
@@ -208,6 +218,14 @@ export const useDictionary = ({
     loadItems();
   }, [pathStack, refreshTrigger]);
 
+  useEffect(() => {
+    setSelectedIndex((prev) => {
+      if (itemsToDisplay.length === 0) return 0;
+
+      return prev >= itemsToDisplay.length ? itemsToDisplay.length - 1 : prev;
+    });
+  }, [itemsToDisplay]);
+
   return {
     itemsToDisplay,
     focusMode,
@@ -215,6 +233,9 @@ export const useDictionary = ({
     setInputValue,
     pathStack,
     selectedIndex,
+    selectedItem,
     handleCreateSubmit,
+    handleDeleteConfirmModalConfirm,
+    handleDeleteConfirmModalCancel,
   };
 };
