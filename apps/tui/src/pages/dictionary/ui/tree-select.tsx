@@ -1,44 +1,33 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard, type ScrollBoxProps } from "@opentui/react";
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState } from "react";
+import type { TreeItem } from "./dictionary-page";
 
 interface TreeSelectProps extends ScrollBoxProps {
-  children: string[];
+  items: TreeItem[];
+  selectedIndex: number;
 }
 
 export const TreeSelect = ({
-  children,
+  items,
+  selectedIndex,
   focused,
   ...props
 }: TreeSelectProps) => {
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
-
   const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
-
-  useKeyboard((key) => {
-    if (!focused) return;
-
-    console.log("key.name:", key.name);
-    if (key.name === "j" || key.name === "down") {
-      setSelectedIndex((prev) => {
-        if (prev + 1 >= children.length) return 0;
-
-        return prev + 1;
-      });
-    }
-  });
 
   return (
     <scrollbox
       ref={scrollBoxRef}
+      focused
       {...props}
     >
-      {children.map((item, i) => (
+      {items.map((item, i) => (
         <text
           key={i}
           bg={selectedIndex === i ? "#78716c" : "#000"}
         >
-          {item}
+          {item.label}
         </text>
       ))}
     </scrollbox>
