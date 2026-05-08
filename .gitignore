@@ -1,6 +1,7 @@
 .agents/
 /**/*.pdf
 skills-lock.json
+tmp/
 
 # dependencies (bun install)
 node_modules
