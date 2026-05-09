@@ -5,7 +5,7 @@ import {
   type Capture,
 } from "@dictos/core";
 
-import { TreeSelect } from "./tree-select";
+import { InteractiveList } from "./interactive-list";
 import { useDictionary } from "../model/use-dictionary";
 import { CreateModal } from "./modals/create-modal";
 import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
@@ -25,6 +25,7 @@ export const DictionaryPage = ({
     itemsToDisplay,
     definitionsToDisplay,
     focusMode,
+    setFocusMode,
     inputValue,
     setInputValue,
     pathStack,
@@ -34,6 +35,8 @@ export const DictionaryPage = ({
     handleRenameSubmit,
     handleDeleteConfirmModalConfirm,
     handleDeleteConfirmModalCancel,
+    navigateInto,
+    navigateUp,
   } = useDictionary({ captureService, directoryService, definitionService });
 
   return (
@@ -59,15 +62,46 @@ export const DictionaryPage = ({
         </box>
 
         {itemsToDisplay.length > 0 ? (
-          <TreeSelect
+          <InteractiveList
             height={50}
             focused={focusMode === "tree"}
             items={itemsToDisplay}
-            selectedIndex={selectedIndex}
-            isRenaming={focusMode === "renameTreeItem"}
-            renameValue={inputValue}
-            onRenameChange={setInputValue}
-            onRenameSubmit={handleRenameSubmit}
+            onSelect={(item) => {
+              if (itemsToDisplay.length === 0) return;
+
+              if (item.type === "capture") {
+                setFocusMode("definitionPane");
+              } else if (item.type === "dir") {
+                navigateInto(item.data);
+              }
+            }}
+            onRevert={() => {
+              navigateUp();
+            }}
+            renderItem={(item, i, isSelected) => {
+              const isRenaming = focusMode === "renameTreeItem";
+              const bgColor = selectedIndex === i ? "#78716c" : "#000";
+
+              if (isSelected && isRenaming) {
+                return (
+                  <box
+                    key={item.id}
+                    backgroundColor={bgColor}
+                    paddingX={1}
+                  >
+                    <input
+                      value={inputValue}
+                      onChange={setInputValue}
+                      // @ts-expect-error opentui type bug
+                      onSubmit={handleRenameSubmit}
+                      focused
+                    />
+                  </box>
+                );
+              }
+
+              return <text bg={bgColor}>{item.label}</text>;
+            }}
           />
         ) : (
           <text>This directory is emty. Press 'a' to add you first item</text>
