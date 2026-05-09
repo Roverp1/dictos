@@ -1,4 +1,8 @@
-import { CaptureService, DirectoryService } from "@dictos/core";
+import {
+  CaptureService,
+  DirectoryService,
+  DefinitionService,
+} from "@dictos/core";
 
 import { TreeSelect } from "./tree-select";
 import { useDictionary } from "../model/use-dictionary";
@@ -8,6 +12,7 @@ import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 interface DictionaryPageProps {
   captureService: CaptureService;
   directoryService: DirectoryService;
+  definitionService: DefinitionService;
 }
 
 export const DictionaryPage = ({
@@ -29,32 +34,44 @@ export const DictionaryPage = ({
   } = useDictionary({ captureService, directoryService });
 
   return (
-    <box flexDirection="column">
-      <box marginBottom={1}>
-        <text fg="#22c55e">
-          {pathStack
-            .map((dir) => {
-              if (pathStack.length > 1 && dir.name === "/") return;
-              return dir.name;
-            })
-            .join("/")}
-        </text>
+    <box flexDirection="row">
+      <box
+        flexDirection="column"
+        id="directory-tree-pane"
+        border={["right"]}
+        width="50%"
+      >
+        <box marginBottom={1}>
+          <text fg="#22c55e">
+            {pathStack
+              .map((dir) => {
+                if (pathStack.length > 1 && dir.name === "/") return;
+                return dir.name;
+              })
+              .join("/")}
+          </text>
+        </box>
+
+        {itemsToDisplay.length > 0 ? (
+          <TreeSelect
+            height={50}
+            focused={focusMode === "tree"}
+            items={itemsToDisplay}
+            selectedIndex={selectedIndex}
+            isRenaming={focusMode === "renameTreeItem"}
+            renameValue={inputValue}
+            onRenameChange={setInputValue}
+            onRenameSubmit={handleRenameSubmit}
+          />
+        ) : (
+          <text>This directory is emty. Press 'a' to add you first item</text>
+        )}
       </box>
 
-      {itemsToDisplay.length > 0 ? (
-        <TreeSelect
-          height={50}
-          focused={focusMode === "tree"}
-          items={itemsToDisplay}
-          selectedIndex={selectedIndex}
-          isRenaming={focusMode === "renameTreeItem"}
-          renameValue={inputValue}
-          onRenameChange={setInputValue}
-          onRenameSubmit={handleRenameSubmit}
-        />
-      ) : (
-        <text>Loading or Empty...</text>
-      )}
+      <box
+        id="definitions-pane"
+        width="50%"
+      ></box>
 
       {focusMode === "createInput" && (
         <CreateModal
