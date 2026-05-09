@@ -1,23 +1,27 @@
 import { useState, useEffect } from "react";
 import { useKeyboard } from "@opentui/react";
 
-import type {
-  CaptureService,
-  DirectoryService,
-  Directory,
-  Capture,
+import {
+  type CaptureService,
+  type DirectoryService,
+  DefinitionService,
+  type Directory,
+  type Capture,
+  type Definition,
 } from "@dictos/core";
 
 interface UseDictionaryProps {
   captureService: CaptureService;
   directoryService: DirectoryService;
+  definitionService: DefinitionService;
 }
 
 export type FocusMode =
   | "tree"
   | "createInput"
   | "deleteConfimModal"
-  | "renameTreeItem";
+  | "renameTreeItem"
+  | "definitionPane";
 
 interface DirectoryTreeItem {
   /** format: "dir-${dbId}" */
@@ -40,11 +44,16 @@ export type TreeItem = DirectoryTreeItem | CaptureTreeItem;
 export const useDictionary = ({
   captureService,
   directoryService,
+  definitionService,
 }: UseDictionaryProps) => {
   // state
   const [pathStack, setPathStack] = useState<Directory[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [itemsToDisplay, setItemsToDisplay] = useState<TreeItem[]>([]);
+
+  const [definitionsToDisplay, setDefinitionsToDisplay] = useState<
+    Definition[]
+  >([]);
 
   const [focusMode, setFocusMode] = useState<FocusMode>("tree");
   const [inputValue, setInputValue] = useState<string>("");
@@ -190,11 +199,12 @@ export const useDictionary = ({
       if (key.name === "return" || key.name === "l" || key.name === "right") {
         if (itemsToDisplay.length === 0) return;
 
-        const item = itemsToDisplay[selectedIndex]!;
-        if (item.type === "capture") return;
-
-        navigateInto(item.data as Directory);
-        setSelectedIndex(0);
+        if (selectedItem!.type === "capture") {
+          setFocusMode("definitionPane");
+        } else if (selectedItem!.type === "dir") {
+          navigateInto(selectedItem!.data);
+          setSelectedIndex(0);
+        }
       }
 
       if (key.name === "backspace" || key.name === "h" || key.name === "left") {
@@ -277,8 +287,27 @@ export const useDictionary = ({
     });
   }, [itemsToDisplay]);
 
+  useEffect(() => {
+    const loadDefinitions = async () => {
+      if (!selectedItem) return;
+
+      const definitions = await definitionService.getDefintionsForCapture(
+        selectedItem.data.id
+      );
+      if (definitions instanceof Error) {
+        console.error(definitions);
+        return;
+      }
+
+      setDefinitionsToDisplay(definitions);
+    };
+
+    loadDefinitions();
+  }, [selectedIndex]);
+
   return {
     itemsToDisplay,
+    definitionsToDisplay,
     focusMode,
     inputValue,
     setInputValue,

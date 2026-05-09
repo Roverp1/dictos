@@ -21,7 +21,7 @@ export class DefinitionService {
 
   async getDefintionsForCapture(
     captureId: number
-  ): Promise<Definition[] | DbError | null> {
+  ): Promise<Definition[] | DbError> {
     return await this.repo.findByCapture(captureId);
   }
 
