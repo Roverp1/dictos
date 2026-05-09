@@ -2,6 +2,7 @@ import {
   CaptureService,
   DirectoryService,
   DefinitionService,
+  type Capture,
 } from "@dictos/core";
 
 import { TreeSelect } from "./tree-select";
@@ -18,9 +19,11 @@ interface DictionaryPageProps {
 export const DictionaryPage = ({
   captureService,
   directoryService,
+  definitionService,
 }: DictionaryPageProps) => {
   const {
     itemsToDisplay,
+    definitionsToDisplay,
     focusMode,
     inputValue,
     setInputValue,
@@ -31,7 +34,7 @@ export const DictionaryPage = ({
     handleRenameSubmit,
     handleDeleteConfirmModalConfirm,
     handleDeleteConfirmModalCancel,
-  } = useDictionary({ captureService, directoryService });
+  } = useDictionary({ captureService, directoryService, definitionService });
 
   return (
     <box flexDirection="row">
@@ -69,9 +72,34 @@ export const DictionaryPage = ({
       </box>
 
       <box
-        id="definitions-pane"
+        id="definition-pane"
         width="50%"
-      ></box>
+        flexDirection="column"
+        gap="5%"
+      >
+        <text>
+          {selectedItem?.type === "capture" ? `${selectedItem.data.text}` : ""}
+        </text>
+
+        <box
+          flexDirection="column"
+          gap="3%"
+        >
+          {definitionsToDisplay.length > 0 ? (
+            definitionsToDisplay.map((definition) => (
+              <box
+                flexDirection="column"
+                border
+                key={definition.id}
+              >
+                <text>{definition.text}</text>
+              </box>
+            ))
+          ) : (
+            <text>Press 'a' to add first definition for this capture</text>
+          )}
+        </box>
+      </box>
 
       {focusMode === "createInput" && (
         <CreateModal
