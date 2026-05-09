@@ -37,7 +37,10 @@ export const DictionaryPage = ({
   } = useDictionary({ captureService, directoryService, definitionService });
 
   return (
-    <box flexDirection="row">
+    <box
+      height="100%"
+      flexDirection="row"
+    >
       <box
         flexDirection="column"
         id="directory-tree-pane"
