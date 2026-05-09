@@ -136,10 +136,6 @@ export const useDictionary = ({
     setRefreshTrigger((prev) => prev + 1);
     setFocusMode("tree");
   };
-  useEffect(() => {
-    console.log("selectedIndex", selectedIndex);
-    console.log("itemsToDisplay.length", itemsToDisplay.length);
-  }, [selectedIndex]);
 
   const handleDeleteConfirmModalCancel = () => {
     setFocusMode("tree");
@@ -177,39 +173,6 @@ export const useDictionary = ({
 
         setInputValue(rawName);
         setFocusMode("renameTreeItem");
-      }
-
-      if (key.name === "j" || key.name === "down") {
-        setSelectedIndex((prev) => {
-          if (prev + 1 >= itemsToDisplay.length) return 0;
-
-          return prev + 1;
-        });
-      }
-
-      if (key.name === "k" || key.name === "up") {
-        setSelectedIndex((prev) => {
-          if (itemsToDisplay.length === 0) return 0;
-          if (prev - 1 < 0) return itemsToDisplay.length - 1;
-
-          return prev - 1;
-        });
-      }
-
-      if (key.name === "return" || key.name === "l" || key.name === "right") {
-        if (itemsToDisplay.length === 0) return;
-
-        if (selectedItem!.type === "capture") {
-          setFocusMode("definitionPane");
-        } else if (selectedItem!.type === "dir") {
-          navigateInto(selectedItem!.data);
-          setSelectedIndex(0);
-        }
-      }
-
-      if (key.name === "backspace" || key.name === "h" || key.name === "left") {
-        navigateUp();
-        setSelectedIndex(0);
       }
     }
   });
@@ -289,7 +252,7 @@ export const useDictionary = ({
 
   useEffect(() => {
     const loadDefinitions = async () => {
-      if (!selectedItem) return;
+      if (!selectedItem || selectedItem.type !== "capture") return;
 
       const definitions = await definitionService.getDefintionsForCapture(
         selectedItem.data.id
@@ -309,6 +272,7 @@ export const useDictionary = ({
     itemsToDisplay,
     definitionsToDisplay,
     focusMode,
+    setFocusMode,
     inputValue,
     setInputValue,
     pathStack,
@@ -318,5 +282,7 @@ export const useDictionary = ({
     handleRenameSubmit,
     handleDeleteConfirmModalConfirm,
     handleDeleteConfirmModalCancel,
+    navigateInto,
+    navigateUp,
   };
 };
