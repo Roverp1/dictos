@@ -1,6 +1,6 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard, type ScrollBoxProps } from "@opentui/react";
-import { useState, useRef, type ReactNode } from "react";
+import { useState, useRef, type ReactNode, useEffect } from "react";
 
 interface InteractiveListProps<T> extends Omit<ScrollBoxProps, "children"> {
   items: T[];
@@ -43,6 +43,12 @@ export const InteractiveList = <T,>({
     }
   });
 
+  useEffect(() => {
+    if (!scrollBoxRef.current) return;
+
+    scrollBoxRef.current.scrollChildIntoView(`item-${selectedIndex}`);
+  }, [selectedIndex]);
+
   return (
     <scrollbox
       ref={scrollBoxRef}
@@ -52,7 +58,14 @@ export const InteractiveList = <T,>({
       {items.map((item, i) => {
         const isSelected = selectedIndex === i;
 
-        return <box key={i}>{renderItem(item, i, isSelected)}</box>;
+        return (
+          <box
+            key={i}
+            id={`item-${i}`}
+          >
+            {renderItem(item, i, isSelected)}
+          </box>
+        );
       })}
     </scrollbox>
   );
