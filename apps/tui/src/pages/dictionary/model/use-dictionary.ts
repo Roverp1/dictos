@@ -51,6 +51,7 @@ export const useDictionary = ({
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [itemsToDisplay, setItemsToDisplay] = useState<TreeItem[]>([]);
 
+  const [defenitionIndex, setDefenitionIndex] = useState<number>(0);
   const [definitionsToDisplay, setDefinitionsToDisplay] = useState<
     Definition[]
   >([]);
@@ -68,6 +69,7 @@ export const useDictionary = ({
   // actions
   const navigateInto = (selectedDir: Directory) => {
     setPathStack((prevStack) => [...prevStack, selectedDir]);
+    setSelectedIndex(0);
   };
 
   const navigateUp = () => {
@@ -148,11 +150,15 @@ export const useDictionary = ({
       if (key.name === "escape") {
         setFocusMode("tree");
       }
-
-      return;
     }
 
     console.log("key.name:", key.name);
+
+    if (focusMode === "definitionPane") {
+      if (key.name === "backspace" || key.name === "h" || key.name === "left") {
+        setFocusMode("tree");
+      }
+    }
 
     if (focusMode === "tree") {
       if (key.name === "return" || key.name === "l" || key.name === "right") {
@@ -285,9 +291,11 @@ export const useDictionary = ({
 
   return {
     itemsToDisplay,
-    definitionsToDisplay,
     selectedIndex,
     setSelectedIndex,
+    definitionsToDisplay,
+    defenitionIndex,
+    setDefenitionIndex,
     focusMode,
     setFocusMode,
     inputValue,
