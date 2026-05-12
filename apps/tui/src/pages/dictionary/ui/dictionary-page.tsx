@@ -23,9 +23,11 @@ export const DictionaryPage = ({
 }: DictionaryPageProps) => {
   const {
     itemsToDisplay,
-    definitionsToDisplay,
     selectedIndex,
     setSelectedIndex,
+    definitionsToDisplay,
+    defenitionIndex,
+    setDefenitionIndex,
     focusMode,
     setFocusMode,
     inputValue,
@@ -69,7 +71,7 @@ export const DictionaryPage = ({
             onIndexChange={setSelectedIndex}
             renderItem={(item, i, isSelected) => {
               const isRenaming = focusMode === "renameTreeItem";
-              const bgColor = selectedIndex === i ? "#78716c" : "#000";
+              const bgColor = isSelected ? "#78716c" : "#000";
 
               if (isSelected && isRenaming) {
                 return (
@@ -100,31 +102,57 @@ export const DictionaryPage = ({
       <box
         id="definition-pane"
         width="50%"
+        height="100%"
         flexDirection="column"
-        gap="5%"
+        gap={1}
       >
         <text>
           {selectedItem?.type === "capture" ? `${selectedItem.data.text}` : ""}
         </text>
 
-        <box
-          flexDirection="column"
-          gap="3%"
-        >
-          {definitionsToDisplay.length > 0 ? (
-            definitionsToDisplay.map((definition) => (
-              <box
-                flexDirection="column"
-                border
-                key={definition.id}
-              >
-                <text>{definition.text}</text>
-              </box>
-            ))
-          ) : (
-            <text>Press 'a' to add first definition for this capture</text>
-          )}
-        </box>
+        {definitionsToDisplay.length > 0 ? (
+          <InteractiveList
+            contentOptions={{ gap: 1 }}
+            flexGrow={1}
+            items={definitionsToDisplay}
+            focused={focusMode === "definitionPane"}
+            selectedIndex={defenitionIndex}
+            onIndexChange={setDefenitionIndex}
+            renderItem={(item, i, isSelected) => {
+              const isRenaming = focusMode === "renameTreeItem";
+              const bgColor = isSelected ? "#78716c" : "#000";
+
+              if (isSelected && isRenaming) {
+                return (
+                  <box
+                    key={item.id}
+                    backgroundColor={bgColor}
+                    paddingX={1}
+                  >
+                    <input
+                      value={inputValue}
+                      onChange={setInputValue}
+                      // @ts-expect-error opentui type bug
+                      onSubmit={handleRenameSubmit}
+                      focused
+                    />
+                  </box>
+                );
+              }
+
+              return (
+                <box
+                  border
+                  backgroundColor={bgColor}
+                >
+                  <text>{item.text}</text>
+                </box>
+              );
+            }}
+          />
+        ) : (
+          <text>Press 'a' to add first definition for this capture</text>
+        )}
       </box>
 
       {focusMode === "createInput" && (
