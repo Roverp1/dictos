@@ -51,7 +51,7 @@ export const DictionaryPage = ({
         border={["right"]}
         width="50%"
       >
-        <box marginBottom={1}>
+        <box marginBottom={0}>
           <text fg="#22c55e">
             {pathStack
               .map((dir) => {
@@ -64,14 +64,14 @@ export const DictionaryPage = ({
 
         {itemsToDisplay.length > 0 ? (
           <InteractiveList
-            height={50}
+            flexGrow={1}
             items={itemsToDisplay}
             focused={focusMode === "tree"}
             selectedIndex={selectedIndex}
             onIndexChange={setSelectedIndex}
             renderItem={(item, i, isSelected) => {
               const isRenaming = focusMode === "renameTreeItem";
-              const bgColor = isSelected ? "#78716c" : "#000";
+              const bgColor = isSelected ? "#78716c" : "transparent";
 
               if (isSelected && isRenaming) {
                 return (
@@ -120,7 +120,7 @@ export const DictionaryPage = ({
             onIndexChange={setDefenitionIndex}
             renderItem={(item, i, isSelected) => {
               const isRenaming = focusMode === "renameTreeItem";
-              const bgColor = isSelected ? "#78716c" : "#000";
+              const bgColor = isSelected ? "#78716c" : "transparent";
 
               if (isSelected && isRenaming) {
                 return (
