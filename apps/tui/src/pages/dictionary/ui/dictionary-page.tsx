@@ -24,19 +24,18 @@ export const DictionaryPage = ({
   const {
     itemsToDisplay,
     definitionsToDisplay,
+    selectedIndex,
+    setSelectedIndex,
     focusMode,
     setFocusMode,
     inputValue,
     setInputValue,
     pathStack,
-    selectedIndex,
     selectedItem,
     handleCreateSubmit,
     handleRenameSubmit,
     handleDeleteConfirmModalConfirm,
     handleDeleteConfirmModalCancel,
-    navigateInto,
-    navigateUp,
   } = useDictionary({ captureService, directoryService, definitionService });
 
   return (
@@ -64,20 +63,10 @@ export const DictionaryPage = ({
         {itemsToDisplay.length > 0 ? (
           <InteractiveList
             height={50}
-            focused={focusMode === "tree"}
             items={itemsToDisplay}
-            onSelect={(item) => {
-              if (itemsToDisplay.length === 0) return;
-
-              if (item.type === "capture") {
-                setFocusMode("definitionPane");
-              } else if (item.type === "dir") {
-                navigateInto(item.data);
-              }
-            }}
-            onRevert={() => {
-              navigateUp();
-            }}
+            focused={focusMode === "tree"}
+            selectedIndex={selectedIndex}
+            onIndexChange={setSelectedIndex}
             renderItem={(item, i, isSelected) => {
               const isRenaming = focusMode === "renameTreeItem";
               const bgColor = selectedIndex === i ? "#78716c" : "#000";

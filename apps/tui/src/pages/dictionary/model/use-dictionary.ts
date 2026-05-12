@@ -74,6 +74,7 @@ export const useDictionary = ({
     if (isAtRoot) return;
 
     setPathStack((prevStack) => prevStack.slice(0, -1));
+    setSelectedIndex(0);
   };
 
   const handleCreateSubmit = async (val: string) => {
@@ -154,6 +155,20 @@ export const useDictionary = ({
     console.log("key.name:", key.name);
 
     if (focusMode === "tree") {
+      if (key.name === "return" || key.name === "l" || key.name === "right") {
+        if (itemsToDisplay.length === 0 || !selectedItem) return;
+
+        if (selectedItem.type === "capture") {
+          setFocusMode("definitionPane");
+        } else if (selectedItem.type === "dir") {
+          navigateInto(selectedItem.data);
+        }
+      }
+
+      if (key.name === "backspace" || key.name === "h" || key.name === "left") {
+        navigateUp();
+      }
+
       if (key.name === "a") {
         setInputValue("");
         setFocusMode("createInput");
@@ -271,18 +286,17 @@ export const useDictionary = ({
   return {
     itemsToDisplay,
     definitionsToDisplay,
+    selectedIndex,
+    setSelectedIndex,
     focusMode,
     setFocusMode,
     inputValue,
     setInputValue,
     pathStack,
-    selectedIndex,
     selectedItem,
     handleCreateSubmit,
     handleRenameSubmit,
     handleDeleteConfirmModalConfirm,
     handleDeleteConfirmModalCancel,
-    navigateInto,
-    navigateUp,
   };
 };
