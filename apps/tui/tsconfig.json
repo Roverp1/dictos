@@ -32,7 +32,8 @@
     "baseUrl": "./src/",
     "paths": {
       "@app/*": ["app/*"],
-      "@pages/*": ["pages/*"]
+      "@pages/*": ["pages/*"],
+      "@shared/*": ["shared/*"]
     }
   },
   "references": [{ "path": "../../packages/core" }]
