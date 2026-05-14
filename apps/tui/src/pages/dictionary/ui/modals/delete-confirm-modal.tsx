@@ -1,15 +1,15 @@
 import { useKeyboard } from "@opentui/react";
-import type { FocusMode } from "@pages/dictionary/model/use-dictionary";
+import type { FocusState } from "@pages/dictionary/model/use-dictionary";
 
 interface DeleteConfirmModalProps {
-  focusMode: FocusMode;
+  focus: FocusState;
   itemName?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 export const DeleteConfirmModal = ({
-  focusMode,
+  focus,
   itemName,
   onConfirm,
   onCancel,
@@ -17,7 +17,7 @@ export const DeleteConfirmModal = ({
   if (!itemName) return;
 
   useKeyboard((key) => {
-    if (focusMode === "deleteConfimModal") {
+    if (focus.action === "deleteConfirm") {
       if (key.name === "y") onConfirm();
       if (key.name === "n") onCancel();
     }
