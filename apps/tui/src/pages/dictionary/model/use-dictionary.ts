@@ -16,12 +16,17 @@ interface UseDictionaryProps {
   definitionService: DefinitionService;
 }
 
-export type FocusMode =
-  | "tree"
-  | "createInput"
-  | "deleteConfimModal"
-  | "renameTreeItem"
-  | "definitionPane";
+export type TreeFocus = {
+  pane: "tree";
+  action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
+};
+
+export type DefinitionFocus = {
+  pane: "definition";
+  action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
+};
+
+export type FocusState = TreeFocus | DefinitionFocus;
 
 interface DirectoryTreeItem {
   /** format: "dir-${dbId}" */
@@ -56,7 +61,10 @@ export const useDictionary = ({
     Definition[]
   >([]);
 
-  const [focusMode, setFocusMode] = useState<FocusMode>("tree");
+  const [focus, setFocus] = useState<FocusState>({
+    pane: "tree",
+    action: "idle",
+  });
   const [inputValue, setInputValue] = useState<string>("");
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -66,7 +74,7 @@ export const useDictionary = ({
   const isAtRoot = pathStack.length === 1;
   const selectedItem = itemsToDisplay[selectedIndex];
 
-  // actions
+  // handlers
   const navigateInto = (selectedDir: Directory) => {
     setPathStack((prevStack) => [...prevStack, selectedDir]);
     setSelectedIndex(0);
@@ -82,7 +90,7 @@ export const useDictionary = ({
   const handleCreateSubmit = async (val: string) => {
     const trimmed = val.trim();
     if (!trimmed) {
-      setFocusMode("tree");
+      setFocus({ pane: "tree", action: "idle" });
       return;
     }
 
@@ -101,13 +109,13 @@ export const useDictionary = ({
     }
 
     setRefreshTrigger((prev) => prev + 1);
-    setFocusMode("tree");
+    setFocus({ pane: "tree", action: "idle" });
   };
 
   const handleRenameSubmit = async (val: string) => {
     const trimmed = val.trim();
     if (!trimmed || !selectedItem) {
-      setFocusMode("tree");
+      setFocus({ pane: "tree", action: "idle" });
       return;
     }
 
@@ -122,7 +130,7 @@ export const useDictionary = ({
     }
 
     setRefreshTrigger((prev) => prev + 1);
-    setFocusMode("tree");
+    setFocus({ pane: "tree", action: "idle" });
   };
 
   const handleDeleteConfirmModalConfirm = async () => {
@@ -137,65 +145,56 @@ export const useDictionary = ({
     }
 
     setRefreshTrigger((prev) => prev + 1);
-    setFocusMode("tree");
+    setFocus({ pane: "tree", action: "idle" });
   };
 
   const handleDeleteConfirmModalCancel = () => {
-    setFocusMode("tree");
+    setFocus({ pane: "tree", action: "idle" });
+  };
+
+  // actions
+  const actionRequestCreate = () => {
+    setInputValue("");
+    setFocus((prev) => ({ ...prev, action: "createInput" }));
+  };
+
+  const actionRequestDelete = () => {
+    if (focus.pane === "tree" && itemsToDisplay.length > 0) {
+      setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
+    }
+  };
+
+  const actionNavigateIn = () => {
+    if (focus.pane === "tree" && selectedItem?.type === "dir") {
+      navigateInto(selectedItem.data);
+    } else if (focus.pane === "tree" && selectedItem?.type === "capture") {
+      setFocus({ pane: "definition", action: "idle" });
+    }
+  };
+
+  const actionNavigateOut = () => {
+    if (focus.pane === "definition") {
+      setFocus({ pane: "tree", action: "idle" });
+    } else if (focus.pane === "tree" && !isAtRoot) {
+      navigateUp();
+    }
   };
 
   // keyboard logic
   useKeyboard((key) => {
-    if (focusMode !== "tree") {
-      if (key.name === "escape") {
-        setFocusMode("tree");
-      }
+    if (key.name === "escape") {
+      setFocus((prev) => ({ ...prev, action: "idle" }));
     }
 
     console.log("key.name:", key.name);
 
-    if (focusMode === "definitionPane") {
-      if (key.name === "backspace" || key.name === "h" || key.name === "left") {
-        setFocusMode("tree");
-      }
-    }
+    if (key.name === "a") actionRequestCreate();
+    if (key.name === "d") actionRequestDelete();
 
-    if (focusMode === "tree") {
-      if (key.name === "return" || key.name === "l" || key.name === "right") {
-        if (itemsToDisplay.length === 0 || !selectedItem) return;
-
-        if (selectedItem.type === "capture") {
-          setFocusMode("definitionPane");
-        } else if (selectedItem.type === "dir") {
-          navigateInto(selectedItem.data);
-        }
-      }
-
-      if (key.name === "backspace" || key.name === "h" || key.name === "left") {
-        navigateUp();
-      }
-
-      if (key.name === "a") {
-        setInputValue("");
-        setFocusMode("createInput");
-      }
-
-      if (key.name === "d") {
-        setFocusMode("deleteConfimModal");
-      }
-
-      if (key.name === "r") {
-        if (itemsToDisplay.length === 0 || !selectedItem) return;
-
-        const rawName =
-          selectedItem.type === "dir"
-            ? selectedItem.data.name
-            : selectedItem.data.text;
-
-        setInputValue(rawName);
-        setFocusMode("renameTreeItem");
-      }
-    }
+    if (key.name === "return" || key.name === "l" || key.name === "right")
+      actionNavigateIn();
+    if (key.name === "backspace" || key.name === "h" || key.name === "left")
+      actionNavigateOut();
   });
 
   // effects
@@ -296,8 +295,8 @@ export const useDictionary = ({
     definitionsToDisplay,
     defenitionIndex,
     setDefenitionIndex,
-    focusMode,
-    setFocusMode,
+    focus,
+    setFocus,
     inputValue,
     setInputValue,
     pathStack,

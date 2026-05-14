@@ -2,14 +2,15 @@ import {
   CaptureService,
   DirectoryService,
   DefinitionService,
-  type Capture,
 } from "@dictos/core";
+import { useRef } from "react";
 
 import { InteractiveList } from "./interactive-list";
 import { useDictionary } from "../model/use-dictionary";
 import { CreateModal } from "./modals/create-modal";
 import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 import { useTheme } from "@shared/lib/theme";
+import type { ScrollBoxRenderable } from "@opentui/core";
 
 interface DictionaryPageProps {
   captureService: CaptureService;
@@ -22,6 +23,8 @@ export const DictionaryPage = ({
   directoryService,
   definitionService,
 }: DictionaryPageProps) => {
+  const definitionListRef = useRef<ScrollBoxRenderable | null>(null);
+
   const theme = useTheme();
 
   const {
@@ -31,8 +34,8 @@ export const DictionaryPage = ({
     definitionsToDisplay,
     defenitionIndex,
     setDefenitionIndex,
-    focusMode,
-    setFocusMode,
+    focus,
+    setFocus,
     inputValue,
     setInputValue,
     pathStack,
@@ -70,11 +73,11 @@ export const DictionaryPage = ({
           <InteractiveList
             flexGrow={1}
             items={itemsToDisplay}
-            focused={focusMode === "tree"}
+            focused={focus.pane === "tree"}
             selectedIndex={selectedIndex}
             onIndexChange={setSelectedIndex}
             renderItem={(item, i, isSelected) => {
-              const isRenaming = focusMode === "renameTreeItem";
+              const isRenaming = focus.action === "renameInput";
               const bgColor = isSelected ? theme.base02 : theme.base00;
 
               if (isSelected && isRenaming) {
@@ -117,44 +120,24 @@ export const DictionaryPage = ({
         flexDirection="column"
         gap={1}
       >
-        <text fg={focusMode === "definitionPane" ? theme.base0E : theme.base03}>
+        <text fg={focus.pane === "definition" ? theme.base0E : theme.base03}>
           {selectedItem?.type === "capture" ? `${selectedItem.data.text}` : ""}
         </text>
 
         {definitionsToDisplay.length > 0 ? (
           <InteractiveList
+            ref={definitionListRef}
             contentOptions={{ gap: 1 }}
             flexGrow={1}
             items={definitionsToDisplay}
-            focused={focusMode === "definitionPane"}
+            focused={focus.pane === "definition"}
             selectedIndex={defenitionIndex}
             onIndexChange={setDefenitionIndex}
             renderItem={(item, i, isSelected) => {
-              const isRenaming = focusMode === "renameTreeItem";
-
-              if (isSelected && isRenaming) {
-                return (
-                  <box
-                    key={item.id}
-                    backgroundColor={theme.base02}
-                    paddingX={1}
-                  >
-                    <input
-                      value={inputValue}
-                      onChange={setInputValue}
-                      // @ts-expect-error opentui type bug
-                      onSubmit={handleRenameSubmit}
-                      focused
-                    />
-                  </box>
-                );
-              }
-
               return (
                 <box
                   border
                   borderColor={isSelected ? theme.base0D : theme.base03}
-                  // backgroundColor={bgColor}
                 >
                   <text fg={theme.base05}>{item.text}</text>
                 </box>
@@ -166,7 +149,7 @@ export const DictionaryPage = ({
         )}
       </box>
 
-      {focusMode === "createInput" && (
+      {focus.action === "createInput" && (
         <CreateModal
           value={inputValue}
           onChange={setInputValue}
@@ -176,9 +159,9 @@ export const DictionaryPage = ({
         />
       )}
 
-      {focusMode === "deleteConfimModal" && (
+      {focus.action === "deleteConfirm" && (
         <DeleteConfirmModal
-          focusMode={focusMode}
+          focus={focus}
           itemName={
             selectedItem?.type === "dir"
               ? `${selectedItem.data.name}/`
