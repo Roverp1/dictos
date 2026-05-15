@@ -1,6 +1,6 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard, type ScrollBoxProps } from "@opentui/react";
-import { useState, useRef, type ReactNode, useEffect } from "react";
+import { useRef, type ReactNode, useEffect } from "react";
 
 interface InteractiveListProps<T> extends Omit<ScrollBoxProps, "children"> {
   items: T[];
