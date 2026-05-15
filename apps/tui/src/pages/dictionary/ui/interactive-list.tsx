@@ -4,10 +4,12 @@ import { useState, useRef, type ReactNode, useEffect } from "react";
 
 interface InteractiveListProps<T> extends Omit<ScrollBoxProps, "children"> {
   items: T[];
+  id: string;
   focused: boolean;
 
   selectedIndex: number;
   onIndexChange: React.Dispatch<React.SetStateAction<number>>;
+  ListFooterComponent?: ReactNode;
 
   renderItem: (item: T, index: number, isSelected: boolean) => ReactNode;
 }
@@ -15,9 +17,11 @@ interface InteractiveListProps<T> extends Omit<ScrollBoxProps, "children"> {
 export const InteractiveList = <T,>({
   items,
   focused,
+  id,
 
   selectedIndex,
   onIndexChange,
+  ListFooterComponent,
 
   renderItem,
   ...props
@@ -46,11 +50,17 @@ export const InteractiveList = <T,>({
   useEffect(() => {
     if (!scrollBoxRef.current) return;
 
-    scrollBoxRef.current.scrollChildIntoView(`item-${selectedIndex}`);
-  }, [selectedIndex]);
+    if (ListFooterComponent) {
+      scrollBoxRef.current.scrollTo(scrollBoxRef.current.scrollHeight);
+    } else if (items.length > 0) {
+      scrollBoxRef.current.scrollChildIntoView(`${id}-item-${selectedIndex}`);
+    }
+  }, [selectedIndex, ListFooterComponent]);
 
   return (
     <scrollbox
+      stickyScroll={ListFooterComponent !== null}
+      stickyStart="bottom"
       ref={scrollBoxRef}
       focused
       {...props}
@@ -61,12 +71,16 @@ export const InteractiveList = <T,>({
         return (
           <box
             key={i}
-            id={`item-${i}`}
+            id={`${id}-item-${i}`}
           >
             {renderItem(item, i, isSelected)}
           </box>
         );
       })}
+
+      {ListFooterComponent && (
+        <box id="ListFooterComponent">{ListFooterComponent}</box>
+      )}
     </scrollbox>
   );
 };

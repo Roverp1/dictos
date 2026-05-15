@@ -11,6 +11,7 @@ import { CreateModal } from "./modals/create-modal";
 import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 import { useTheme } from "@shared/lib/theme";
 import type { ScrollBoxRenderable } from "@opentui/core";
+import { SubmitTextarea } from "./submit-textarea";
 
 interface DictionaryPageProps {
   captureService: CaptureService;
@@ -23,8 +24,6 @@ export const DictionaryPage = ({
   directoryService,
   definitionService,
 }: DictionaryPageProps) => {
-  const definitionListRef = useRef<ScrollBoxRenderable | null>(null);
-
   const theme = useTheme();
 
   const {
@@ -44,6 +43,7 @@ export const DictionaryPage = ({
     handleRenameSubmit,
     handleDeleteConfirmModalConfirm,
     handleDeleteConfirmModalCancel,
+    handleDefinitionSubmit,
   } = useDictionary({ captureService, directoryService, definitionService });
 
   return (
@@ -71,6 +71,7 @@ export const DictionaryPage = ({
 
         {itemsToDisplay.length > 0 ? (
           <InteractiveList
+            id="tree-item-list"
             flexGrow={1}
             items={itemsToDisplay}
             focused={focus.pane === "tree"}
@@ -124,32 +125,42 @@ export const DictionaryPage = ({
           {selectedItem?.type === "capture" ? `${selectedItem.data.text}` : ""}
         </text>
 
-        {definitionsToDisplay.length > 0 ? (
-          <InteractiveList
-            ref={definitionListRef}
-            contentOptions={{ gap: 1 }}
-            flexGrow={1}
-            items={definitionsToDisplay}
-            focused={focus.pane === "definition"}
-            selectedIndex={defenitionIndex}
-            onIndexChange={setDefenitionIndex}
-            renderItem={(item, i, isSelected) => {
-              return (
-                <box
-                  border
-                  borderColor={isSelected ? theme.base0D : theme.base03}
-                >
-                  <text fg={theme.base05}>{item.text}</text>
-                </box>
-              );
-            }}
-          />
-        ) : (
-          <text>Press 'a' to add first definition for this capture</text>
-        )}
+        <InteractiveList
+          id="definition-list"
+          contentOptions={{ gap: 1 }}
+          flexGrow={1}
+          items={definitionsToDisplay}
+          focused={focus.pane === "definition"}
+          selectedIndex={defenitionIndex}
+          onIndexChange={setDefenitionIndex}
+          renderItem={(item, i, isSelected) => {
+            return (
+              <box
+                border
+                borderColor={isSelected ? theme.base0D : theme.base03}
+              >
+                <text fg={theme.base05}>{item.text}</text>
+              </box>
+            );
+          }}
+          ListFooterComponent={
+            focus.pane === "definition" && focus.action === "createInput" ? (
+              <box
+                border
+                borderColor={theme.base0B}
+              >
+                <SubmitTextarea
+                  focused={true}
+                  onSave={handleDefinitionSubmit}
+                />
+              </box>
+            ) : null
+          }
+        />
+        {/* <text>Press 'a' to add first definition for this capture</text> */}
       </box>
 
-      {focus.action === "createInput" && (
+      {focus.pane === "tree" && focus.action === "createInput" && (
         <CreateModal
           value={inputValue}
           onChange={setInputValue}
