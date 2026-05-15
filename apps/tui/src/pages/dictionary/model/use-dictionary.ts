@@ -135,8 +135,8 @@ export const useDictionary = ({
     setFocus({ pane: "tree", action: "idle" });
   };
 
-  const handleDeleteConfirmModalConfirm = async () => {
-    if (selectedItem!.type === "capture") {
+  const handleDeleteTreeItemConfirm = async () => {
+    if (selectedItem!.type === "capture" && focus.pane === "tree") {
       await captureService
         .deleteCapture(selectedItem!.data.id)
         .catch(console.error);
@@ -148,6 +148,14 @@ export const useDictionary = ({
 
     setRefreshTrigger((prev) => prev + 1);
     setFocus({ pane: "tree", action: "idle" });
+  };
+
+  const handleDeleteDefenitionConfirm = async () => {
+    if (focus.pane === "definition") {
+      await definitionService.deleteDefinition(selectedDefinition!.id);
+      setDefinitionRefreshTrigger((prev) => prev + 1);
+      setFocus({ pane: "definition", action: "idle" });
+    }
   };
 
   const handleDeleteConfirmModalCancel = () => {
@@ -178,6 +186,10 @@ export const useDictionary = ({
 
   const actionRequestDelete = () => {
     if (focus.pane === "tree" && itemsToDisplay.length > 0) {
+      setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
+    }
+
+    if (focus.pane === "definition" && definitionsToDisplay.length > 0) {
       setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
     }
   };
@@ -324,8 +336,10 @@ export const useDictionary = ({
     selectedItem,
     handleCreateSubmit,
     handleRenameSubmit,
-    handleDeleteConfirmModalConfirm,
+    handleDeleteTreeItemConfirm,
+    handleDeleteDefenitionConfirm,
     handleDeleteConfirmModalCancel,
     handleDefinitionSubmit,
+    selectedDefinition,
   };
 };
