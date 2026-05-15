@@ -68,11 +68,13 @@ export const useDictionary = ({
   const [inputValue, setInputValue] = useState<string>("");
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [definitionRefreshTrigger, setDefinitionRefreshTrigger] = useState(0);
 
   // helper vars
   const currentDir = pathStack[pathStack.length - 1]!;
   const isAtRoot = pathStack.length === 1;
   const selectedItem = itemsToDisplay[selectedIndex];
+  const selectedDefinition = definitionsToDisplay[defenitionIndex];
 
   // handlers
   const navigateInto = (selectedDir: Directory) => {
@@ -152,6 +154,22 @@ export const useDictionary = ({
     setFocus({ pane: "tree", action: "idle" });
   };
 
+  const handleDefinitionSubmit = async (finalText: string) => {
+    const trimmed = finalText.trim();
+    if (!trimmed || !selectedItem) {
+      setFocus({ pane: "definition", action: "idle" });
+      return;
+    }
+
+    await definitionService.createDefinition({
+      captureId: selectedItem.data.id,
+      text: trimmed,
+    });
+
+    setDefinitionRefreshTrigger((prev) => prev + 1);
+    setFocus({ pane: "definition", action: "idle" });
+  };
+
   // actions
   const actionRequestCreate = () => {
     setInputValue("");
@@ -182,8 +200,11 @@ export const useDictionary = ({
 
   // keyboard logic
   useKeyboard((key) => {
-    if (key.name === "escape") {
-      setFocus((prev) => ({ ...prev, action: "idle" }));
+    if (focus.action !== "idle") {
+      if (key.name === "escape") {
+        setFocus((prev) => ({ ...prev, action: "idle" }));
+      }
+      return;
     }
 
     console.log("key.name:", key.name);
@@ -286,7 +307,7 @@ export const useDictionary = ({
     };
 
     loadDefinitions();
-  }, [selectedIndex]);
+  }, [selectedIndex, definitionRefreshTrigger]);
 
   return {
     itemsToDisplay,
@@ -305,5 +326,6 @@ export const useDictionary = ({
     handleRenameSubmit,
     handleDeleteConfirmModalConfirm,
     handleDeleteConfirmModalCancel,
+    handleDefinitionSubmit,
   };
 };
