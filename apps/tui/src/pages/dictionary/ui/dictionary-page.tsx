@@ -36,9 +36,11 @@ export const DictionaryPage = ({
     selectedItem,
     handleCreateSubmit,
     handleRenameSubmit,
-    handleDeleteConfirmModalConfirm,
+    handleDeleteDefenitionConfirm,
+    handleDeleteTreeItemConfirm,
     handleDeleteConfirmModalCancel,
     handleDefinitionSubmit,
+    selectedDefinition,
   } = useDictionary({ captureService, directoryService, definitionService });
 
   return (
@@ -75,7 +77,7 @@ export const DictionaryPage = ({
         />
       )}
 
-      {focus.action === "deleteConfirm" && (
+      {focus.pane === "tree" && focus.action === "deleteConfirm" && (
         <DeleteConfirmModal
           focus={focus}
           itemName={
@@ -83,7 +85,16 @@ export const DictionaryPage = ({
               ? `${selectedItem.data.name}/`
               : selectedItem?.data.text
           }
-          onConfirm={handleDeleteConfirmModalConfirm}
+          onConfirm={handleDeleteTreeItemConfirm}
+          onCancel={handleDeleteConfirmModalCancel}
+        />
+      )}
+
+      {focus.pane === "definition" && focus.action === "deleteConfirm" && (
+        <DeleteConfirmModal
+          focus={focus}
+          itemName={selectedDefinition?.text}
+          onConfirm={handleDeleteDefenitionConfirm}
           onCancel={handleDeleteConfirmModalCancel}
         />
       )}
