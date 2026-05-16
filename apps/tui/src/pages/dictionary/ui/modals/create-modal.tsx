@@ -1,8 +1,12 @@
+import { useDictionaryStore } from "@pages/dictionary/model/use-dictionary-store";
+
 import type { InputProps } from "@opentui/react";
 
 interface CreateModalProps extends InputProps {}
 
 export const CreateModal = ({ ...props }: CreateModalProps) => {
+  const { inputValue, setInputValue } = useDictionaryStore();
+
   return (
     <box
       position="absolute"
@@ -15,7 +19,11 @@ export const CreateModal = ({ ...props }: CreateModalProps) => {
       title="Create:"
       titleAlignment="left"
     >
-      <input {...props} />
+      <input
+        {...props}
+        value={inputValue}
+        onChange={setInputValue}
+      />
     </box>
   );
 };
