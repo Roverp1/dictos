@@ -5,14 +5,15 @@ import type { Directory } from "@dictos/core";
 import type { FocusState, TreeItem } from "../model/use-dictionary";
 import type { Dispatch, SetStateAction } from "react";
 
+import { useDictionaryStore } from "../model/use-dictionary-store";
+
 type DirectoryTreePaneProps = {
   pathStack: Directory[];
   itemsToDisplay: TreeItem[];
   focus: FocusState;
   selectedIndex: number;
   setSelectedIndex: Dispatch<SetStateAction<number>>;
-  inputValue: string;
-  setInputValue: (value: string) => void;
+  handleRenameTreeItemSubmit: (value: string) => Promise<void>;
 };
 
 export const DirectoryTreePane = ({
@@ -21,10 +22,11 @@ export const DirectoryTreePane = ({
   focus,
   selectedIndex,
   setSelectedIndex,
-  inputValue,
-  setInputValue,
+  handleRenameTreeItemSubmit,
 }: DirectoryTreePaneProps) => {
   const theme = useTheme();
+
+  const { inputValue, setInputValue } = useDictionaryStore();
 
   return (
     <box
@@ -51,6 +53,7 @@ export const DirectoryTreePane = ({
           flexGrow={1}
           items={itemsToDisplay}
           focused={focus.pane === "tree"}
+          focus={focus}
           selectedIndex={selectedIndex}
           onIndexChange={setSelectedIndex}
           renderItem={(item, i, isSelected) => {
@@ -68,7 +71,11 @@ export const DirectoryTreePane = ({
                     value={inputValue}
                     onChange={setInputValue}
                     // @ts-expect-error opentui type bug
-                    onSubmit={handleRenameSubmit}
+                    onSubmit={handleRenameTreeItemSubmit}
+                    keyBindings={[
+                      { name: "return", action: "submit" },
+                      { name: "s", ctrl: true, action: "submit" },
+                    ]}
                     focused
                   />
                 </box>

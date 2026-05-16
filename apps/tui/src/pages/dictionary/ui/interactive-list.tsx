@@ -2,10 +2,13 @@ import type { ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard, type ScrollBoxProps } from "@opentui/react";
 import { useRef, type ReactNode, useEffect } from "react";
 
+import type { FocusState } from "../model/use-dictionary";
+
 interface InteractiveListProps<T> extends Omit<ScrollBoxProps, "children"> {
   items: T[];
   id: string;
   focused: boolean;
+  focus: FocusState;
 
   selectedIndex: number;
   onIndexChange: React.Dispatch<React.SetStateAction<number>>;
@@ -17,6 +20,7 @@ interface InteractiveListProps<T> extends Omit<ScrollBoxProps, "children"> {
 export const InteractiveList = <T,>({
   items,
   focused,
+  focus,
   id,
 
   selectedIndex,
@@ -29,7 +33,8 @@ export const InteractiveList = <T,>({
   const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
 
   useKeyboard((key) => {
-    if (!focused || items.length === 0) return;
+    if (!focused || items.length === 0 || focus.action === "renameInput")
+      return;
 
     if (key.name === "j" || key.name === "down") {
       onIndexChange((prev) => {

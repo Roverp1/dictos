@@ -10,6 +10,8 @@ import {
   type Definition,
 } from "@dictos/core";
 
+import { useDictionaryStore } from "./use-dictionary-store";
+
 interface UseDictionaryProps {
   captureService: CaptureService;
   directoryService: DirectoryService;
@@ -65,10 +67,12 @@ export const useDictionary = ({
     pane: "tree",
     action: "idle",
   });
-  const [inputValue, setInputValue] = useState<string>("");
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [definitionRefreshTrigger, setDefinitionRefreshTrigger] = useState(0);
+
+  // store
+  const { inputValue, setInputValue } = useDictionaryStore();
 
   // helper vars
   const currentDir = pathStack[pathStack.length - 1]!;
@@ -114,25 +118,27 @@ export const useDictionary = ({
     setFocus({ pane: "tree", action: "idle" });
   };
 
-  const handleRenameSubmit = async (val: string) => {
-    const trimmed = val.trim();
-    if (!trimmed || !selectedItem) {
+  const handleRenameTreeItemSubmit = async (val: string) => {
+    if (focus.action === "renameInput" && focus.pane === "tree") {
+      const trimmed = val.trim();
+      if (!trimmed || !selectedItem) {
+        setFocus({ pane: "tree", action: "idle" });
+        return;
+      }
+
+      if (selectedItem.type === "dir") {
+        await directoryService
+          .renameDirectory(selectedItem.data.id, trimmed)
+          .catch(console.error);
+      } else {
+        await captureService
+          .updateCapture(selectedItem.data.id, { text: trimmed })
+          .catch(console.error);
+      }
+
+      setRefreshTrigger((prev) => prev + 1);
       setFocus({ pane: "tree", action: "idle" });
-      return;
     }
-
-    if (selectedItem.type === "dir") {
-      await directoryService
-        .renameDirectory(selectedItem.data.id, trimmed)
-        .catch(console.error);
-    } else {
-      await captureService
-        .updateCapture(selectedItem.data.id, { text: trimmed })
-        .catch(console.error);
-    }
-
-    setRefreshTrigger((prev) => prev + 1);
-    setFocus({ pane: "tree", action: "idle" });
   };
 
   const handleDeleteTreeItemConfirm = async () => {
@@ -194,6 +200,18 @@ export const useDictionary = ({
     }
   };
 
+  const actionRequestRename = () => {
+    if (focus.pane === "tree" && itemsToDisplay.length > 0) {
+      setFocus((prev) => ({ ...prev, action: "renameInput" }));
+
+      if (selectedItem?.type === "dir") {
+        setInputValue(selectedItem.data.name);
+      } else if (selectedItem?.type === "capture") {
+        setInputValue(selectedItem?.data.text);
+      }
+    }
+  };
+
   const actionNavigateIn = () => {
     if (focus.pane === "tree" && selectedItem?.type === "dir") {
       navigateInto(selectedItem.data);
@@ -216,6 +234,7 @@ export const useDictionary = ({
       if (key.name === "escape") {
         setFocus((prev) => ({ ...prev, action: "idle" }));
       }
+
       return;
     }
 
@@ -223,6 +242,8 @@ export const useDictionary = ({
 
     if (key.name === "a") actionRequestCreate();
     if (key.name === "d") actionRequestDelete();
+
+    if (key.name === "r") actionRequestRename();
 
     if (key.name === "return" || key.name === "l" || key.name === "right")
       actionNavigateIn();
@@ -330,12 +351,10 @@ export const useDictionary = ({
     setDefenitionIndex,
     focus,
     setFocus,
-    inputValue,
-    setInputValue,
     pathStack,
     selectedItem,
     handleCreateSubmit,
-    handleRenameSubmit,
+    handleRenameTreeItemSubmit,
     handleDeleteTreeItemConfirm,
     handleDeleteDefenitionConfirm,
     handleDeleteConfirmModalCancel,
