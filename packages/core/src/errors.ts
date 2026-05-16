@@ -19,3 +19,13 @@ export class LlmError extends errore.createTaggedError({
   name: "LlmError",
   message: "Llm operation $operation failed",
 }) {}
+
+export class AuthError extends errore.createTaggedError({
+  name: "AuthError",
+  message: "Authentication failed: $reason",
+}) {}
+
+export class RegistrationError extends errore.createTaggedError({
+  name: "RegistrationError",
+  message: "Registration failed: $reason",
+}) {}
