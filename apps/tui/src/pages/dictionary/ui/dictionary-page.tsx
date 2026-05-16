@@ -30,12 +30,11 @@ export const DictionaryPage = ({
     setDefenitionIndex,
     focus,
     setFocus,
-    inputValue,
-    setInputValue,
     pathStack,
     selectedItem,
     handleCreateSubmit,
-    handleRenameSubmit,
+    handleRenameTreeItemSubmit,
+    handleRenameDefenition,
     handleDeleteDefenitionConfirm,
     handleDeleteTreeItemConfirm,
     handleDeleteConfirmModalCancel,
@@ -54,8 +53,7 @@ export const DictionaryPage = ({
         focus={focus}
         selectedIndex={selectedIndex}
         setSelectedIndex={setSelectedIndex}
-        inputValue={inputValue}
-        setInputValue={setInputValue}
+        handleRenameTreeItemSubmit={handleRenameTreeItemSubmit}
       />
 
       <DefinitionPane
@@ -65,12 +63,11 @@ export const DictionaryPage = ({
         defenitionIndex={defenitionIndex}
         setDefenitionIndex={setDefenitionIndex}
         handleDefinitionSubmit={handleDefinitionSubmit}
+        handleRenameDefenition={handleRenameDefenition}
       />
 
       {focus.pane === "tree" && focus.action === "createInput" && (
         <CreateModal
-          value={inputValue}
-          onChange={setInputValue}
           // @ts-expect-error opentui type collision bug
           onSubmit={handleCreateSubmit}
           focused
