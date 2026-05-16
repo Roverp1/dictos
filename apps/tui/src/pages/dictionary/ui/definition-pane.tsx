@@ -5,6 +5,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { InteractiveList } from "./interactive-list";
 import type { FocusState, TreeItem } from "../model/use-dictionary";
 import { SubmitTextarea } from "./submit-textarea";
+import { useDictionaryStore } from "../model/use-dictionary-store";
 
 type DefinitionPaneProps = {
   focus: FocusState;
@@ -13,6 +14,7 @@ type DefinitionPaneProps = {
   defenitionIndex: number;
   setDefenitionIndex: Dispatch<SetStateAction<number>>;
   handleDefinitionSubmit: (finalText: string) => Promise<void>;
+  handleRenameDefenition: (value: string) => Promise<void>;
 };
 
 export const DefinitionPane = ({
@@ -22,8 +24,11 @@ export const DefinitionPane = ({
   defenitionIndex,
   setDefenitionIndex,
   handleDefinitionSubmit,
+  handleRenameDefenition,
 }: DefinitionPaneProps) => {
   const theme = useTheme();
+
+  const { setInputValue, inputValue } = useDictionaryStore();
 
   return (
     <box
@@ -43,9 +48,28 @@ export const DefinitionPane = ({
         flexGrow={1}
         items={definitionsToDisplay}
         focused={focus.pane === "definition"}
+        focus={focus}
         selectedIndex={defenitionIndex}
         onIndexChange={setDefenitionIndex}
         renderItem={(item, i, isSelected) => {
+          const isRenaming =
+            focus.action === "renameInput" && focus.pane === "definition";
+
+          if (isSelected && isRenaming) {
+            return (
+              <box
+                border
+                borderColor={isSelected ? theme.base0D : theme.base03}
+              >
+                <SubmitTextarea
+                  focused={true}
+                  onSave={handleRenameDefenition}
+                  initialValue={inputValue}
+                />
+              </box>
+            );
+          }
+
           return (
             <box
               border
