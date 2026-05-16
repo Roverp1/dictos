@@ -57,7 +57,8 @@ export const DirectoryTreePane = ({
           selectedIndex={selectedIndex}
           onIndexChange={setSelectedIndex}
           renderItem={(item, i, isSelected) => {
-            const isRenaming = focus.action === "renameInput";
+            const isRenaming =
+              focus.action === "renameInput" && focus.pane === "tree";
             const bgColor = isSelected ? theme.base02 : theme.base00;
 
             if (isSelected && isRenaming) {

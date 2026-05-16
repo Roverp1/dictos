@@ -34,6 +34,7 @@ export const DictionaryPage = ({
     selectedItem,
     handleCreateSubmit,
     handleRenameTreeItemSubmit,
+    handleRenameDefenition,
     handleDeleteDefenitionConfirm,
     handleDeleteTreeItemConfirm,
     handleDeleteConfirmModalCancel,
@@ -62,6 +63,7 @@ export const DictionaryPage = ({
         defenitionIndex={defenitionIndex}
         setDefenitionIndex={setDefenitionIndex}
         handleDefinitionSubmit={handleDefinitionSubmit}
+        handleRenameDefenition={handleRenameDefenition}
       />
 
       {focus.pane === "tree" && focus.action === "createInput" && (

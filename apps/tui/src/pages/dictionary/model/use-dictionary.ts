@@ -141,6 +141,26 @@ export const useDictionary = ({
     }
   };
 
+  const handleRenameDefenition = async (val: string) => {
+    if (focus.action === "renameInput" && focus.pane === "definition") {
+      const trimmed = val.trim();
+      if (!trimmed || !selectedItem) {
+        setFocus({ pane: "definition", action: "idle" });
+        return;
+      }
+
+      await definitionService
+        .updateDefinition(selectedDefinition!.id, {
+          captureId: selectedDefinition?.captureId,
+          text: trimmed,
+        })
+        .catch(console.error);
+
+      setDefinitionRefreshTrigger((prev) => prev + 1);
+      setFocus({ pane: "definition", action: "idle" });
+    }
+  };
+
   const handleDeleteTreeItemConfirm = async () => {
     if (selectedItem!.type === "capture" && focus.pane === "tree") {
       await captureService
@@ -209,6 +229,12 @@ export const useDictionary = ({
       } else if (selectedItem?.type === "capture") {
         setInputValue(selectedItem?.data.text);
       }
+    }
+
+    if (focus.pane === "definition" && definitionsToDisplay.length > 0) {
+      setFocus((prev) => ({ ...prev, action: "renameInput" }));
+
+      setInputValue(selectedDefinition!.text);
     }
   };
 
@@ -355,6 +381,7 @@ export const useDictionary = ({
     selectedItem,
     handleCreateSubmit,
     handleRenameTreeItemSubmit,
+    handleRenameDefenition,
     handleDeleteTreeItemConfirm,
     handleDeleteDefenitionConfirm,
     handleDeleteConfirmModalCancel,
