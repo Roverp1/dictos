@@ -33,7 +33,12 @@ export const InteractiveList = <T,>({
   const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
 
   useKeyboard((key) => {
-    if (!focused || items.length === 0 || focus.action === "renameInput")
+    if (
+      !focused ||
+      items.length === 0 ||
+      focus.action === "renameInput" ||
+      focus.action === "createInput"
+    )
       return;
 
     if (key.name === "j" || key.name === "down") {
