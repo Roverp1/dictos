@@ -1,0 +1,23 @@
+{
+  "name": "@dictos/server",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "bun run --watch src/index.ts"
+  },
+  "dependencies": {
+    "elysia": "latest",
+    "@dictos/core": "workspace:*",
+    "@dictos/adapters": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "peerDependencies": {
+    "typescript": "^6"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
