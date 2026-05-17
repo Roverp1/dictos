@@ -58,7 +58,7 @@ export const useDictionary = ({
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
   const [itemsToDisplay, setItemsToDisplay] = useState<TreeItem[]>([]);
 
-  const [defenitionIndex, setDefenitionIndex] = useState<number>(0);
+  const [definitionIndex, setDefinitionIndex] = useState<number>(0);
   const [definitionsToDisplay, setDefinitionsToDisplay] = useState<
     Definition[]
   >([]);
@@ -78,7 +78,7 @@ export const useDictionary = ({
   const currentDir = pathStack[pathStack.length - 1]!;
   const isAtRoot = pathStack.length === 1;
   const selectedItem = itemsToDisplay[selectedIndex];
-  const selectedDefinition = definitionsToDisplay[defenitionIndex];
+  const selectedDefinition = definitionsToDisplay[definitionIndex];
 
   // handlers
   const navigateInto = (selectedDir: Directory) => {
@@ -141,24 +141,22 @@ export const useDictionary = ({
     }
   };
 
-  const handleRenameDefenition = async (val: string) => {
-    if (focus.action === "renameInput" && focus.pane === "definition") {
-      const trimmed = val.trim();
-      if (!trimmed || !selectedItem) {
-        setFocus({ pane: "definition", action: "idle" });
-        return;
-      }
-
-      await definitionService
-        .updateDefinition(selectedDefinition!.id, {
-          captureId: selectedDefinition?.captureId,
-          text: trimmed,
-        })
-        .catch(console.error);
-
-      setDefinitionRefreshTrigger((prev) => prev + 1);
+  const handleRenameDefinition = async (val: string) => {
+    const trimmed = val.trim();
+    if (!trimmed || !selectedDefinition) {
       setFocus({ pane: "definition", action: "idle" });
+      return;
     }
+
+    await definitionService
+      .updateDefinition(selectedDefinition!.id, {
+        captureId: selectedDefinition?.captureId,
+        text: trimmed,
+      })
+      .catch(console.error);
+
+    setDefinitionRefreshTrigger((prev) => prev + 1);
+    setFocus({ pane: "definition", action: "idle" });
   };
 
   const handleDeleteTreeItemConfirm = async () => {
@@ -176,7 +174,7 @@ export const useDictionary = ({
     setFocus({ pane: "tree", action: "idle" });
   };
 
-  const handleDeleteDefenitionConfirm = async () => {
+  const handleDeleteDefinitionConfirm = async () => {
     if (focus.pane === "definition") {
       await definitionService.deleteDefinition(selectedDefinition!.id);
       setDefinitionRefreshTrigger((prev) => prev + 1);
@@ -373,17 +371,17 @@ export const useDictionary = ({
     selectedIndex,
     setSelectedIndex,
     definitionsToDisplay,
-    defenitionIndex,
-    setDefenitionIndex,
+    definitionIndex,
+    setDefinitionIndex,
     focus,
     setFocus,
     pathStack,
     selectedItem,
     handleCreateSubmit,
     handleRenameTreeItemSubmit,
-    handleRenameDefenition,
+    handleRenameDefinition,
     handleDeleteTreeItemConfirm,
-    handleDeleteDefenitionConfirm,
+    handleDeleteDefinitionConfirm,
     handleDeleteConfirmModalCancel,
     handleDefinitionSubmit,
     selectedDefinition,

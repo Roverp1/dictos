@@ -11,20 +11,20 @@ type DefinitionPaneProps = {
   focus: FocusState;
   selectedItem?: TreeItem;
   definitionsToDisplay: Definition[];
-  defenitionIndex: number;
-  setDefenitionIndex: Dispatch<SetStateAction<number>>;
+  definitionIndex: number;
+  setDefinitionIndex: Dispatch<SetStateAction<number>>;
   handleDefinitionSubmit: (finalText: string) => Promise<void>;
-  handleRenameDefenition: (value: string) => Promise<void>;
+  handleRenameDefinition: (value: string) => Promise<void>;
 };
 
 export const DefinitionPane = ({
   focus,
   selectedItem,
   definitionsToDisplay,
-  defenitionIndex,
-  setDefenitionIndex,
+  definitionIndex,
+  setDefinitionIndex,
   handleDefinitionSubmit,
-  handleRenameDefenition,
+  handleRenameDefinition,
 }: DefinitionPaneProps) => {
   const theme = useTheme();
 
@@ -49,8 +49,8 @@ export const DefinitionPane = ({
         items={definitionsToDisplay}
         focused={focus.pane === "definition"}
         focus={focus}
-        selectedIndex={defenitionIndex}
-        onIndexChange={setDefenitionIndex}
+        selectedIndex={definitionIndex}
+        onIndexChange={setDefinitionIndex}
         renderItem={(item, i, isSelected) => {
           const isRenaming =
             focus.action === "renameInput" && focus.pane === "definition";
@@ -59,11 +59,11 @@ export const DefinitionPane = ({
             return (
               <box
                 border
-                borderColor={isSelected ? theme.base0D : theme.base03}
+                borderColor={theme.base0D}
               >
                 <SubmitTextarea
                   focused={true}
-                  onSave={handleRenameDefenition}
+                  onSave={handleRenameDefinition}
                   initialValue={inputValue}
                 />
               </box>

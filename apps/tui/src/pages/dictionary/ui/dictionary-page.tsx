@@ -26,16 +26,16 @@ export const DictionaryPage = ({
     selectedIndex,
     setSelectedIndex,
     definitionsToDisplay,
-    defenitionIndex,
-    setDefenitionIndex,
+    definitionIndex,
+    setDefinitionIndex,
     focus,
     setFocus,
     pathStack,
     selectedItem,
     handleCreateSubmit,
     handleRenameTreeItemSubmit,
-    handleRenameDefenition,
-    handleDeleteDefenitionConfirm,
+    handleRenameDefinition,
+    handleDeleteDefinitionConfirm,
     handleDeleteTreeItemConfirm,
     handleDeleteConfirmModalCancel,
     handleDefinitionSubmit,
@@ -60,10 +60,10 @@ export const DictionaryPage = ({
         focus={focus}
         selectedItem={selectedItem}
         definitionsToDisplay={definitionsToDisplay}
-        defenitionIndex={defenitionIndex}
-        setDefenitionIndex={setDefenitionIndex}
+        definitionIndex={definitionIndex}
+        setDefinitionIndex={setDefinitionIndex}
         handleDefinitionSubmit={handleDefinitionSubmit}
-        handleRenameDefenition={handleRenameDefenition}
+        handleRenameDefinition={handleRenameDefinition}
       />
 
       {focus.pane === "tree" && focus.action === "createInput" && (
@@ -91,7 +91,7 @@ export const DictionaryPage = ({
         <DeleteConfirmModal
           focus={focus}
           itemName={selectedDefinition?.text}
-          onConfirm={handleDeleteDefenitionConfirm}
+          onConfirm={handleDeleteDefinitionConfirm}
           onCancel={handleDeleteConfirmModalCancel}
         />
       )}
