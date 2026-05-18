@@ -16,7 +16,7 @@ export const createCentralDatabase = async () => {
 
   await migrate(db, {
     // probably wont work in production
-    migrationsFolder: path.resolve(__dirname, "../..drizzle/migrations"),
+    migrationsFolder: path.resolve(__dirname, "../../drizzle/migrations"),
   });
 
   return db;
