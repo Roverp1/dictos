@@ -6,60 +6,41 @@ import {
   type AuthSession,
   type RegisterCredentials,
 } from "@dictos/core";
-import { API_ROUTES } from "../../../core/src/config/api-routes";
+import { treaty } from "@elysia/eden";
+import { type App } from "@dictos/server";
 
 export class CentralApiAdapter implements AuthPort {
-  constructor(private baseUrl: string) {}
+  private client: ReturnType<typeof treaty<App>>;
+
+  constructor(private baseUrl: string) {
+    this.client = treaty<App>(baseUrl);
+  }
 
   async login(credentials: AuthCredentials): Promise<AuthSession | AuthError> {
-    const url = `${this.baseUrl}${API_ROUTES.AUTH.LOGIN}`;
+    const { data, error } = await this.client.auth.login.post(credentials);
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
-    }).catch(
-      (e) =>
-        new AuthError({
-          reason: "Network connection failed",
-          cause: e,
-        })
-    );
-
-    if (response instanceof Error) return response;
-
-    if (!response.ok) {
-      // const data = await response.json().catch(() => ({}));
+    if (error) {
       return new AuthError({
-        reason: `Server error: ${response.status}`,
+        reason: error.value?.message || "Login failed",
+        cause: error,
       });
     }
 
-    return (await response.json()) as AuthSession;
+    return data;
   }
 
   async register(
     credentials: RegisterCredentials
   ): Promise<AuthSession | RegistrationError> {
-    const url = `${this.baseUrl}${API_ROUTES.AUTH.REGISTER}`;
+    const { data, error } = await this.client.auth.register.post(credentials);
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
-    }).catch(
-      (e) =>
-        new RegistrationError({ reason: "Network connection failed", cause: e })
-    );
-
-    if (response instanceof Error) return response;
-
-    if (!response.ok) {
+    if (error) {
       return new RegistrationError({
-        reason: `Server error: ${response.status}`,
+        reason: error.value?.message || "Registration failed",
+        cause: error,
       });
     }
 
-    return (await response.json()) as AuthSession;
+    return data;
   }
 }
