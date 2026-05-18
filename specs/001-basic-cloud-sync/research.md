@@ -1,30 +1,27 @@
 # Phase 0: Research & Decisions
 
-## Database Architecture: Dual libSQL Architecture
+## Backend Framework: ElysiaJS
+- **Decision**: Use ElysiaJS for the central backend server.
+- **Rationale**: Bun-native performance, excellent TypeBox integration for validation, and the Eden Treaty for end-to-end type safety without code generation.
 
+## Communication & Type Safety: Eden Treaty
+- **Decision**: Abandon manual `API_ROUTES` maps in favor of Eden Treaty.
+- **Rationale**: Allows the TUI client to import the server's type signature directly, providing full type safety for all endpoints with zero maintenance overhead.
+
+## Database Architecture: Dual libSQL Architecture
 - **Decision**: Use libSQL (Turso) for both personal databases and the central shared database.
-- **Rationale**: Keeps the tech stack unified (SQLite/Drizzle everywhere).
-  - **Personal DBs**: Isolated database per user for captures/definitions, synced natively via Turso SDK.
-  - **Central DB**: Shared database for users, friends, and shared/public data (initially activity aggregates).
+- **Rationale**: Keeps the tech stack unified. Personal data uses native sync; central data uses API-mediated outbox sync.
 
 ## Synchronization Mechanism: Native + Outbox
-
 - **Decision**:
-  1. Use **Native Turso Sync** (`@libsql/client` with `offline: true`) for personal data.
-  2. Use the **Outbox Pattern** to sync shared data (activity aggregates) to the Central DB via REST API.
-- **Rationale**:
-  - Personal data requires full multi-device bidirectional sync (free with Turso).
-  - Central data requires secure aggregation from millions of clients into one shared DB (requires API-mediated Outbox).
+  1. Use **Native Turso Sync** for personal data.
+  2. Use the **Outbox Pattern** to sync shared data (activity aggregates) via REST API.
+- **Rationale**: Personal data requires full bidirectional sync; central data requires secure, server-side aggregation.
 
-## Outbox Mechanism (State-Based & Scalable)
+## Security: Native Bun Hashing
+- **Decision**: Use `Bun.password` (Argon2/Bcrypt) for password hashing.
+- **Rationale**: Replaces Scrypt for better performance and zero-dependency integration with the Bun runtime.
 
-- **Decision**:
-  - The `outbox` table stores `tableName`, `recordId`, and `operation`.
-  - For **Activity Aggregates** (e.g., `captures_added`), it is additive-only. Deletion of local captures does not decrement the central count.
-  - The design remains compatible with future **Entity Sync** (like public directories).
-- **Rationale**: Simplifies the initial aggregate sync while providing a consistent path for syncing more complex entities later.
-
-## Multi-Device Outbox Coordination
-
-- **Decision**: The `outbox` table resides in the **Personal DB** and is synced natively via Turso.
-- **Rationale**: Allows devices to share a "To-Do list," preventing redundant Central API updates once one device succeeds.
+## Error Handling: Errors as Values
+- **Decision**: Use the `errore` library across the stack.
+- **Rationale**: Services return tagged errors; Controllers translate them to HTTP status codes. Ensures explicit error handling in the domain logic.

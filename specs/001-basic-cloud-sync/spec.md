@@ -1,41 +1,31 @@
 # Feature Specification: Basic Cloud Sync
 
 **Feature Branch**: `001-basic-cloud-sync`  
-**Created**: 2026-05-15  
-**Status**: Draft  
+**Status**: In Progress  
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing
 
-### User Story 1 - Account Registration and Authentication (Priority: P1)
+### User Story 1 - Account Registration and Authentication
 As a user, I want to create an account and log in securely so that I can link my local data to a cloud identity and access it across multiple devices.
+- **Success Criteria**: Local `users` and `session` tables are populated correctly; JWT is stored locally.
 
-### User Story 2 - Background Data Synchronization (Priority: P1)
-As an active user, I want my local changes to automatically synchronize with my personal remote database in the background so that my data is continuously backed up and available across all my devices.
+### User Story 2 - Background Data Synchronization
+As an active user, I want my local changes to automatically synchronize with my personal remote database in the background using Turso's native replication.
 
-### User Story 3 - Shared Activity Sync (Priority: P2)
-As a user, I want my daily capture statistics (total added) to be pushed to the central server so that I can participate in global leaderboards and social features.
+### User Story 3 - Shared Activity Sync
+As a user, I want my daily capture statistics to be pushed to the central server via a REST API using the Outbox pattern.
 
-## Requirements *(mandatory)*
+## Requirements
 
-### Functional Requirements
+- **FR-001**: User registration and authentication via ElysiaJS backend.
+- **FR-002**: Local-first identity: `users` table stores profile data for offline access.
+- **FR-003**: Token management via a singleton `session` table.
+- **FR-004**: Type-safe client-server communication using Eden Treaty.
+- **FR-005**: Native libSQL synchronization for all personal entities.
+- **FR-006**: Outbox-based REST synchronization for shared activity aggregates.
 
-- **FR-001**: System MUST provide user registration and authentication via a Central REST API.
-- **FR-002**: System MUST permit accessing local data while offline.
-- **FR-003**: System MUST automatically synchronize personal data across a user's devices using native libSQL sync.
-- **FR-004**: System MUST track additive local activity (captures added) in an outbox queue for central sync.
-- **FR-005**: System MUST automatically synchronize outbox items to the Central API via periodic background polling.
-- **FR-006**: System MUST ensure outbox processing is coordinated across devices (one device processes, others sync the completion).
+## Success Criteria
 
-## Success Criteria *(mandatory)*
-
-### Measurable Outcomes
-
-- **SC-001**: Personal data changes are synced between devices in <3 seconds when online.
-- **SC-002**: Central activity statistics reflect total additions within 60 seconds of the user being online.
-- **SC-003**: Statistics only ever increase; local deletions of captures do not decrease the central aggregate count (for the current implementation phase).
-
-## Assumptions
-
-- **Architecture**: The core domain is agnostic of sync transport details.
-- **Data Sovereignty**: The local database remains the absolute source of truth.
-- **Future-Proofing**: Outbox design supports future deletion sync for public entities even if only additive aggregates are synced in the initial phase.
+- **SC-001**: Eden Treaty provides full type safety for backend calls in the TUI client.
+- **SC-002**: Identity is preserved locally even when the session is cleared or offline.
+- **SC-003**: Domain errors from services are correctly mapped to HTTP status codes.
