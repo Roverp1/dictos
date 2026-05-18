@@ -29,3 +29,8 @@ export class RegistrationError extends errore.createTaggedError({
   name: "RegistrationError",
   message: "Registration failed: $reason",
 }) {}
+
+export class SyncError extends errore.createTaggedError({
+  name: "SyncError",
+  message: "Synchronization failed: $reason",
+}) {}
