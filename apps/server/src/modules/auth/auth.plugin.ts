@@ -41,6 +41,11 @@ export const authPlugin = (authService: AuthService) => {
       },
       {
         body: authModel.register,
+        response: {
+          201: authModel.session,
+          409: authModel.error,
+          500: authModel.error,
+        },
       }
     )
     .post(
