@@ -86,3 +86,31 @@ export const capturesAddedTable = sqliteTable("captures_added", {
   date: text().notNull().unique(),
   count: int().notNull().default(1),
 });
+
+// server support
+
+export const usersTable = sqliteTable("users", {
+  id: int().primaryKey(), // will equal to central db id
+  username: text().notNull(),
+  email: text().notNull(),
+  bio: text(),
+  avatarUrl: text(),
+});
+
+export const sessionTable = sqliteTable("session", {
+  id: int().primaryKey(),
+  token: text().notNull(),
+  userId: int()
+    .notNull()
+    .references(() => usersTable.id),
+});
+
+export const outboxTable = sqliteTable("outbox", {
+  id: int().primaryKey(),
+  tableName: text().notNull(),
+  recordId: int().notNull(), // id of the modified record
+  operation: text({ enum: ["INSERT", "UPDATE", "DELETE"] }).notNull(),
+  createdAt: int({ mode: "timestamp" })
+    .notNull()
+    .default(sql`(strftime('%s', 'now'))`),
+});

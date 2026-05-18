@@ -1,0 +1,31 @@
+{
+  "name": "@dictos/server",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "type": "module",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "bun run --watch src/index.ts"
+  },
+  "dependencies": {
+    "@dictos/adapters": "workspace:*",
+    "@dictos/core": "workspace:*",
+    "@elysia/cors": "^1.4.2",
+    "@elysia/jwt": "^1.4.2",
+    "@elysia/openapi": "^1.4.15",
+    "@libsql/client": "^0.17.3",
+    "drizzle-orm": "^0.45.2",
+    "elysia": "latest",
+    "errore": "^0.14.1"
+  },
+  "peerDependencies": {
+    "typescript": "^6"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "drizzle-kit": "^0.31.10"
+  }
+}
