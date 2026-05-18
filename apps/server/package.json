@@ -11,7 +11,9 @@
   "dependencies": {
     "@dictos/adapters": "workspace:*",
     "@dictos/core": "workspace:*",
+    "@elysia/cors": "^1.4.2",
     "@elysia/jwt": "^1.4.2",
+    "@elysia/openapi": "^1.4.15",
     "@libsql/client": "^0.17.3",
     "drizzle-orm": "^0.45.2",
     "elysia": "latest",
@@ -21,6 +23,7 @@
     "typescript": "^6"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "drizzle-kit": "^0.31.10"
   }
 }
