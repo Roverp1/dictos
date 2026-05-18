@@ -4,7 +4,7 @@
     "outDir": "./dist",
     "rootDir": "."
   },
-  "references": [{ "path": "../core" }],
+  "references": [{ "path": "../core" }, { "path": "../../apps/server/" }],
   "include": ["**/*"],
   "exclude": [
     "node_modules",
