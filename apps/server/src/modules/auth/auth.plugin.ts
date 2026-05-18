@@ -1,12 +1,16 @@
 import { Elysia, status } from "elysia";
-
-import { AuthService } from "./auth.service";
 import jwt from "@elysia/jwt";
+import * as errore from "errore";
+
+import {
+  AuthService,
+  InvalidCredentialsError,
+  UserExistsErorr,
+} from "./auth.service";
 import { authModel } from "./auth.model";
-import { isSetAccessor } from "typescript";
 
 export const authPlugin = (authService: AuthService) => {
-  new Elysia()
+  return new Elysia()
     .use(
       jwt({
         name: "jwt",
@@ -22,11 +26,10 @@ export const authPlugin = (authService: AuthService) => {
           body.password
         );
 
-        if (!user) {
-          // need to improve error handling with authService
-          return status(401, {
-            message: "Registration failed or user already exists",
-          });
+        if (user instanceof Error) {
+          let code = user instanceof UserExistsErorr ? 409 : 500;
+          console.error("Error during user registration:", user);
+          return status(code, { message: user.message });
         }
 
         const token = await jwt.sign({ sub: user.id.toString() });
@@ -41,12 +44,14 @@ export const authPlugin = (authService: AuthService) => {
       async ({ body, jwt }) => {
         const user = await authService.login(body.email, body.password);
 
-        if (!user) {
-          return status(401, {
-            success: false,
-            error: "Invalid credentials",
-          });
+        if (user instanceof Error) {
+          let code = user instanceof InvalidCredentialsError ? 401 : 500;
+          console.error("Error during user registration:", user);
+          return status(code, { message: user.message });
         }
+
+        const token = await jwt.sign({ sub: user.id.toString() });
+        return status(200, { data: { user, token } });
       },
       {
         body: authModel.login,
