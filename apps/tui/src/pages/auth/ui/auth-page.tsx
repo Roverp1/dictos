@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useKeyboard } from "@opentui/react";
-import type { AuthService } from "@dictos/core";
+import type { AuthService, User } from "@dictos/core";
 
 import { useTheme } from "@shared/lib/theme";
+import { password } from "bun";
 
 export interface AuthPageProps {
   authService: AuthService;
@@ -21,6 +22,9 @@ export const AuthPage = ({ authService }: AuthPageProps) => {
   const [registerUsername, setRegisterUsername] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [success, setSuccess] = useState<User | null>(null);
 
   // Focus Management
   type FocusableField =
@@ -54,7 +58,47 @@ export const AuthPage = ({ authService }: AuthPageProps) => {
         }
       });
     }
+
+    if (key.name === "return") {
+      if (activePane === "login") handleLogin();
+      else if (activePane === "register") handleRegister();
+    }
   });
+
+  const handleLogin = async () => {
+    setErrorMessage(null);
+    const result = await authService.login({
+      email: loginEmail,
+      password: loginPassword,
+    });
+
+    if (result instanceof Error) {
+      setErrorMessage(result.message);
+      console.error(result);
+      return;
+    }
+
+    console.log("result:", result);
+    setSuccess(result);
+  };
+
+  const handleRegister = async () => {
+    setErrorMessage(null);
+    const result = await authService.register({
+      username: registerUsername,
+      email: registerEmail,
+      password: registerPassword,
+    });
+
+    if (result instanceof Error) {
+      setErrorMessage(result.message);
+      console.error(result);
+      return;
+    }
+
+    console.log("result:", result);
+    setSuccess(result);
+  };
 
   return (
     <box

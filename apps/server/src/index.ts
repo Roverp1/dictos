@@ -39,6 +39,6 @@ const bootstrap = async () => {
   return app;
 };
 
-const appPromise = bootstrap().catch(console.error);
+bootstrap().catch(console.error);
 
-export type App = Awaited<typeof appPromise>;
+export type App = Awaited<ReturnType<typeof bootstrap>>;
