@@ -15,6 +15,13 @@
       "when": 1777768678533,
       "tag": "0001_lifecycle_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1779117490921,
+      "tag": "0002_rare_bug",
+      "breakpoints": true
     }
   ]
 }
