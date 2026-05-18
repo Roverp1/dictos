@@ -137,6 +137,26 @@ The local database stores all core user data and must function without network a
 
 #figure(
   sql-table(
+    ([id], [integer], [No], [PK], [Primary key (Matches Central ID)]),
+    ([username], [text], [No], [-], [User display name.]),
+    ([email], [text], [No], [UNIQUE], [User email address.]),
+    ([bio], [text], [Yes], [-], [Optional user biography.]),
+    ([avatar_url], [text], [Yes], [-], [Optional avatar URL.]),
+  ),
+  caption: [Users table],
+)
+
+#figure(
+  sql-table(
+    ([id], [integer], [No], [PK], [Singleton primary key (always 1)]),
+    ([user_id], [integer], [No], [FK], [References `users.id`.]),
+    ([token], [text], [No], [-], [Active JWT session token.]),
+  ),
+  caption: [Session table],
+)
+
+#figure(
+  sql-table(
     ([id], [integer], [No], [PK], [Primary key]),
     ([text], [text], [No], [-], [Raw text fragment saved by the user.]),
     ([directory_id], [integer], [No], [FK], [References `directories.id`.]),

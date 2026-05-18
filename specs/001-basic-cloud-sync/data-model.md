@@ -2,35 +2,35 @@
 
 ## Central DB Entities (Shared)
 
-### User Profile
+### User Profile (`users`)
+- `id`: integer (Primary Key, auto-increment)
+- `username`: string (Unique)
+- `email`: string (Unique)
+- `passwordHash`: string
+- `bio`: string (Optional)
+- `avatarUrl`: string (Optional)
+- `createdAt`: string (ISO 8601)
+- `lastLoginAt`: string (ISO 8601, Optional)
 
-- `id`: string
-- `username`: string
-- `email`: string
-- `createdAt`: string
-
-### Central Captures Added (Aggregate)
-
-- `id`: string
-- `userId`: string
+### Central Captures Added (`central_captures_added`)
+- `id`: integer (Primary Key)
+- `userId`: integer (FK to users.id)
 - `date`: string (YYYY-MM-DD)
-- `count`: integer (Total additions ever recorded)
+- `count`: integer (Total additions recorded for the day)
 
 ## Local DB Entities (Personal)
 
-### Session / Token
+### User Profile (`users`)
+- `id`: integer (Primary Key, matches Central ID)
+- `username`: string
+- `email`: string
+- `bio`: string (Optional)
+- `avatarUrl`: string (Optional)
 
-- `jwt`: string (stored locally for auth)
-
-### Sync Queue / Outbox (For Central DB Sync)
-
-- `id`: string
-- `tableName`: string (e.g., 'activity_aggregates')
-- `recordId`: string (e.g., '2026-05-16')
-- `operation`: 'INSERT' | 'UPDATE' | 'DELETE'
-- `timestamp`: integer
-- _Note_: No JSON payload. The sync worker reads the current state from the local DB before pushing.
+### Session (`session`)
+- `id`: integer (Primary Key, Singleton = 1)
+- `userId`: integer (FK to users.id)
+- `token`: string (JWT)
 
 ### Personal Data (Synced natively via Turso)
-
-- `captures`, `directories`, `definitions`, `prompts`, `activity_aggregates` tables as defined in V1.
+- `captures`, `directories`, `definitions`, `prompts`, `captures_added` tables as defined in V1 schema, using native libSQL replication.
