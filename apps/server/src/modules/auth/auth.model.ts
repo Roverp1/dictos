@@ -1,5 +1,15 @@
 import { t } from "elysia";
 
+const userSchema = t.Object({
+  id: t.Number(),
+  username: t.String(),
+  email: t.String(),
+  bio: t.Nullable(t.String()),
+  avatarUrl: t.Nullable(t.String()),
+  createdAt: t.Date(),
+  lastLoginAt: t.Date(),
+});
+
 export const authModel = {
   register: t.Object({
     username: t.String({
@@ -19,5 +29,14 @@ export const authModel = {
   login: t.Object({
     email: t.String({ format: "email", error: "Email is required" }),
     password: t.String({ error: "Password is required" }),
+  }),
+
+  session: t.Object({
+    user: userSchema,
+    token: t.String(),
+  }),
+
+  error: t.Object({
+    message: t.String(),
   }),
 };

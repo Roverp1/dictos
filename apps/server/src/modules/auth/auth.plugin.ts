@@ -26,17 +26,26 @@ export const authPlugin = (authService: AuthService) => {
           body.password
         );
 
-        if (user instanceof Error) {
-          let code = user instanceof UserExistsErorr ? 409 : 500;
+        if (user instanceof UserExistsErorr) {
           console.error("Error during user registration:", user);
-          return status(code, { message: user.message });
+          return status(409, { message: user.message });
+        }
+
+        if (user instanceof Error) {
+          console.error("Error during user registration:", user);
+          return status(500, { message: user.message });
         }
 
         const token = await jwt.sign({ sub: user.id.toString() });
-        return status(201, { data: { user, token } });
+        return status(201, { user, token });
       },
       {
         body: authModel.register,
+        response: {
+          201: authModel.session,
+          409: authModel.error,
+          500: authModel.error,
+        },
       }
     )
     .post(
@@ -44,17 +53,26 @@ export const authPlugin = (authService: AuthService) => {
       async ({ body, jwt }) => {
         const user = await authService.login(body.email, body.password);
 
+        if (user instanceof InvalidCredentialsError) {
+          console.error("Error during user login:", user);
+          return status(401, { message: user.message });
+        }
+
         if (user instanceof Error) {
-          let code = user instanceof InvalidCredentialsError ? 401 : 500;
-          console.error("Error during user registration:", user);
-          return status(code, { message: user.message });
+          console.error("Error during user login:", user);
+          return status(500, { message: user.message });
         }
 
         const token = await jwt.sign({ sub: user.id.toString() });
-        return status(200, { data: { user, token } });
+        return status(200, { user, token });
       },
       {
         body: authModel.login,
+        response: {
+          200: authModel.session,
+          401: authModel.error,
+          500: authModel.error,
+        },
       }
     );
 };
