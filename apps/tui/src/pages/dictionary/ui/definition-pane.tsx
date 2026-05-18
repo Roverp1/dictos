@@ -1,34 +1,30 @@
-import type { Definition } from "@dictos/core";
 import { useTheme } from "@shared/lib/theme";
-import type { Dispatch, SetStateAction } from "react";
 
 import { InteractiveList } from "./interactive-list";
-import type { FocusState, TreeItem } from "../model/use-dictionary";
 import { SubmitTextarea } from "./submit-textarea";
-import { useDictionaryStore } from "../model/use-dictionary-store";
+import { useDictionaryStore, useSelected } from "../model/use-dictionary-store";
+import { useRenameLogic } from "../model/rename";
 
 type DefinitionPaneProps = {
-  focus: FocusState;
-  selectedItem?: TreeItem;
-  definitionsToDisplay: Definition[];
-  definitionIndex: number;
-  setDefinitionIndex: Dispatch<SetStateAction<number>>;
   handleDefinitionSubmit: (finalText: string) => Promise<void>;
-  handleRenameDefinition: (value: string) => Promise<void>;
 };
 
 export const DefinitionPane = ({
-  focus,
-  selectedItem,
-  definitionsToDisplay,
-  definitionIndex,
-  setDefinitionIndex,
   handleDefinitionSubmit,
-  handleRenameDefinition,
 }: DefinitionPaneProps) => {
   const theme = useTheme();
 
-  const { setInputValue, inputValue } = useDictionaryStore();
+  const {
+    inputValue,
+    focus,
+    definitionsToDisplay,
+    selectedDefinitionIndex,
+    setSelectedDefinitionIndex,
+  } = useDictionaryStore();
+
+  const { selectedTreeItem } = useSelected();
+
+  const { handleRenameDefinitionSubmit } = useRenameLogic();
 
   return (
     <box
@@ -39,7 +35,9 @@ export const DefinitionPane = ({
       gap={1}
     >
       <text fg={focus.pane === "definition" ? theme.base0E : theme.base03}>
-        {selectedItem?.type === "capture" ? `${selectedItem.data.text}` : ""}
+        {selectedTreeItem?.type === "capture"
+          ? `${selectedTreeItem.data.text}`
+          : ""}
       </text>
 
       <InteractiveList
@@ -49,8 +47,8 @@ export const DefinitionPane = ({
         items={definitionsToDisplay}
         focused={focus.pane === "definition"}
         focus={focus}
-        selectedIndex={definitionIndex}
-        onIndexChange={setDefinitionIndex}
+        selectedIndex={selectedDefinitionIndex}
+        onIndexChange={setSelectedDefinitionIndex}
         renderItem={(item, i, isSelected) => {
           const isRenaming =
             focus.action === "renameInput" && focus.pane === "definition";
@@ -63,7 +61,7 @@ export const DefinitionPane = ({
               >
                 <SubmitTextarea
                   focused={true}
-                  onSave={handleRenameDefinition}
+                  onSave={handleRenameDefinitionSubmit}
                   initialValue={inputValue}
                 />
               </box>

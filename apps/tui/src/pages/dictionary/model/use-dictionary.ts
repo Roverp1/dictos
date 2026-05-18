@@ -7,10 +7,10 @@ import {
   DefinitionService,
   type Directory,
   type Capture,
-  type Definition,
 } from "@dictos/core";
 
-import { useDictionaryStore } from "./use-dictionary-store";
+import { useDictionaryStore, useSelected } from "./use-dictionary-store";
+import { useRenameLogic } from "./rename";
 
 interface UseDictionaryProps {
   captureService: CaptureService;
@@ -55,42 +55,44 @@ export const useDictionary = ({
 }: UseDictionaryProps) => {
   // state
   const [pathStack, setPathStack] = useState<Directory[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const [itemsToDisplay, setItemsToDisplay] = useState<TreeItem[]>([]);
-
-  const [definitionIndex, setDefinitionIndex] = useState<number>(0);
-  const [definitionsToDisplay, setDefinitionsToDisplay] = useState<
-    Definition[]
-  >([]);
-
-  const [focus, setFocus] = useState<FocusState>({
-    pane: "tree",
-    action: "idle",
-  });
-
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [definitionRefreshTrigger, setDefinitionRefreshTrigger] = useState(0);
 
   // store
-  const { inputValue, setInputValue } = useDictionaryStore();
+  const {
+    inputValue,
+    setInputValue,
+    definitionsToDisplay,
+    setDefinitionsToDisplay,
+    treeItemsToDisplay,
+    setTreeItemsToDisplay,
+    focus,
+    setFocus,
+    selectedTreeItemIndex,
+    setSelectedTreeItemIndex,
+    setRefreshTreeItemTrigger,
+    refreshTreeItemTrigger,
+    definitionRefreshTrigger,
+    setDefinitionRefreshTrigger,
+  } = useDictionaryStore();
+
+  const { selectedTreeItem, selectedDefinition } = useSelected();
+
+  const { actionRequestRename } = useRenameLogic();
 
   // helper vars
   const currentDir = pathStack[pathStack.length - 1]!;
   const isAtRoot = pathStack.length === 1;
-  const selectedItem = itemsToDisplay[selectedIndex];
-  const selectedDefinition = definitionsToDisplay[definitionIndex];
 
   // handlers
   const navigateInto = (selectedDir: Directory) => {
     setPathStack((prevStack) => [...prevStack, selectedDir]);
-    setSelectedIndex(0);
+    setSelectedTreeItemIndex(0);
   };
 
   const navigateUp = () => {
     if (isAtRoot) return;
 
     setPathStack((prevStack) => prevStack.slice(0, -1));
-    setSelectedIndex(0);
+    setSelectedTreeItemIndex(0);
   };
 
   const handleCreateSubmit = async (val: string) => {
@@ -114,70 +116,29 @@ export const useDictionary = ({
         .catch(console.error);
     }
 
-    setRefreshTrigger((prev) => prev + 1);
+    setRefreshTreeItemTrigger();
     setFocus({ pane: "tree", action: "idle" });
   };
 
-  const handleRenameTreeItemSubmit = async (val: string) => {
-    if (focus.action === "renameInput" && focus.pane === "tree") {
-      const trimmed = val.trim();
-      if (!trimmed || !selectedItem) {
-        setFocus({ pane: "tree", action: "idle" });
-        return;
-      }
-
-      if (selectedItem.type === "dir") {
-        await directoryService
-          .renameDirectory(selectedItem.data.id, trimmed)
-          .catch(console.error);
-      } else {
-        await captureService
-          .updateCapture(selectedItem.data.id, { text: trimmed })
-          .catch(console.error);
-      }
-
-      setRefreshTrigger((prev) => prev + 1);
-      setFocus({ pane: "tree", action: "idle" });
-    }
-  };
-
-  const handleRenameDefinition = async (val: string) => {
-    const trimmed = val.trim();
-    if (!trimmed || !selectedDefinition) {
-      setFocus({ pane: "definition", action: "idle" });
-      return;
-    }
-
-    await definitionService
-      .updateDefinition(selectedDefinition!.id, {
-        captureId: selectedDefinition?.captureId,
-        text: trimmed,
-      })
-      .catch(console.error);
-
-    setDefinitionRefreshTrigger((prev) => prev + 1);
-    setFocus({ pane: "definition", action: "idle" });
-  };
-
   const handleDeleteTreeItemConfirm = async () => {
-    if (selectedItem!.type === "capture" && focus.pane === "tree") {
+    if (selectedTreeItem!.type === "capture" && focus.pane === "tree") {
       await captureService
-        .deleteCapture(selectedItem!.data.id)
+        .deleteCapture(selectedTreeItem!.data.id)
         .catch(console.error);
-    } else if (selectedItem!.type === "dir") {
+    } else if (selectedTreeItem!.type === "dir") {
       await directoryService
-        .deleteDirectory(selectedItem!.data.id)
+        .deleteDirectory(selectedTreeItem!.data.id)
         .catch(console.error);
     }
 
-    setRefreshTrigger((prev) => prev + 1);
+    setRefreshTreeItemTrigger();
     setFocus({ pane: "tree", action: "idle" });
   };
 
   const handleDeleteDefinitionConfirm = async () => {
     if (focus.pane === "definition") {
       await definitionService.deleteDefinition(selectedDefinition!.id);
-      setDefinitionRefreshTrigger((prev) => prev + 1);
+      setDefinitionRefreshTrigger();
       setFocus({ pane: "definition", action: "idle" });
     }
   };
@@ -188,17 +149,17 @@ export const useDictionary = ({
 
   const handleDefinitionSubmit = async (finalText: string) => {
     const trimmed = finalText.trim();
-    if (!trimmed || !selectedItem) {
+    if (!trimmed || !selectedTreeItem) {
       setFocus({ pane: "definition", action: "idle" });
       return;
     }
 
     await definitionService.createDefinition({
-      captureId: selectedItem.data.id,
+      captureId: selectedTreeItem.data.id,
       text: trimmed,
     });
 
-    setDefinitionRefreshTrigger((prev) => prev + 1);
+    setDefinitionRefreshTrigger();
     setFocus({ pane: "definition", action: "idle" });
   };
 
@@ -209,37 +170,19 @@ export const useDictionary = ({
   };
 
   const actionRequestDelete = () => {
-    if (focus.pane === "tree" && itemsToDisplay.length > 0) {
+    if (focus.pane === "tree" && treeItemsToDisplay.length > 0) {
       setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
     }
 
     if (focus.pane === "definition" && definitionsToDisplay.length > 0) {
       setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
-    }
-  };
-
-  const actionRequestRename = () => {
-    if (focus.pane === "tree" && itemsToDisplay.length > 0) {
-      setFocus((prev) => ({ ...prev, action: "renameInput" }));
-
-      if (selectedItem?.type === "dir") {
-        setInputValue(selectedItem.data.name);
-      } else if (selectedItem?.type === "capture") {
-        setInputValue(selectedItem?.data.text);
-      }
-    }
-
-    if (focus.pane === "definition" && definitionsToDisplay.length > 0) {
-      setFocus((prev) => ({ ...prev, action: "renameInput" }));
-
-      setInputValue(selectedDefinition!.text);
     }
   };
 
   const actionNavigateIn = () => {
-    if (focus.pane === "tree" && selectedItem?.type === "dir") {
-      navigateInto(selectedItem.data);
-    } else if (focus.pane === "tree" && selectedItem?.type === "capture") {
+    if (focus.pane === "tree" && selectedTreeItem?.type === "dir") {
+      navigateInto(selectedTreeItem.data);
+    } else if (focus.pane === "tree" && selectedTreeItem?.type === "capture") {
       setFocus({ pane: "definition", action: "idle" });
     }
   };
@@ -334,26 +277,28 @@ export const useDictionary = ({
         });
       }
 
-      setItemsToDisplay(items);
+      setTreeItemsToDisplay(items);
     };
 
     loadItems();
-  }, [pathStack, refreshTrigger]);
+  }, [pathStack, refreshTreeItemTrigger]);
 
   useEffect(() => {
-    setSelectedIndex((prev) => {
-      if (itemsToDisplay.length === 0) return 0;
+    setSelectedTreeItemIndex((prev) => {
+      if (treeItemsToDisplay.length === 0) return 0;
 
-      return prev >= itemsToDisplay.length ? itemsToDisplay.length - 1 : prev;
+      return prev >= treeItemsToDisplay.length
+        ? treeItemsToDisplay.length - 1
+        : prev;
     });
-  }, [itemsToDisplay]);
+  }, [treeItemsToDisplay]);
 
   useEffect(() => {
     const loadDefinitions = async () => {
-      if (!selectedItem || selectedItem.type !== "capture") return;
+      if (!selectedTreeItem || selectedTreeItem.type !== "capture") return;
 
       const definitions = await definitionService.getDefintionsForCapture(
-        selectedItem.data.id
+        selectedTreeItem.data.id
       );
       if (definitions instanceof Error) {
         console.error(definitions);
@@ -364,26 +309,14 @@ export const useDictionary = ({
     };
 
     loadDefinitions();
-  }, [selectedIndex, definitionRefreshTrigger]);
+  }, [selectedTreeItemIndex, definitionRefreshTrigger]);
 
   return {
-    itemsToDisplay,
-    selectedIndex,
-    setSelectedIndex,
-    definitionsToDisplay,
-    definitionIndex,
-    setDefinitionIndex,
-    focus,
-    setFocus,
     pathStack,
-    selectedItem,
     handleCreateSubmit,
-    handleRenameTreeItemSubmit,
-    handleRenameDefinition,
     handleDeleteTreeItemConfirm,
     handleDeleteDefinitionConfirm,
     handleDeleteConfirmModalCancel,
     handleDefinitionSubmit,
-    selectedDefinition,
   };
 };

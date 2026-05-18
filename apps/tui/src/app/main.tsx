@@ -19,6 +19,7 @@ import {
 
 import { DictionaryPage } from "@pages/dictionary";
 import { AuthPage } from "@pages/auth";
+import { useServicesStore } from "@shared/lib/services";
 
 export const bootstrap = async () => {
   const db = await createLibSqlDatabase("file:./dictos.db");
@@ -31,9 +32,15 @@ export const bootstrap = async () => {
   const centralApiAdapter = new CentralApiAdapter("http://localhost:1488/");
 
   const captureService = new CaptureService(captureRepo);
-  const dirService = new DirectoryService(dirRepo);
+  const directoryService = new DirectoryService(dirRepo);
   const definitionService = new DefinitionService(definitionRepository);
   const authService = new AuthService(centralApiAdapter, sessionRepository);
+
+  useServicesStore.getState().initServices({
+    captureService,
+    directoryService,
+    definitionService,
+  });
 
   const renderer = await createCliRenderer({
     consoleOptions: {
@@ -42,31 +49,16 @@ export const bootstrap = async () => {
     },
   });
 
-  createRoot(renderer).render(
-    <App
-      captureService={captureService}
-      directoryService={dirService}
-      definitionService={definitionService}
-      authService={authService}
-    />
-  );
+  createRoot(renderer).render(<App authService={authService} />);
 };
 
 export type Route = "auth" | "dictionary";
 
 interface Props {
-  captureService: CaptureService;
-  directoryService: DirectoryService;
-  definitionService: DefinitionService;
   authService: AuthService;
 }
 
-function App({
-  captureService,
-  directoryService,
-  definitionService,
-  authService,
-}: Props) {
+function App({ authService }: Props) {
   const [route, setRoute] = useState<Route>("auth");
 
   const renderer = useRenderer();
@@ -82,11 +74,6 @@ function App({
   });
 
   if (route === "auth") return <AuthPage authService={authService} />;
-  return (
-    <DictionaryPage
-      captureService={captureService}
-      directoryService={directoryService}
-      definitionService={definitionService}
-    />
-  );
+
+  return <DictionaryPage />;
 }
