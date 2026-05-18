@@ -104,3 +104,13 @@ export const sessionTable = sqliteTable("session", {
     .notNull()
     .references(() => usersTable.id),
 });
+
+export const outboxTable = sqliteTable("outbox", {
+  id: int().primaryKey(),
+  tableName: text().notNull(),
+  recordId: int().notNull(), // id of the modified record
+  operation: text({ enum: ["INSERT", "UPDATE", "DELETE"] }).notNull(),
+  createdAt: int({ mode: "timestamp" })
+    .notNull()
+    .default(sql`(strftime('%s', 'now'))`),
+});
