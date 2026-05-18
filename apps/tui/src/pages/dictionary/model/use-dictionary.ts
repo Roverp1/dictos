@@ -11,6 +11,7 @@ import {
 
 import { useDictionaryStore, useSelected } from "./use-dictionary-store";
 import { useRenameLogic } from "./rename";
+import { useCreateLogic } from "./create";
 
 interface UseDictionaryProps {
   captureService: CaptureService;
@@ -54,7 +55,7 @@ export const useDictionary = ({
   definitionService,
 }: UseDictionaryProps) => {
   // state
-  const [pathStack, setPathStack] = useState<Directory[]>([]);
+  // const [pathStack, setPathStack] = useState<Directory[]>([]);
 
   // store
   const {
@@ -72,14 +73,16 @@ export const useDictionary = ({
     refreshTreeItemTrigger,
     definitionRefreshTrigger,
     setDefinitionRefreshTrigger,
+    pathStack,
+    setPathStack,
   } = useDictionaryStore();
 
-  const { selectedTreeItem, selectedDefinition } = useSelected();
+  const { selectedTreeItem, selectedDefinition, currentDir } = useSelected();
 
   const { actionRequestRename } = useRenameLogic();
+  const { actionRequestCreate } = useCreateLogic();
 
   // helper vars
-  const currentDir = pathStack[pathStack.length - 1]!;
   const isAtRoot = pathStack.length === 1;
 
   // handlers
@@ -93,31 +96,6 @@ export const useDictionary = ({
 
     setPathStack((prevStack) => prevStack.slice(0, -1));
     setSelectedTreeItemIndex(0);
-  };
-
-  const handleCreateSubmit = async (val: string) => {
-    const trimmed = val.trim();
-    if (!trimmed) {
-      setFocus({ pane: "tree", action: "idle" });
-      return;
-    }
-
-    if (trimmed.endsWith("/")) {
-      const name = trimmed.slice(0, -1);
-      await directoryService
-        .createDirectory({
-          name: name,
-          parentId: currentDir.id,
-        })
-        .catch(console.error);
-    } else {
-      await captureService
-        .createCapture({ text: trimmed, directoryId: currentDir.id })
-        .catch(console.error);
-    }
-
-    setRefreshTreeItemTrigger();
-    setFocus({ pane: "tree", action: "idle" });
   };
 
   const handleDeleteTreeItemConfirm = async () => {
@@ -145,28 +123,6 @@ export const useDictionary = ({
 
   const handleDeleteConfirmModalCancel = () => {
     setFocus({ pane: "tree", action: "idle" });
-  };
-
-  const handleDefinitionSubmit = async (finalText: string) => {
-    const trimmed = finalText.trim();
-    if (!trimmed || !selectedTreeItem) {
-      setFocus({ pane: "definition", action: "idle" });
-      return;
-    }
-
-    await definitionService.createDefinition({
-      captureId: selectedTreeItem.data.id,
-      text: trimmed,
-    });
-
-    setDefinitionRefreshTrigger();
-    setFocus({ pane: "definition", action: "idle" });
-  };
-
-  // actions
-  const actionRequestCreate = () => {
-    setInputValue("");
-    setFocus((prev) => ({ ...prev, action: "createInput" }));
   };
 
   const actionRequestDelete = () => {
@@ -312,11 +268,8 @@ export const useDictionary = ({
   }, [selectedTreeItemIndex, definitionRefreshTrigger]);
 
   return {
-    pathStack,
-    handleCreateSubmit,
     handleDeleteTreeItemConfirm,
     handleDeleteDefinitionConfirm,
     handleDeleteConfirmModalCancel,
-    handleDefinitionSubmit,
   };
 };

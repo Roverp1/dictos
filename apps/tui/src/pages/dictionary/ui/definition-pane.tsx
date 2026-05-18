@@ -4,14 +4,9 @@ import { InteractiveList } from "./interactive-list";
 import { SubmitTextarea } from "./submit-textarea";
 import { useDictionaryStore, useSelected } from "../model/use-dictionary-store";
 import { useRenameLogic } from "../model/rename";
+import { useCreateLogic } from "../model/create";
 
-type DefinitionPaneProps = {
-  handleDefinitionSubmit: (finalText: string) => Promise<void>;
-};
-
-export const DefinitionPane = ({
-  handleDefinitionSubmit,
-}: DefinitionPaneProps) => {
+export const DefinitionPane = () => {
   const theme = useTheme();
 
   const {
@@ -26,6 +21,7 @@ export const DefinitionPane = ({
 
   const { handleRenameDefinitionSubmit } = useRenameLogic();
 
+  const { handleCreateDefinitionSubmit } = useCreateLogic();
   return (
     <box
       id="definition-pane"
@@ -85,7 +81,7 @@ export const DefinitionPane = ({
             >
               <SubmitTextarea
                 focused={true}
-                onSave={handleDefinitionSubmit}
+                onSave={handleCreateDefinitionSubmit}
               />
             </box>
           ) : null

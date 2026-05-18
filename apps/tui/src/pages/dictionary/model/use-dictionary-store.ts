@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { SetStateAction } from "react";
 
 import type { FocusState, TreeItem } from "./types";
-import type { Definition } from "@dictos/core";
+import type { Definition, Directory } from "@dictos/core";
 
 type DictionaryStore = {
   inputValue: string;
@@ -13,6 +13,7 @@ type DictionaryStore = {
   selectedDefinitionIndex: number;
   refreshTreeItemTrigger: number;
   definitionRefreshTrigger: number;
+  pathStack: Directory[];
 
   setInputValue: (newInputValue: string) => void;
   setFocus: (
@@ -28,6 +29,9 @@ type DictionaryStore = {
   ) => void;
   setRefreshTreeItemTrigger: () => void;
   setDefinitionRefreshTrigger: () => void;
+  setPathStack: (
+    newPathStack: Directory[] | SetStateAction<Directory[]>
+  ) => void;
 };
 
 export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
@@ -42,6 +46,7 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
   selectedDefinitionIndex: 0,
   refreshTreeItemTrigger: 0,
   definitionRefreshTrigger: 0,
+  pathStack: [],
 
   setInputValue: (newInputValue) => {
     set({
@@ -99,6 +104,15 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
       definitionRefreshTrigger: state.definitionRefreshTrigger + 1,
     }));
   },
+
+  setPathStack: (newPathStack) => {
+    set((state) => ({
+      pathStack:
+        typeof newPathStack === "function"
+          ? newPathStack(state.pathStack)
+          : newPathStack,
+    }));
+  },
 }));
 
 export const useSelected = () => {
@@ -110,5 +124,9 @@ export const useSelected = () => {
     (state) => state.definitionsToDisplay[state.selectedDefinitionIndex]
   );
 
-  return { selectedTreeItem, selectedDefinition };
+  const currentDir = useDictionaryStore(
+    (state) => state.pathStack[state.pathStack.length - 1]!
+  );
+
+  return { selectedTreeItem, selectedDefinition, currentDir };
 };
