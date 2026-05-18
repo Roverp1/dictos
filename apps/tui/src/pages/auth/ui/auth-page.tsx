@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { useKeyboard } from "@opentui/react";
+import type { AuthService } from "@dictos/core";
+
 import { useTheme } from "@shared/lib/theme";
 
-export const AuthPage = () => {
+export interface AuthPageProps {
+  authService: AuthService;
+}
+
+export const AuthPage = ({ authService }: AuthPageProps) => {
   const theme = useTheme();
 
   // Active Pane State
@@ -47,11 +53,6 @@ export const AuthPage = () => {
             return "login-email";
         }
       });
-    }
-
-    if (key.name === "left" || key.name === "right") {
-      // Allow switching panes with left/right arrows if not editing text
-      // Note: OpenTUI input might consume left/right, but we'll leave this simple for now.
     }
   });
 
@@ -110,6 +111,7 @@ export const AuthPage = () => {
         width="50%"
         paddingX={2}
         gap={1}
+        border={["left"]}
         borderColor={activePane === "register" ? theme.base0D : theme.base04}
       >
         <box marginBottom={1}>
