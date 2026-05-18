@@ -7,11 +7,7 @@ import { useDictionaryStore } from "../model/use-dictionary-store";
 
 import { useRenameLogic } from "../model/rename";
 
-type DirectoryTreePaneProps = {
-  pathStack: Directory[];
-};
-
-export const DirectoryTreePane = ({ pathStack }: DirectoryTreePaneProps) => {
+export const DirectoryTreePane = () => {
   const theme = useTheme();
 
   const {
@@ -21,6 +17,7 @@ export const DirectoryTreePane = ({ pathStack }: DirectoryTreePaneProps) => {
     focus,
     selectedTreeItemIndex,
     setSelectedTreeItemIndex,
+    pathStack,
   } = useDictionaryStore();
 
   const { handleRenameTreeItemSubmit } = useRenameLogic();

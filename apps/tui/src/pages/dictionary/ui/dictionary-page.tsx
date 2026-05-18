@@ -6,6 +6,7 @@ import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 import { DirectoryTreePane } from "./directory-tree-pane";
 import { DefinitionPane } from "./definition-pane";
 import { useDictionaryStore, useSelected } from "../model/use-dictionary-store";
+import { useCreateLogic } from "../model/create";
 
 export const DictionaryPage = () => {
   const { captureService, definitionService, directoryService } =
@@ -14,31 +15,30 @@ export const DictionaryPage = () => {
   if (!captureService || !definitionService || !directoryService) return;
 
   const {
-    pathStack,
-    handleCreateSubmit,
     handleDeleteDefinitionConfirm,
     handleDeleteTreeItemConfirm,
     handleDeleteConfirmModalCancel,
-    handleDefinitionSubmit,
   } = useDictionary({ captureService, directoryService, definitionService });
 
   const { focus } = useDictionaryStore();
 
   const { selectedTreeItem, selectedDefinition } = useSelected();
 
+  const { handleCreateTreeItemSubmit } = useCreateLogic();
+
   return (
     <box
       height="100%"
       flexDirection="row"
     >
-      <DirectoryTreePane pathStack={pathStack} />
+      <DirectoryTreePane />
 
-      <DefinitionPane handleDefinitionSubmit={handleDefinitionSubmit} />
+      <DefinitionPane />
 
       {focus.pane === "tree" && focus.action === "createInput" && (
         <CreateModal
           // @ts-expect-error opentui type collision bug
-          onSubmit={handleCreateSubmit}
+          onSubmit={handleCreateTreeItemSubmit}
           focused
         />
       )}
