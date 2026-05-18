@@ -1,9 +1,9 @@
 = Overall Description
 
 == Product Perspective
-Dictos is a local-first application designed to assist users in creation of their personal dictionaries. Most modern dictionary apps are cloud-dependent, Dictos will prioritize local data sovereignty using libSQL, which will allow to store data localy, with easy option cross-device syncing.
+Dictos is a local-first application designed to assist users in creation of their personal dictionaries. Most modern dictionary apps are cloud-dependent, Dictos will prioritize local data sovereignty using libSQL and a decoupled local identity model. This ensures that user profiles and captures remain accessible and editable even without an active internet connection.
 
-Dictos acts as a bridge between reading sources such as ebooks, articles and notes, and study tools such as Anki. The system supports capture of raw text, manual editing, definition generation through Gemini, organization through a hierarchical directory structure, and export of local data into study-friendly formats.
+The central synchronization layer is built on Bun and ElysiaJS, utilizing native libSQL replication for personal data and a REST-based Outbox pattern for shared social features. Dictos acts as a bridge between reading sources such as ebooks, articles and notes, and study tools such as Anki.
 
 Future release will introduce cross-device capabilities, and easier ways of collecting captures (such mobile select menu and browser extension), but these features are outside of the scope of Release 1.
 

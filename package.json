@@ -8,7 +8,8 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:tui": "bun run --watch apps/tui/src/index.tsx"
+    "dev:tui": "bun run --watch apps/tui/src/index.tsx",
+    "dev:server": "cd apps/server/ && bun run dev"
   },
   "devDependencies": {
     "prettier": "^3.8.3"
