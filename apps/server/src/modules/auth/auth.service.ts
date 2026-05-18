@@ -1,6 +1,19 @@
+import { eq } from "drizzle-orm";
+import * as errore from "errore";
+import { DbError } from "@dictos/core";
+
 import type { CentralDatabase } from "db/db";
 import * as schema from "db/schema";
-import { eq } from "drizzle-orm";
+
+export class UserExistsErorr extends errore.createTaggedError({
+  name: "UserExistsError",
+  message: "User with email $email already exists",
+}) {}
+
+export class InvalidCredentialsError extends errore.createTaggedError({
+  name: "InvalidCredentialsError",
+  message: "Invalid email or password",
+}) {}
 
 export class AuthService {
   constructor(private db: CentralDatabase) {}
@@ -10,8 +23,17 @@ export class AuthService {
       .select()
       .from(schema.usersTable)
       .where(eq(schema.usersTable.email, email))
-      .get();
-    if (!existing) return null;
+      .get()
+      .catch(
+        (e) =>
+          new DbError({
+            operation: "find_user",
+            reason: "Query failed",
+            cause: e,
+          })
+      );
+    if (existing instanceof Error) return existing;
+    if (existing) return new UserExistsErorr({ email });
 
     const passwordHash = await Bun.password.hash(passwordRaw);
 
@@ -23,9 +45,22 @@ export class AuthService {
         passwordHash,
       })
       .returning()
-      .get();
+      .get()
+      .catch(
+        (e) =>
+          new DbError({
+            operation: "insert_user",
+            reason: "Insert failed",
+            cause: e,
+          })
+      );
 
-    if (!result) return null;
+    if (result instanceof Error) return result;
+    if (!result)
+      return new DbError({
+        operation: "insert_user",
+        reason: "No row returned",
+      });
 
     const { passwordHash: _, ...safeUser } = result;
     return safeUser;
@@ -36,22 +71,41 @@ export class AuthService {
       .select()
       .from(schema.usersTable)
       .where(eq(schema.usersTable.email, email))
-      .get();
+      .get()
+      .catch(
+        (e) =>
+          new DbError({
+            operation: "find_user",
+            reason: "Query failed",
+            cause: e,
+          })
+      );
 
-    if (!userRecord) return null;
+    if (userRecord instanceof Error) return userRecord;
+    if (!userRecord) return new InvalidCredentialsError();
 
     const isMatch = await Bun.password.verify(
       passwordRaw,
       userRecord.passwordHash
     );
-    if (!isMatch) return null;
+    if (!isMatch) return new InvalidCredentialsError();
 
-    await this.db
+    const updateRes = await this.db
       .update(schema.usersTable)
       .set({
         lastLoginAt: new Date(),
       })
-      .where(eq(schema.usersTable.id, userRecord.id));
+      .where(eq(schema.usersTable.id, userRecord.id))
+      .catch(
+        (e) =>
+          new DbError({
+            operation: "update_login_time",
+            reason: "Update failed",
+            cause: e,
+          })
+      );
+
+    if (updateRes instanceof Error) return updateRes;
 
     const { passwordHash: _, ...safeUser } = userRecord;
     return safeUser;
