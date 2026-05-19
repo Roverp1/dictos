@@ -1,69 +1,52 @@
-import { useState } from "react";
 import { useKeyboard } from "@opentui/react";
-import type { User } from "@dictos/core";
+import type { AuthService } from "@dictos/core";
 
 import { useTheme } from "@shared/lib/theme";
-import { useServices } from "@shared/lib/services";
 
-export const AuthPage = () => {
+export interface AuthPageProps {
+  authService: AuthService;
+}
+
+import { useAuthStore } from "../model/use-auth-store";
+
+export const AuthPage = ({ authService }: AuthPageProps) => {
   const theme = useTheme();
 
-  // Active Pane State
-  const [activePane, setActivePane] = useState<"login" | "register">("login");
-
-  // Form States
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-
-  const [registerUsername, setRegisterUsername] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [success, setSuccess] = useState<User | null>(null);
-
-  const { authService } = useServices();
-
-  // Focus Management
-  type FocusableField =
-    | "login-email"
-    | "login-password"
-    | "register-username"
-    | "register-email"
-    | "register-password";
-
-  const [focusedField, setFocusedField] =
-    useState<FocusableField>("login-email");
+  const {
+    activePane,
+    loginEmail,
+    loginPassword,
+    registerEmail,
+    registerPassword,
+    registerUsername,
+    setLoginEmail,
+    setLoginPassword,
+    setRegisterEmail,
+    setRegisterPassword,
+    setRegisterUsername,
+    focusedField,
+  } = useAuthStore();
 
   useKeyboard((key) => {
     if (key.name === "tab") {
-      setFocusedField((prev) => {
-        switch (prev) {
-          case "login-email":
-            return "login-password";
-          case "login-password":
-            setActivePane("register");
-            return "register-username";
-          case "register-username":
-            return "register-email";
-          case "register-email":
-            return "register-password";
-          case "register-password":
-            setActivePane("login");
-            return "login-email";
-          default:
-            return "login-email";
-        }
-      });
+      const { handleTabFocus } = useAuthStore.getState();
+
+      handleTabFocus();
     }
 
     if (key.name === "return") {
-      if (activePane === "login") handleLogin();
-      else if (activePane === "register") handleRegister();
+      setTimeout(() => {
+        const { activePane } = useAuthStore.getState();
+        if (activePane === "login") handleLogin();
+        else if (activePane === "register") handleRegister();
+      }, 0);
     }
   });
 
   const handleLogin = async () => {
+    const { loginEmail, loginPassword, setErrorMessage, setSuccess } =
+      useAuthStore.getState();
+
     setErrorMessage(null);
     const result = await authService.login({
       email: loginEmail.trim(),
@@ -81,6 +64,14 @@ export const AuthPage = () => {
   };
 
   const handleRegister = async () => {
+    const {
+      registerUsername,
+      registerEmail,
+      registerPassword,
+      setErrorMessage,
+      setSuccess,
+    } = useAuthStore.getState();
+
     setErrorMessage(null);
     const result = await authService.register({
       username: registerUsername.trim(),
@@ -203,3 +194,10 @@ export const AuthPage = () => {
     </box>
   );
 };
+
+// // @ts-expect-error opentui type bug
+// onSubmit={handleSubmit}
+// keyBindings={[
+//   { name: "return", action: "submit" },
+//   { name: "s", ctrl: true, action: "submit" },
+// ]}
