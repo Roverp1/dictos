@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useKeyboard } from "@opentui/react";
 
-import { useDictionaryStore, useSelected } from "./use-dictionary-store";
+import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
 import { useServices } from "@shared/lib/services";
 import { useRenameLogic } from "./rename";
 import { useCreateLogic } from "./create";
@@ -26,7 +26,7 @@ export const useDictionary = () => {
     setPathStack,
   } = useDictionaryStore();
 
-  const { selectedTreeItem, currentDir } = useSelected();
+  const { selectedTreeItem, currentDir } = useHelperVariables();
 
   const { captureService, definitionService, directoryService } = useServices();
 

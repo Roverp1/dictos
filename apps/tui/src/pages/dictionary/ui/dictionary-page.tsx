@@ -3,7 +3,10 @@ import { CreateModal } from "./modals/create-modal";
 import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 import { DirectoryTreePane } from "./directory-tree-pane";
 import { DefinitionPane } from "./definition-pane";
-import { useDictionaryStore, useSelected } from "../model/use-dictionary-store";
+import {
+  useDictionaryStore,
+  useHelperVariables,
+} from "../model/use-dictionary-store";
 import { useCreateLogic } from "../model/create";
 import { useDeleteLogic } from "../model/delete";
 
@@ -12,7 +15,7 @@ export const DictionaryPage = () => {
 
   const { focus } = useDictionaryStore();
 
-  const { selectedTreeItem, selectedDefinition } = useSelected();
+  const { selectedTreeItem, selectedDefinition } = useHelperVariables();
 
   const { handleCreateTreeItemSubmit } = useCreateLogic();
 

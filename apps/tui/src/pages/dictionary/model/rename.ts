@@ -1,4 +1,4 @@
-import { useDictionaryStore, useSelected } from "./use-dictionary-store";
+import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
 import { useServices } from "@shared/lib/services";
 
 export const useRenameLogic = () => {
@@ -12,7 +12,7 @@ export const useRenameLogic = () => {
     setDefinitionRefreshTrigger,
   } = useDictionaryStore();
 
-  const { selectedTreeItem, selectedDefinition } = useSelected();
+  const { selectedTreeItem, selectedDefinition } = useHelperVariables();
 
   const { captureService, definitionService, directoryService } = useServices();
 

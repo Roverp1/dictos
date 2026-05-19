@@ -2,7 +2,10 @@ import { useTheme } from "@shared/lib/theme";
 
 import { InteractiveList } from "./interactive-list";
 import { SubmitTextarea } from "./submit-textarea";
-import { useDictionaryStore, useSelected } from "../model/use-dictionary-store";
+import {
+  useDictionaryStore,
+  useHelperVariables,
+} from "../model/use-dictionary-store";
 import { useRenameLogic } from "../model/rename";
 import { useCreateLogic } from "../model/create";
 
@@ -17,7 +20,7 @@ export const DefinitionPane = () => {
     setSelectedDefinitionIndex,
   } = useDictionaryStore();
 
-  const { selectedTreeItem } = useSelected();
+  const { selectedTreeItem } = useHelperVariables();
 
   const { handleRenameDefinitionSubmit } = useRenameLogic();
 

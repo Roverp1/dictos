@@ -1,5 +1,5 @@
 import { useServices } from "@shared/lib/services";
-import { useDictionaryStore, useSelected } from "./use-dictionary-store";
+import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
 
 export const useDeleteLogic = () => {
   const {
@@ -23,7 +23,8 @@ export const useDeleteLogic = () => {
 
   const { captureService, definitionService, directoryService } = useServices();
 
-  const { currentDir, selectedDefinition, selectedTreeItem } = useSelected();
+  const { currentDir, selectedDefinition, selectedTreeItem } =
+    useHelperVariables();
 
   const handleDeleteTreeItemConfirm = async () => {
     if (selectedTreeItem!.type === "capture" && focus.pane === "tree") {
