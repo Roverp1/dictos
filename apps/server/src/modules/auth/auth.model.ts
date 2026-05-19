@@ -18,6 +18,7 @@ export const authModel = {
     }),
     email: t.String({
       format: "email",
+      default: "user@exapmle.com",
       error: "Must be a valid email address",
     }),
     password: t.String({
@@ -27,7 +28,11 @@ export const authModel = {
   }),
 
   login: t.Object({
-    email: t.String({ format: "email", error: "Email is required" }),
+    email: t.String({
+      format: "email",
+      default: "user@exapmle.com",
+      error: "Email is required",
+    }),
     password: t.String({ error: "Password is required" }),
   }),
 

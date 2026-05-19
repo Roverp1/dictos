@@ -34,3 +34,21 @@ export class SyncError extends errore.createTaggedError({
   name: "SyncError",
   message: "Synchronization failed: $reason",
 }) {}
+
+export interface FieldError {
+  path: string;
+  message: string;
+}
+
+export class InputValidationError extends errore.createTaggedError({
+  name: "InputValidationError",
+  message: "Validation failed",
+}) {
+  fields: FieldError[];
+
+  constructor(options: { fields: FieldError[]; cause?: unknown }) {
+    super({ cause: options.cause });
+
+    this.fields = options.fields;
+  }
+}
