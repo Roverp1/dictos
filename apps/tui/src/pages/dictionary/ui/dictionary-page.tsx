@@ -1,5 +1,3 @@
-import { useServicesStore } from "@shared/lib/services/services-store";
-
 import { useDictionary } from "../model/use-dictionary";
 import { CreateModal } from "./modals/create-modal";
 import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
@@ -7,18 +5,10 @@ import { DirectoryTreePane } from "./directory-tree-pane";
 import { DefinitionPane } from "./definition-pane";
 import { useDictionaryStore, useSelected } from "../model/use-dictionary-store";
 import { useCreateLogic } from "../model/create";
+import { useDeleteLogic } from "../model/delete";
 
 export const DictionaryPage = () => {
-  const { captureService, definitionService, directoryService } =
-    useServicesStore();
-
-  if (!captureService || !definitionService || !directoryService) return;
-
-  const {
-    handleDeleteDefinitionConfirm,
-    handleDeleteTreeItemConfirm,
-    handleDeleteConfirmModalCancel,
-  } = useDictionary({ captureService, directoryService, definitionService });
+  useDictionary();
 
   const { focus } = useDictionaryStore();
 
@@ -26,6 +16,11 @@ export const DictionaryPage = () => {
 
   const { handleCreateTreeItemSubmit } = useCreateLogic();
 
+  const {
+    handleDeleteTreeItemConfirm,
+    handleDeleteConfirmModalCancel,
+    handleDeleteDefinitionConfirm,
+  } = useDeleteLogic();
   return (
     <box
       height="100%"

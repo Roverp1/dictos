@@ -1,67 +1,19 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useKeyboard } from "@opentui/react";
 
-import {
-  type CaptureService,
-  type DirectoryService,
-  DefinitionService,
-  type Directory,
-  type Capture,
-} from "@dictos/core";
+import type { Directory } from "@dictos/core";
 
 import { useDictionaryStore, useSelected } from "./use-dictionary-store";
+import { useServices } from "@shared/lib/services";
 import { useRenameLogic } from "./rename";
 import { useCreateLogic } from "./create";
+import { useDeleteLogic } from "./delete";
 
-interface UseDictionaryProps {
-  captureService: CaptureService;
-  directoryService: DirectoryService;
-  definitionService: DefinitionService;
-}
+import type { TreeItem } from "./types";
 
-export type TreeFocus = {
-  pane: "tree";
-  action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
-};
-
-export type DefinitionFocus = {
-  pane: "definition";
-  action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
-};
-
-export type FocusState = TreeFocus | DefinitionFocus;
-
-interface DirectoryTreeItem {
-  /** format: "dir-${dbId}" */
-  id: string;
-  type: "dir";
-  data: Directory;
-  label: string;
-}
-
-interface CaptureTreeItem {
-  /** format: "capture-${dbId}" */
-  id: string;
-  type: "capture";
-  data: Capture;
-  label: string;
-}
-
-export type TreeItem = DirectoryTreeItem | CaptureTreeItem;
-
-export const useDictionary = ({
-  captureService,
-  directoryService,
-  definitionService,
-}: UseDictionaryProps) => {
-  // state
-  // const [pathStack, setPathStack] = useState<Directory[]>([]);
-
+export const useDictionary = () => {
   // store
   const {
-    inputValue,
-    setInputValue,
-    definitionsToDisplay,
     setDefinitionsToDisplay,
     treeItemsToDisplay,
     setTreeItemsToDisplay,
@@ -69,18 +21,19 @@ export const useDictionary = ({
     setFocus,
     selectedTreeItemIndex,
     setSelectedTreeItemIndex,
-    setRefreshTreeItemTrigger,
     refreshTreeItemTrigger,
     definitionRefreshTrigger,
-    setDefinitionRefreshTrigger,
     pathStack,
     setPathStack,
   } = useDictionaryStore();
 
-  const { selectedTreeItem, selectedDefinition, currentDir } = useSelected();
+  const { selectedTreeItem, currentDir } = useSelected();
+
+  const { captureService, definitionService, directoryService } = useServices();
 
   const { actionRequestRename } = useRenameLogic();
   const { actionRequestCreate } = useCreateLogic();
+  const { actionRequestDelete } = useDeleteLogic();
 
   // helper vars
   const isAtRoot = pathStack.length === 1;
@@ -96,43 +49,6 @@ export const useDictionary = ({
 
     setPathStack((prevStack) => prevStack.slice(0, -1));
     setSelectedTreeItemIndex(0);
-  };
-
-  const handleDeleteTreeItemConfirm = async () => {
-    if (selectedTreeItem!.type === "capture" && focus.pane === "tree") {
-      await captureService
-        .deleteCapture(selectedTreeItem!.data.id)
-        .catch(console.error);
-    } else if (selectedTreeItem!.type === "dir") {
-      await directoryService
-        .deleteDirectory(selectedTreeItem!.data.id)
-        .catch(console.error);
-    }
-
-    setRefreshTreeItemTrigger();
-    setFocus({ pane: "tree", action: "idle" });
-  };
-
-  const handleDeleteDefinitionConfirm = async () => {
-    if (focus.pane === "definition") {
-      await definitionService.deleteDefinition(selectedDefinition!.id);
-      setDefinitionRefreshTrigger();
-      setFocus({ pane: "definition", action: "idle" });
-    }
-  };
-
-  const handleDeleteConfirmModalCancel = () => {
-    setFocus({ pane: "tree", action: "idle" });
-  };
-
-  const actionRequestDelete = () => {
-    if (focus.pane === "tree" && treeItemsToDisplay.length > 0) {
-      setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
-    }
-
-    if (focus.pane === "definition" && definitionsToDisplay.length > 0) {
-      setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
-    }
   };
 
   const actionNavigateIn = () => {
@@ -266,10 +182,4 @@ export const useDictionary = ({
 
     loadDefinitions();
   }, [selectedTreeItemIndex, definitionRefreshTrigger]);
-
-  return {
-    handleDeleteTreeItemConfirm,
-    handleDeleteDefinitionConfirm,
-    handleDeleteConfirmModalCancel,
-  };
 };
