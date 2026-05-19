@@ -1,30 +1,18 @@
 import { useServices } from "@shared/lib/services";
 
-import { useDictionaryStore, useSelected } from "./use-dictionary-store";
+import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
 
 export const useCreateLogic = () => {
   const {
-    definitionRefreshTrigger,
-    definitionsToDisplay,
-    focus,
-    inputValue,
-    refreshTreeItemTrigger,
-    selectedDefinitionIndex,
-    selectedTreeItemIndex,
     setDefinitionRefreshTrigger,
-    setDefinitionsToDisplay,
     setFocus,
     setInputValue,
     setRefreshTreeItemTrigger,
-    setSelectedDefinitionIndex,
-    setSelectedTreeItemIndex,
-    setTreeItemsToDisplay,
-    treeItemsToDisplay,
   } = useDictionaryStore();
 
   const { captureService, definitionService, directoryService } = useServices();
 
-  const { currentDir, selectedDefinition, selectedTreeItem } = useSelected();
+  const { currentDir, selectedTreeItem } = useHelperVariables();
 
   const actionRequestCreate = () => {
     setInputValue("");

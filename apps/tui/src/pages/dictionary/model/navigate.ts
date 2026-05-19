@@ -1,11 +1,11 @@
 import type { Directory } from "@dictos/core";
-import { useDictionaryStore, useSelected } from "./use-dictionary-store";
+import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
 
 export const useNavigateLogic = () => {
   const { focus, setFocus, setPathStack, setSelectedTreeItemIndex } =
     useDictionaryStore();
 
-  const { selectedTreeItem, isAtRoot } = useSelected();
+  const { selectedTreeItem, isAtRoot } = useHelperVariables();
 
   const navigateInto = (selectedDir: Directory) => {
     setPathStack((prevStack) => [...prevStack, selectedDir]);

@@ -115,7 +115,7 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
   },
 }));
 
-export const useSelected = () => {
+export const useHelperVariables = () => {
   const selectedTreeItem = useDictionaryStore(
     (state) => state.treeItemsToDisplay[state.selectedTreeItemIndex]
   );
