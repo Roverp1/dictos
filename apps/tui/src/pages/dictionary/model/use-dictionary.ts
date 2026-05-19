@@ -1,13 +1,12 @@
 import { useEffect } from "react";
 import { useKeyboard } from "@opentui/react";
 
-import type { Directory } from "@dictos/core";
-
 import { useDictionaryStore, useSelected } from "./use-dictionary-store";
 import { useServices } from "@shared/lib/services";
 import { useRenameLogic } from "./rename";
 import { useCreateLogic } from "./create";
 import { useDeleteLogic } from "./delete";
+import { useNavigateLogic } from "./navigate";
 
 import type { TreeItem } from "./types";
 
@@ -34,38 +33,7 @@ export const useDictionary = () => {
   const { actionRequestRename } = useRenameLogic();
   const { actionRequestCreate } = useCreateLogic();
   const { actionRequestDelete } = useDeleteLogic();
-
-  // helper vars
-  const isAtRoot = pathStack.length === 1;
-
-  // handlers
-  const navigateInto = (selectedDir: Directory) => {
-    setPathStack((prevStack) => [...prevStack, selectedDir]);
-    setSelectedTreeItemIndex(0);
-  };
-
-  const navigateUp = () => {
-    if (isAtRoot) return;
-
-    setPathStack((prevStack) => prevStack.slice(0, -1));
-    setSelectedTreeItemIndex(0);
-  };
-
-  const actionNavigateIn = () => {
-    if (focus.pane === "tree" && selectedTreeItem?.type === "dir") {
-      navigateInto(selectedTreeItem.data);
-    } else if (focus.pane === "tree" && selectedTreeItem?.type === "capture") {
-      setFocus({ pane: "definition", action: "idle" });
-    }
-  };
-
-  const actionNavigateOut = () => {
-    if (focus.pane === "definition") {
-      setFocus({ pane: "tree", action: "idle" });
-    } else if (focus.pane === "tree" && !isAtRoot) {
-      navigateUp();
-    }
-  };
+  const { actionNavigateIn, actionNavigateOut } = useNavigateLogic();
 
   // keyboard logic
   useKeyboard((key) => {

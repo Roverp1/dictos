@@ -128,5 +128,7 @@ export const useSelected = () => {
     (state) => state.pathStack[state.pathStack.length - 1]!
   );
 
-  return { selectedTreeItem, selectedDefinition, currentDir };
+  const isAtRoot = useDictionaryStore((state) => state.pathStack.length === 1);
+
+  return { selectedTreeItem, selectedDefinition, currentDir, isAtRoot };
 };
