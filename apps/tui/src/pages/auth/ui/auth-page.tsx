@@ -68,8 +68,8 @@ export const AuthPage = ({ authService }: AuthPageProps) => {
   const handleLogin = async () => {
     setErrorMessage(null);
     const result = await authService.login({
-      email: loginEmail,
-      password: loginPassword,
+      email: loginEmail.trim(),
+      password: loginPassword.trim(),
     });
 
     if (result instanceof Error) {
@@ -85,9 +85,9 @@ export const AuthPage = ({ authService }: AuthPageProps) => {
   const handleRegister = async () => {
     setErrorMessage(null);
     const result = await authService.register({
-      username: registerUsername,
-      email: registerEmail,
-      password: registerPassword,
+      username: registerUsername.trim(),
+      email: registerEmail.trim(),
+      password: registerPassword.trim(),
     });
 
     if (result instanceof Error) {

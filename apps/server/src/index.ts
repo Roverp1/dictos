@@ -15,16 +15,7 @@ const bootstrap = async () => {
     .use(cors())
     .use(openapi())
     .onError(({ code, error, set }) => {
-      if (code === "VALIDATION") {
-        set.status = 400;
-        return {
-          message: "Validation failed",
-          details: error.all,
-        };
-      }
-
-      console.error("Unhandled Error:", error);
-      return { message: code };
+      console.error("Error:", error);
     })
     .get("/", () => {
       return status(200, { message: "Hello" });

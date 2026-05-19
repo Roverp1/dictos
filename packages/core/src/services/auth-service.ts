@@ -1,7 +1,12 @@
 import type { AuthCredentials, RegisterCredentials, User } from "@models/user";
 import type { AuthPort } from "@ports/outbound/auth-port";
 import type { SessionRepository } from "@ports/outbound/session-repository";
-import type { AuthError, DbError, RegistrationError } from "errors";
+import type {
+  AuthError,
+  DbError,
+  InputValidationError,
+  RegistrationError,
+} from "errors";
 
 export class AuthService {
   constructor(
@@ -11,7 +16,7 @@ export class AuthService {
 
   async register(
     credentials: RegisterCredentials
-  ): Promise<User | RegistrationError | DbError> {
+  ): Promise<User | RegistrationError | InputValidationError | DbError> {
     const session = await this.authPort.register(credentials);
     if (session instanceof Error) return session;
 
