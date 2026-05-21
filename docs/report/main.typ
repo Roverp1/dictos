@@ -140,7 +140,7 @@ Monitorowanie aplikacji to zwykle domena dużych systemów rozproszonych, ale dl
 
 = Podsumowanie i wnioski
 
-W podsumowaniu przedstawiono rezultaty zrealizowanej pracy, napotkane problemy oraz sposoby ich rozwiązania. Wskazano również możliwe kierunki dalszego rozwoju aplikacji. Aplikacja Dictos w obecnej formie realizuje wszystkie założone cele z wersji pierwszej, stawiając solidne fundamenty pod planowaną rozbudowę.
+Aplikacja Dictos w obecnej formie realizuje wszystkie założone cele pierwszej wersji. Zbudowanie stabilnego rdzenia z interfejsem terminalowym było konieczne, aby w przyszłości bez problemu dołożyć wariant mobilny oraz webowy. Docelowo system ma integrować się z przeglądarką i telefonem, by przechwytywanie słówek nie wymagało przełączania okien. Wdrożona lokalna baza danych oraz konteneryzacja ułatwią późniejszą implementację synchronizacji między urządzeniami.
 
 #pagebreak()
 #outline(title: "Spis tabel", target: figure.where(kind: table))

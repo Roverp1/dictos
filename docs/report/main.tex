@@ -36,7 +36,7 @@ Istnieje wiele narzędzi do nauki słówek, ale większość ma wady z perspekty
 \subsection{Aplikacje oparte o chmurę (np. Quizlet)}
 Działają wszędzie i fajnie się z nich korzysta. Niestety, zmuszają do trzymania swoich zestawów na ich serwerach. W ostatnich latach zaczęli chować podstawowe funkcje za płatnymi subskrypcjami. Jak padnie im serwer, to w ogóle nie poćwiczysz.
 
-\subsection{Desktopowe kombajny (np. Anki)}
+\subsection{Tradycyjne programy desktopowe (np. Anki)}
 Anki to świetny algorytm powtórek (Spaced Repetition System). Gorzej wypada przy tworzeniu samego materiału. Ręczne wpisywanie słówek z notatek wyciągniętych z czytnika to praca żmudna, której większość ludzi nie lubi. Brak tu warstwy automatyzującej to pierwsze „złapanie” i zdefiniowanie słowa.
 
 \subsection{Słowniki przeglądarkowe}
@@ -84,7 +84,11 @@ Testowanie logiki było niezbędne. Ponieważ aplikacja działa w ekosystemie Bu
 \subsection{Monitoring}
 Monitorowanie aplikacji to zwykle domena dużych systemów rozproszonych, ale dla tej aplikacji też ma sens. Dodałem na serwerze endpoint \texttt{/health}. Jeśli w niego uderzysz, dowiesz się, czy serwer żyje i jak długo działa (uptime). Dodatkowo podpięliśmy podstawowy logger frameworka, więc po stronie terminala (lub w logach dockera) dokładnie widać przychodzące żądania. To wystarczy, żeby zdiagnozować ewentualny problem z wdrożeniem czy zapytaniami z frontendu.
 
-\section\spistabel
+\section{Podsumowanie i wnioski}
+
+Aplikacja Dictos w obecnej formie realizuje wszystkie założone cele pierwszej wersji. Zbudowanie stabilnego rdzenia z interfejsem terminalowym było konieczne, aby w przyszłości bez problemu dołożyć wariant mobilny oraz webowy. Docelowo system ma integrować się z przeglądarką i telefonem, by przechwytywanie słówek nie wymagało przełączania okien. Wdrożona lokalna baza danych oraz konteneryzacja ułatwią późniejszą implementację synchronizacji między urządzeniami.
+
+\spistabel
 \spisrysunkow
 \printbibliography
 
