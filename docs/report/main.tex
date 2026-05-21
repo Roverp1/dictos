@@ -1,0 +1,91 @@
+\documentclass[times]{san}
+
+\bibliografia{bibliografia.bib}
+
+\uczelnia{Społeczna Akademia Nauk}
+\przedmiot{Systemy Szkieletowe}
+\autor{Jan Kowalski}
+\nralbumu{123456}
+\grupa{3}
+\tytul{Dictos - Local-First Text Processing App}
+\prowadzacy{mgr inż. Krystian Gumiński}
+\miasto{Łódź}
+\rok{2026}
+
+\begin{document}
+
+\maketitlepage
+\spistresci
+
+\section{Wstęp}
+
+Praca dotyczy zaprojektowania i implementacji aplikacji o nazwie Dictos. To narzędzie, które pomaga organizować własne słowniki i notatki z tekstów czytanych na czytnikach. Od początku założyliśmy architekturę "local-first". Oznacza to po prostu, że wszystko działa offline, a dane trzymane są na twoim dysku, a nie na serwerach zewnętrznych firm. W kolejnych rozdziałach opisałem jak to zbudowaliśmy, z naciskiem na środowisko Bun i framework ElysiaJS \cite{knuth1984}.
+
+\section{Cel projektu}
+
+Zależało mi na rozwiązaniu bardzo konkretnego problemu: osoby uczące się z e-booków marnują dużo czasu na ręczne przepisywanie słówek do programów takich jak Anki. Dictos ma ten proces przyspieszyć. Podstawowe cele były jasne od początku:
+- Szybkie dodawanie słów bezpośrednio z terminala.
+- Generowanie definicji przez API (w tym wypadku Gemini).
+- Eksport bazy prosto do formatów obsługiwanych przez Anki.
+- Utrzymanie pełnej niezależności od chmury.
+
+\section{Przegląd istniejących rozwiązań}
+
+Istnieje wiele narzędzi do nauki słówek, ale większość ma wady z perspektywy kogoś, kto chce po prostu szybko przetwarzać własne teksty i zachować nad nimi kontrolę \cite{website_example}.
+
+\subsection{Aplikacje oparte o chmurę (np. Quizlet)}
+Działają wszędzie i fajnie się z nich korzysta. Niestety, zmuszają do trzymania swoich zestawów na ich serwerach. W ostatnich latach zaczęli chować podstawowe funkcje za płatnymi subskrypcjami. Jak padnie im serwer, to w ogóle nie poćwiczysz.
+
+\subsection{Desktopowe kombajny (np. Anki)}
+Anki to świetny algorytm powtórek (Spaced Repetition System). Gorzej wypada przy tworzeniu samego materiału. Ręczne wpisywanie słówek z notatek wyciągniętych z czytnika to praca żmudna, której większość ludzi nie lubi. Brak tu warstwy automatyzującej to pierwsze „złapanie” i zdefiniowanie słowa.
+
+\subsection{Słowniki przeglądarkowe}
+Rozszerzenia w przeglądarkach pozwalają na błyskawiczne tłumaczenie tekstów ze stron internetowych. Problem polega na tym, że zwykle zapisują słówka w postaci płaskiej listy. Ciężko to zorganizować w katalogi czy sprawnie zintegrować z nawykami kogoś, kto większość czasu spędza w terminalu, a czyta pliki TXT z e-inkowych czytników.
+
+\section{Opis architektury}
+
+Całość opiera się na architekturze heksagonalnej (Hexagonal Architecture). Wybraliśmy to podejście, żeby odciąć logikę od technologii. Dzięki temu kod odpowiadający za biznes (obsługa słówek) nic nie wie o tym, czy uruchamiamy to w terminalu, czy na serwerze webowym.
+
+\begin{table}[h]
+\centering
+\caption{Główne komponenty architektury systemu}
+\label{tab:lorem}
+\begin{tabular}{|c|l|c|}
+\hline
+Lp. & Komponent          & Warstwa \\
+\hline
+1   & ElysiaJS Server    & Logika / API \\
+2   & OpenTUI            & Prezentacja (Terminal) \\
+3   & libSQL (SQLite)    & Baza Danych \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Opis implementacji}
+
+Aplikację podzielono na pakiety wewnątrz monorepo. Użyliśmy narzędzia Bun, które pełni tu rolę menedżera pakietów, runtime'u oraz frameworka testowego w jednym.
+
+\subsection{Frontend}
+Postawiłem na TUI (Terminal User Interface). Użyłem biblioteki OpenTUI, która umożliwia pisanie interfejsów terminalowych w React. Ekran główny to prosty dwupanelowy układ: po lewej drzewo katalogów, po prawej panel podglądu definicji. Prawie wszystko da się obsłużyć z klawiatury. Jeśli dużo czytasz i masz w nawyku pracować z terminalem, jest to o wiele szybsze niż przeklikiwanie się przez graficzne aplikacje.
+
+\subsection{Backend}
+Sercem backendu jest aplikacja napisana w ElysiaJS uruchamiana w Bun. Serwer zajmuje się przyjmowaniem zapytań (na razie lokalnych), obsługą logiki biznesowej i komunikacją z API Gemini, żeby automatycznie pobierać definicje.
+Co ważne, nie używam wyjątków do obsługi błędów. Zaimportowałem bibliotekę `errore` i korzystam z wzorca znanego z języka Go. Jeśli jakaś funkcja może zwrócić błąd, to go po prostu zwraca jako wartość. Eliminuje to zagmatwane bloki try-catch i sprawia, że łatwiej czyta się kod od góry do dołu.
+
+\subsection{Baza Danych}
+Zamiast tradycyjnego serwera SQL wdrożyliśmy lokalną bazę libSQL (odmiana SQLite). Przechowujemy tam wszystko: przechwycone teksty (Captures), wygenerowane definicje (Definitions), katalogi oraz szablony zapytań do AI (Prompts). Skoro baza to tak naprawdę jeden plik u użytkownika na dysku, w przyszłości o wiele łatwiej będzie nam dodać prostą synchronizację.
+
+\subsection{Docker}
+Część serwerową wsadziliśmy w kontenery Dockera. Sam Dockerfile opiera się na oficjalnym obrazie \texttt{oven/bun}. Dołączyliśmy też plik \texttt{docker-compose.yml}. Jeśli ktoś chce sprawdzić działanie serwera, po prostu wpisuje \texttt{docker-compose up} i wszystko się buduje. Odpada cały ból z ręcznym instalowaniem i ustawianiem środowiska od nowa.
+
+\subsection{Testy}
+Testowanie logiki było niezbędne. Ponieważ aplikacja działa w ekosystemie Bun, zdecydowałem się na ich natywny runner (\texttt{bun test}). Wymaga zera konfiguracji, odpala się od razu i jest niezwykle szybki. Przygotowałem testy dla głównych serwisów (np. \texttt{CaptureService}) oraz dla samego serwera Elysia, testując między innymi czy nowo dodany moduł statusu zwraca poprawne kody HTTP.
+
+\subsection{Monitoring}
+Monitorowanie aplikacji to zwykle domena dużych systemów rozproszonych, ale dla tej aplikacji też ma sens. Dodałem na serwerze endpoint \texttt{/health}. Jeśli w niego uderzysz, dowiesz się, czy serwer żyje i jak długo działa (uptime). Dodatkowo podpięliśmy podstawowy logger frameworka, więc po stronie terminala (lub w logach dockera) dokładnie widać przychodzące żądania. To wystarczy, żeby zdiagnozować ewentualny problem z wdrożeniem czy zapytaniami z frontendu.
+
+\section\spistabel
+\spisrysunkow
+\printbibliography
+
+\end{document}
