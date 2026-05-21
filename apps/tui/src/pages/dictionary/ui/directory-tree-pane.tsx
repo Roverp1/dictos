@@ -2,31 +2,25 @@ import { useTheme } from "@shared/lib/theme";
 import { InteractiveList } from "./interactive-list";
 
 import type { Directory } from "@dictos/core";
-import type { FocusState, TreeItem } from "../model/use-dictionary";
-import type { Dispatch, SetStateAction } from "react";
 
 import { useDictionaryStore } from "../model/use-dictionary-store";
 
-type DirectoryTreePaneProps = {
-  pathStack: Directory[];
-  itemsToDisplay: TreeItem[];
-  focus: FocusState;
-  selectedIndex: number;
-  setSelectedIndex: Dispatch<SetStateAction<number>>;
-  handleRenameTreeItemSubmit: (value: string) => Promise<void>;
-};
+import { useRenameLogic } from "../model/rename";
 
-export const DirectoryTreePane = ({
-  pathStack,
-  itemsToDisplay,
-  focus,
-  selectedIndex,
-  setSelectedIndex,
-  handleRenameTreeItemSubmit,
-}: DirectoryTreePaneProps) => {
+export const DirectoryTreePane = () => {
   const theme = useTheme();
 
-  const { inputValue, setInputValue } = useDictionaryStore();
+  const {
+    inputValue,
+    setInputValue,
+    treeItemsToDisplay,
+    focus,
+    selectedTreeItemIndex,
+    setSelectedTreeItemIndex,
+    pathStack,
+  } = useDictionaryStore();
+
+  const { handleRenameTreeItemSubmit } = useRenameLogic();
 
   return (
     <box
@@ -47,15 +41,15 @@ export const DirectoryTreePane = ({
         </text>
       </box>
 
-      {itemsToDisplay.length > 0 ? (
+      {treeItemsToDisplay.length > 0 ? (
         <InteractiveList
           id="tree-item-list"
           flexGrow={1}
-          items={itemsToDisplay}
+          items={treeItemsToDisplay}
           focused={focus.pane === "tree"}
           focus={focus}
-          selectedIndex={selectedIndex}
-          onIndexChange={setSelectedIndex}
+          selectedIndex={selectedTreeItemIndex}
+          onIndexChange={setSelectedTreeItemIndex}
           renderItem={(item, i, isSelected) => {
             const isRenaming =
               focus.action === "renameInput" && focus.pane === "tree";

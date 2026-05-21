@@ -3,84 +3,50 @@ import { CreateModal } from "./modals/create-modal";
 import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 import { DirectoryTreePane } from "./directory-tree-pane";
 import { DefinitionPane } from "./definition-pane";
+import {
+  useDictionaryStore,
+  useHelperVariables,
+} from "../model/use-dictionary-store";
+import { useCreateLogic } from "../model/create";
+import { useDeleteLogic } from "../model/delete";
 
-import type {
-  CaptureService,
-  DirectoryService,
-  DefinitionService,
-} from "@dictos/core";
+export const DictionaryPage = () => {
+  useDictionary();
 
-interface DictionaryPageProps {
-  captureService: CaptureService;
-  directoryService: DirectoryService;
-  definitionService: DefinitionService;
-}
+  const { focus } = useDictionaryStore();
 
-export const DictionaryPage = ({
-  captureService,
-  directoryService,
-  definitionService,
-}: DictionaryPageProps) => {
+  const { selectedTreeItem, selectedDefinition } = useHelperVariables();
+
+  const { handleCreateTreeItemSubmit } = useCreateLogic();
+
   const {
-    itemsToDisplay,
-    selectedIndex,
-    setSelectedIndex,
-    definitionsToDisplay,
-    defenitionIndex,
-    setDefenitionIndex,
-    focus,
-    setFocus,
-    pathStack,
-    selectedItem,
-    handleCreateSubmit,
-    handleRenameTreeItemSubmit,
-    handleRenameDefenition,
-    handleDeleteDefenitionConfirm,
     handleDeleteTreeItemConfirm,
     handleDeleteConfirmModalCancel,
-    handleDefinitionSubmit,
-    selectedDefinition,
-  } = useDictionary({ captureService, directoryService, definitionService });
-
+    handleDeleteDefinitionConfirm,
+  } = useDeleteLogic();
   return (
     <box
       height="100%"
       flexDirection="row"
     >
-      <DirectoryTreePane
-        pathStack={pathStack}
-        itemsToDisplay={itemsToDisplay}
-        focus={focus}
-        selectedIndex={selectedIndex}
-        setSelectedIndex={setSelectedIndex}
-        handleRenameTreeItemSubmit={handleRenameTreeItemSubmit}
-      />
+      <DirectoryTreePane />
 
-      <DefinitionPane
-        focus={focus}
-        selectedItem={selectedItem}
-        definitionsToDisplay={definitionsToDisplay}
-        defenitionIndex={defenitionIndex}
-        setDefenitionIndex={setDefenitionIndex}
-        handleDefinitionSubmit={handleDefinitionSubmit}
-        handleRenameDefenition={handleRenameDefenition}
-      />
+      <DefinitionPane />
 
       {focus.pane === "tree" && focus.action === "createInput" && (
         <CreateModal
           // @ts-expect-error opentui type collision bug
-          onSubmit={handleCreateSubmit}
+          onSubmit={handleCreateTreeItemSubmit}
           focused
         />
       )}
 
       {focus.pane === "tree" && focus.action === "deleteConfirm" && (
         <DeleteConfirmModal
-          focus={focus}
           itemName={
-            selectedItem?.type === "dir"
-              ? `${selectedItem.data.name}/`
-              : selectedItem?.data.text
+            selectedTreeItem?.type === "dir"
+              ? `${selectedTreeItem.data.name}/`
+              : selectedTreeItem?.data.text
           }
           onConfirm={handleDeleteTreeItemConfirm}
           onCancel={handleDeleteConfirmModalCancel}
@@ -89,9 +55,8 @@ export const DictionaryPage = ({
 
       {focus.pane === "definition" && focus.action === "deleteConfirm" && (
         <DeleteConfirmModal
-          focus={focus}
           itemName={selectedDefinition?.text}
-          onConfirm={handleDeleteDefenitionConfirm}
+          onConfirm={handleDeleteDefinitionConfirm}
           onCancel={handleDeleteConfirmModalCancel}
         />
       )}

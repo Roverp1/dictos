@@ -1,258 +1,39 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useKeyboard } from "@opentui/react";
 
-import {
-  type CaptureService,
-  type DirectoryService,
-  DefinitionService,
-  type Directory,
-  type Capture,
-  type Definition,
-} from "@dictos/core";
+import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
+import { useServices } from "@shared/lib/services";
+import { useRenameLogic } from "./rename";
+import { useCreateLogic } from "./create";
+import { useDeleteLogic } from "./delete";
+import { useNavigateLogic } from "./navigate";
 
-import { useDictionaryStore } from "./use-dictionary-store";
+import type { TreeItem } from "./types";
 
-interface UseDictionaryProps {
-  captureService: CaptureService;
-  directoryService: DirectoryService;
-  definitionService: DefinitionService;
-}
-
-export type TreeFocus = {
-  pane: "tree";
-  action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
-};
-
-export type DefinitionFocus = {
-  pane: "definition";
-  action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
-};
-
-export type FocusState = TreeFocus | DefinitionFocus;
-
-interface DirectoryTreeItem {
-  /** format: "dir-${dbId}" */
-  id: string;
-  type: "dir";
-  data: Directory;
-  label: string;
-}
-
-interface CaptureTreeItem {
-  /** format: "capture-${dbId}" */
-  id: string;
-  type: "capture";
-  data: Capture;
-  label: string;
-}
-
-export type TreeItem = DirectoryTreeItem | CaptureTreeItem;
-
-export const useDictionary = ({
-  captureService,
-  directoryService,
-  definitionService,
-}: UseDictionaryProps) => {
-  // state
-  const [pathStack, setPathStack] = useState<Directory[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
-  const [itemsToDisplay, setItemsToDisplay] = useState<TreeItem[]>([]);
-
-  const [defenitionIndex, setDefenitionIndex] = useState<number>(0);
-  const [definitionsToDisplay, setDefinitionsToDisplay] = useState<
-    Definition[]
-  >([]);
-
-  const [focus, setFocus] = useState<FocusState>({
-    pane: "tree",
-    action: "idle",
-  });
-
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [definitionRefreshTrigger, setDefinitionRefreshTrigger] = useState(0);
-
+export const useDictionary = () => {
   // store
-  const { inputValue, setInputValue } = useDictionaryStore();
+  const {
+    setDefinitionsToDisplay,
+    treeItemsToDisplay,
+    setTreeItemsToDisplay,
+    focus,
+    setFocus,
+    selectedTreeItemIndex,
+    setSelectedTreeItemIndex,
+    refreshTreeItemTrigger,
+    definitionRefreshTrigger,
+    pathStack,
+    setPathStack,
+  } = useDictionaryStore();
 
-  // helper vars
-  const currentDir = pathStack[pathStack.length - 1]!;
-  const isAtRoot = pathStack.length === 1;
-  const selectedItem = itemsToDisplay[selectedIndex];
-  const selectedDefinition = definitionsToDisplay[defenitionIndex];
+  const { selectedTreeItem, currentDir } = useHelperVariables();
 
-  // handlers
-  const navigateInto = (selectedDir: Directory) => {
-    setPathStack((prevStack) => [...prevStack, selectedDir]);
-    setSelectedIndex(0);
-  };
+  const { captureService, definitionService, directoryService } = useServices();
 
-  const navigateUp = () => {
-    if (isAtRoot) return;
-
-    setPathStack((prevStack) => prevStack.slice(0, -1));
-    setSelectedIndex(0);
-  };
-
-  const handleCreateSubmit = async (val: string) => {
-    const trimmed = val.trim();
-    if (!trimmed) {
-      setFocus({ pane: "tree", action: "idle" });
-      return;
-    }
-
-    if (trimmed.endsWith("/")) {
-      const name = trimmed.slice(0, -1);
-      await directoryService
-        .createDirectory({
-          name: name,
-          parentId: currentDir.id,
-        })
-        .catch(console.error);
-    } else {
-      await captureService
-        .createCapture({ text: trimmed, directoryId: currentDir.id })
-        .catch(console.error);
-    }
-
-    setRefreshTrigger((prev) => prev + 1);
-    setFocus({ pane: "tree", action: "idle" });
-  };
-
-  const handleRenameTreeItemSubmit = async (val: string) => {
-    if (focus.action === "renameInput" && focus.pane === "tree") {
-      const trimmed = val.trim();
-      if (!trimmed || !selectedItem) {
-        setFocus({ pane: "tree", action: "idle" });
-        return;
-      }
-
-      if (selectedItem.type === "dir") {
-        await directoryService
-          .renameDirectory(selectedItem.data.id, trimmed)
-          .catch(console.error);
-      } else {
-        await captureService
-          .updateCapture(selectedItem.data.id, { text: trimmed })
-          .catch(console.error);
-      }
-
-      setRefreshTrigger((prev) => prev + 1);
-      setFocus({ pane: "tree", action: "idle" });
-    }
-  };
-
-  const handleRenameDefenition = async (val: string) => {
-    if (focus.action === "renameInput" && focus.pane === "definition") {
-      const trimmed = val.trim();
-      if (!trimmed || !selectedItem) {
-        setFocus({ pane: "definition", action: "idle" });
-        return;
-      }
-
-      await definitionService
-        .updateDefinition(selectedDefinition!.id, {
-          captureId: selectedDefinition?.captureId,
-          text: trimmed,
-        })
-        .catch(console.error);
-
-      setDefinitionRefreshTrigger((prev) => prev + 1);
-      setFocus({ pane: "definition", action: "idle" });
-    }
-  };
-
-  const handleDeleteTreeItemConfirm = async () => {
-    if (selectedItem!.type === "capture" && focus.pane === "tree") {
-      await captureService
-        .deleteCapture(selectedItem!.data.id)
-        .catch(console.error);
-    } else if (selectedItem!.type === "dir") {
-      await directoryService
-        .deleteDirectory(selectedItem!.data.id)
-        .catch(console.error);
-    }
-
-    setRefreshTrigger((prev) => prev + 1);
-    setFocus({ pane: "tree", action: "idle" });
-  };
-
-  const handleDeleteDefenitionConfirm = async () => {
-    if (focus.pane === "definition") {
-      await definitionService.deleteDefinition(selectedDefinition!.id);
-      setDefinitionRefreshTrigger((prev) => prev + 1);
-      setFocus({ pane: "definition", action: "idle" });
-    }
-  };
-
-  const handleDeleteConfirmModalCancel = () => {
-    setFocus({ pane: "tree", action: "idle" });
-  };
-
-  const handleDefinitionSubmit = async (finalText: string) => {
-    const trimmed = finalText.trim();
-    if (!trimmed || !selectedItem) {
-      setFocus({ pane: "definition", action: "idle" });
-      return;
-    }
-
-    await definitionService.createDefinition({
-      captureId: selectedItem.data.id,
-      text: trimmed,
-    });
-
-    setDefinitionRefreshTrigger((prev) => prev + 1);
-    setFocus({ pane: "definition", action: "idle" });
-  };
-
-  // actions
-  const actionRequestCreate = () => {
-    setInputValue("");
-    setFocus((prev) => ({ ...prev, action: "createInput" }));
-  };
-
-  const actionRequestDelete = () => {
-    if (focus.pane === "tree" && itemsToDisplay.length > 0) {
-      setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
-    }
-
-    if (focus.pane === "definition" && definitionsToDisplay.length > 0) {
-      setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
-    }
-  };
-
-  const actionRequestRename = () => {
-    if (focus.pane === "tree" && itemsToDisplay.length > 0) {
-      setFocus((prev) => ({ ...prev, action: "renameInput" }));
-
-      if (selectedItem?.type === "dir") {
-        setInputValue(selectedItem.data.name);
-      } else if (selectedItem?.type === "capture") {
-        setInputValue(selectedItem?.data.text);
-      }
-    }
-
-    if (focus.pane === "definition" && definitionsToDisplay.length > 0) {
-      setFocus((prev) => ({ ...prev, action: "renameInput" }));
-
-      setInputValue(selectedDefinition!.text);
-    }
-  };
-
-  const actionNavigateIn = () => {
-    if (focus.pane === "tree" && selectedItem?.type === "dir") {
-      navigateInto(selectedItem.data);
-    } else if (focus.pane === "tree" && selectedItem?.type === "capture") {
-      setFocus({ pane: "definition", action: "idle" });
-    }
-  };
-
-  const actionNavigateOut = () => {
-    if (focus.pane === "definition") {
-      setFocus({ pane: "tree", action: "idle" });
-    } else if (focus.pane === "tree" && !isAtRoot) {
-      navigateUp();
-    }
-  };
+  const { actionRequestRename } = useRenameLogic();
+  const { actionRequestCreate } = useCreateLogic();
+  const { actionRequestDelete } = useDeleteLogic();
+  const { actionNavigateIn, actionNavigateOut } = useNavigateLogic();
 
   // keyboard logic
   useKeyboard((key) => {
@@ -336,26 +117,28 @@ export const useDictionary = ({
         });
       }
 
-      setItemsToDisplay(items);
+      setTreeItemsToDisplay(items);
     };
 
     loadItems();
-  }, [pathStack, refreshTrigger]);
+  }, [pathStack, refreshTreeItemTrigger]);
 
   useEffect(() => {
-    setSelectedIndex((prev) => {
-      if (itemsToDisplay.length === 0) return 0;
+    setSelectedTreeItemIndex((prev) => {
+      if (treeItemsToDisplay.length === 0) return 0;
 
-      return prev >= itemsToDisplay.length ? itemsToDisplay.length - 1 : prev;
+      return prev >= treeItemsToDisplay.length
+        ? treeItemsToDisplay.length - 1
+        : prev;
     });
-  }, [itemsToDisplay]);
+  }, [treeItemsToDisplay]);
 
   useEffect(() => {
     const loadDefinitions = async () => {
-      if (!selectedItem || selectedItem.type !== "capture") return;
+      if (!selectedTreeItem || selectedTreeItem.type !== "capture") return;
 
       const definitions = await definitionService.getDefintionsForCapture(
-        selectedItem.data.id
+        selectedTreeItem.data.id
       );
       if (definitions instanceof Error) {
         console.error(definitions);
@@ -366,26 +149,5 @@ export const useDictionary = ({
     };
 
     loadDefinitions();
-  }, [selectedIndex, definitionRefreshTrigger]);
-
-  return {
-    itemsToDisplay,
-    selectedIndex,
-    setSelectedIndex,
-    definitionsToDisplay,
-    defenitionIndex,
-    setDefenitionIndex,
-    focus,
-    setFocus,
-    pathStack,
-    selectedItem,
-    handleCreateSubmit,
-    handleRenameTreeItemSubmit,
-    handleRenameDefenition,
-    handleDeleteTreeItemConfirm,
-    handleDeleteDefenitionConfirm,
-    handleDeleteConfirmModalCancel,
-    handleDefinitionSubmit,
-    selectedDefinition,
-  };
+  }, [selectedTreeItemIndex, definitionRefreshTrigger]);
 };
