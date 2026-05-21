@@ -1,0 +1,12 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    ports:
+      - "1488:1488"
+    environment:
+      - PORT=1488
+      # Add other necessary env vars here, like database path or GEMINI_API_KEY
+    volumes:
+      - ./data:/app/apps/server/data
