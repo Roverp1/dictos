@@ -140,7 +140,9 @@ Monitorowanie aplikacji to zwykle domena dużych systemów rozproszonych, ale dl
 
 = Podsumowanie i wnioski
 
-Aplikacja Dictos w obecnej formie realizuje wszystkie założone cele pierwszej wersji. Zbudowanie stabilnego rdzenia z interfejsem terminalowym było konieczne, aby w przyszłości bez problemu dołożyć wariant mobilny oraz webowy. Docelowo system ma integrować się z przeglądarką i telefonem, by przechwytywanie słówek nie wymagało przełączania okien. Wdrożona lokalna baza danych oraz konteneryzacja ułatwią późniejszą implementację synchronizacji między urządzeniami.
+Aplikacja Dictos to wciąż wczesny etap rozwoju. Obecna implementacja interfejsu terminalowego pozwala na podstawowe operacje typu CRUD, ale wymaga jeszcze sporo pracy i szlifów. Szczerze mówiąc, zacząłem od TUI nie z myślą o wygodzie przeciętnego użytkownika, ale dlatego, że sam lubię narzędzia terminalowe i był to dla mnie po prostu najłatwiejszy sposób na szybkie zbudowanie działającego prototypu.
+
+Ten terminalowy rdzeń spełnia jednak swoje zadanie. Przetestowałem na nim główną logikę, a w przyszłości ułatwi to dołożenie wariantu mobilnego oraz webowego. Docelowo system musi integrować się z przeglądarką i telefonem, by przechwytywanie słówek nie wymagało ręcznego kopiowania. Wdrożona już lokalna baza danych oraz konteneryzacja będą solidną podstawą do implementacji synchronizacji między urządzeniami.
 
 #pagebreak()
 #outline(title: "Spis tabel", target: figure.where(kind: table))
