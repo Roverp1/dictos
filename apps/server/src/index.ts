@@ -5,6 +5,7 @@ import openapi from "@elysia/openapi";
 import { AuthService } from "modules/auth/auth.service";
 import { createCentralDatabase } from "db/db";
 import { authPlugin } from "modules/auth/auth.plugin";
+import { healthPlugin } from "modules/health/health.plugin";
 
 const bootstrap = async () => {
   const db = await createCentralDatabase();
@@ -14,13 +15,18 @@ const bootstrap = async () => {
   const app = new Elysia()
     .use(cors())
     .use(openapi())
+    .onRequest(({ request }) => {
+      console.log(`[${new Date().toISOString()}] ${request.method} ${request.url}`);
+    })
     .onError(({ code, error, set }) => {
+      if (code === 'NOT_FOUND') return;
       console.error("Error:", error);
     })
     .get("/", () => {
       return status(200, { message: "Hello" });
     })
     .use(authPlugin(authService))
+    .use(healthPlugin)
     .listen(process.env.PORT || 1488);
 
   console.log(
