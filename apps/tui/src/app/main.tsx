@@ -67,7 +67,7 @@ function App({
   definitionService,
   authService,
 }: Props) {
-  const [route, setRoute] = useState<Route>("auth");
+  const [route, setRoute] = useState<Route>("dictionary");
 
   const renderer = useRenderer();
 
