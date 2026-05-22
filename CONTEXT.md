@@ -24,6 +24,10 @@ _Avoid_: Prompt, Prompt Template, Preset, Recipe, AI Instruction
 A daily record logging the count of actions a user has taken (e.g., adding entries) to power heatmaps and future gamification. Distinct from future "Statistics".
 _Avoid_: Activity Aggregate, Stat, Metric
 
+**Export**:
+The action of transforming a selection of Folders, Entries, and Descriptions into an external file format (e.g., Anki, JSON).
+_Avoid_: Flashcard, Deck, Sync (when referring to file output)
+
 **Sync**:
 The automated, bidirectional replication of private local data across a single user's devices (powered by libSQL/Turso).
 _Avoid_: Publish, Upload, Social Sync
