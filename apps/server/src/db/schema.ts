@@ -16,7 +16,7 @@ export const usersTable = sqliteTable("users", {
     .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const centralCapturesAddedTable = sqliteTable("central_captures_added", {
+export const centralActivityTable = sqliteTable("central_activity", {
   id: int().primaryKey(),
   userId: int()
     .notNull()

@@ -1,11 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f4dbd073-e41f-4932-8073-654c91b4aab6",
+  "id": "ac7d4124-b13a-4c5a-9518-40e95b9f2a3e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "central_captures_added": {
-      "name": "central_captures_added",
+    "central_activity": {
+      "name": "central_activity",
       "columns": {
         "id": {
           "name": "id",
@@ -38,8 +38,8 @@
         }
       },
       "indexes": {
-        "central_captures_added_date_unique": {
-          "name": "central_captures_added_date_unique",
+        "central_activity_date_unique": {
+          "name": "central_activity_date_unique",
           "columns": [
             "date"
           ],
@@ -47,9 +47,9 @@
         }
       },
       "foreignKeys": {
-        "central_captures_added_user_id_users_id_fk": {
-          "name": "central_captures_added_user_id_users_id_fk",
-          "tableFrom": "central_captures_added",
+        "central_activity_user_id_users_id_fk": {
+          "name": "central_activity_user_id_users_id_fk",
+          "tableFrom": "central_activity",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"

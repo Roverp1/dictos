@@ -1,4 +1,4 @@
-CREATE TABLE `central_captures_added` (
+CREATE TABLE `central_activity` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`user_id` integer NOT NULL,
 	`date` text NOT NULL,
@@ -6,7 +6,7 @@ CREATE TABLE `central_captures_added` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `central_captures_added_date_unique` ON `central_captures_added` (`date`);--> statement-breakpoint
+CREATE UNIQUE INDEX `central_activity_date_unique` ON `central_activity` (`date`);--> statement-breakpoint
 CREATE TABLE `users` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
