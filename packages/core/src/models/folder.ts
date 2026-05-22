@@ -1,6 +1,6 @@
 import { ValidationError } from "errors";
 
-export interface Directory {
+export interface Folder {
   id: number;
   name: string;
   parentId: number | null;
@@ -9,28 +9,28 @@ export interface Directory {
   modifiedAt: Date;
 }
 
-export type NewDirectory = Omit<
-  Directory,
+export type NewFolder = Omit<
+  Folder,
   "id" | "createdAt" | "modifiedAt" | "privacy"
 > &
-  Partial<Pick<Directory, "privacy">>;
+  Partial<Pick<Folder, "privacy">>;
 
 const VALID_PRIVACY = ["private", "public", "unlisted"] as const;
 
-export function validateNewDirectory(
-  data: NewDirectory
+export function validateNewFolder(
+  data: NewFolder
 ): void | ValidationError {
   if (!data.name || data.name.trim() === "")
-    return new ValidationError({ reason: "Directory name cannot be empty." });
+    return new ValidationError({ reason: "Folder name cannot be empty." });
 
   if (data.name.includes("/"))
     return new ValidationError({
-      reason: "Directory name cannot contain slashes.",
+      reason: "Folder name cannot contain slashes.",
     });
 
   if (data.parentId !== null && data.parentId !== undefined) {
     if (data.parentId <= 0 || !Number.isInteger(data.parentId))
-      return new ValidationError({ reason: "Invalid parent directory ID." });
+      return new ValidationError({ reason: "Invalid parent folder ID." });
   }
 
   if (data.privacy && !VALID_PRIVACY.includes(data.privacy))
