@@ -1,13 +1,13 @@
 import { useTheme } from "@shared/lib/theme";
 import { InteractiveList } from "./interactive-list";
 
-import type { Directory } from "@dictos/core";
+import type { Folder } from "@dictos/core";
 
 import { useDictionaryStore } from "../model/use-dictionary-store";
 
 import { useRenameLogic } from "../model/rename";
 
-export const DirectoryTreePane = () => {
+export const FolderTreePane = () => {
   const theme = useTheme();
 
   const {
@@ -25,7 +25,7 @@ export const DirectoryTreePane = () => {
   return (
     <box
       flexDirection="column"
-      id="directory-tree-pane"
+      id="folder-tree-pane"
       border={["right"]}
       borderColor={theme.base04}
       width="50%"
@@ -88,7 +88,7 @@ export const DirectoryTreePane = () => {
           }}
         />
       ) : (
-        <text>This directory is emty. Press 'a' to add you first item</text>
+        <text>This folder is empty. Press 'a' to add your first item</text>
       )}
     </box>
   );

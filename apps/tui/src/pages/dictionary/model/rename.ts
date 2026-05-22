@@ -7,30 +7,30 @@ export const useRenameLogic = () => {
     setFocus,
     setInputValue,
     treeItemsToDisplay,
-    definitionsToDisplay,
+    descriptionsToDisplay,
     setRefreshTreeItemTrigger,
-    setDefinitionRefreshTrigger,
+    setDescriptionRefreshTrigger,
   } = useDictionaryStore();
 
-  const { selectedTreeItem, selectedDefinition } = useHelperVariables();
+  const { selectedTreeItem, selectedDescription } = useHelperVariables();
 
-  const { captureService, definitionService, directoryService } = useServices();
+  const { entryService, descriptionService, folderService } = useServices();
 
   const actionRequestRename = () => {
     if (focus.pane === "tree" && treeItemsToDisplay.length > 0) {
       setFocus((prev) => ({ ...prev, action: "renameInput" }));
 
-      if (selectedTreeItem?.type === "dir") {
+      if (selectedTreeItem?.type === "folder") {
         setInputValue(selectedTreeItem.data.name);
-      } else if (selectedTreeItem?.type === "capture") {
+      } else if (selectedTreeItem?.type === "entry") {
         setInputValue(selectedTreeItem?.data.text);
       }
     }
 
-    if (focus.pane === "definition" && definitionsToDisplay.length > 0) {
+    if (focus.pane === "description" && descriptionsToDisplay.length > 0) {
       setFocus((prev) => ({ ...prev, action: "renameInput" }));
 
-      setInputValue(selectedDefinition!.text);
+      setInputValue(selectedDescription!.text);
     }
   };
 
@@ -42,13 +42,13 @@ export const useRenameLogic = () => {
         return;
       }
 
-      if (selectedTreeItem.type === "dir") {
-        await directoryService
-          .renameDirectory(selectedTreeItem.data.id, trimmed)
+      if (selectedTreeItem.type === "folder") {
+        await folderService
+          .renameFolder(selectedTreeItem.data.id, trimmed)
           .catch(console.error);
       } else {
-        await captureService
-          .updateCapture(selectedTreeItem.data.id, { text: trimmed })
+        await entryService
+          .updateEntry(selectedTreeItem.data.id, { text: trimmed })
           .catch(console.error);
       }
 
@@ -57,27 +57,27 @@ export const useRenameLogic = () => {
     }
   };
 
-  const handleRenameDefinitionSubmit = async (val: string) => {
+  const handleRenameDescriptionSubmit = async (val: string) => {
     const trimmed = val.trim();
-    if (!trimmed || !selectedDefinition) {
-      setFocus({ pane: "definition", action: "idle" });
+    if (!trimmed || !selectedDescription) {
+      setFocus({ pane: "description", action: "idle" });
       return;
     }
 
-    await definitionService
-      .updateDefinition(selectedDefinition!.id, {
-        captureId: selectedDefinition?.captureId,
+    await descriptionService
+      .updateDescription(selectedDescription!.id, {
+        entryId: selectedDescription?.entryId,
         text: trimmed,
       })
       .catch(console.error);
 
-    setDefinitionRefreshTrigger();
-    setFocus({ pane: "definition", action: "idle" });
+    setDescriptionRefreshTrigger();
+    setFocus({ pane: "description", action: "idle" });
   };
 
   return {
     actionRequestRename,
-    handleRenameDefinitionSubmit,
+    handleRenameDescriptionSubmit,
     handleRenameTreeItemSubmit,
   };
 };

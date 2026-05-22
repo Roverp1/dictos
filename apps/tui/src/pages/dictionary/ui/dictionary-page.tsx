@@ -1,8 +1,8 @@
 import { useDictionary } from "../model/use-dictionary";
 import { CreateModal } from "./modals/create-modal";
 import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
-import { DirectoryTreePane } from "./directory-tree-pane";
-import { DefinitionPane } from "./definition-pane";
+import { FolderTreePane } from "./folder-tree-pane";
+import { DescriptionPane } from "./description-pane";
 import {
   useDictionaryStore,
   useHelperVariables,
@@ -15,23 +15,23 @@ export const DictionaryPage = () => {
 
   const { focus } = useDictionaryStore();
 
-  const { selectedTreeItem, selectedDefinition } = useHelperVariables();
+  const { selectedTreeItem, selectedDescription } = useHelperVariables();
 
   const { handleCreateTreeItemSubmit } = useCreateLogic();
 
   const {
     handleDeleteTreeItemConfirm,
     handleDeleteConfirmModalCancel,
-    handleDeleteDefinitionConfirm,
+    handleDeleteDescriptionConfirm,
   } = useDeleteLogic();
   return (
     <box
       height="100%"
       flexDirection="row"
     >
-      <DirectoryTreePane />
+      <FolderTreePane />
 
-      <DefinitionPane />
+      <DescriptionPane />
 
       {focus.pane === "tree" && focus.action === "createInput" && (
         <CreateModal
@@ -44,7 +44,7 @@ export const DictionaryPage = () => {
       {focus.pane === "tree" && focus.action === "deleteConfirm" && (
         <DeleteConfirmModal
           itemName={
-            selectedTreeItem?.type === "dir"
+            selectedTreeItem?.type === "folder"
               ? `${selectedTreeItem.data.name}/`
               : selectedTreeItem?.data.text
           }
@@ -53,10 +53,10 @@ export const DictionaryPage = () => {
         />
       )}
 
-      {focus.pane === "definition" && focus.action === "deleteConfirm" && (
+      {focus.pane === "description" && focus.action === "deleteConfirm" && (
         <DeleteConfirmModal
-          itemName={selectedDefinition?.text}
-          onConfirm={handleDeleteDefinitionConfirm}
+          itemName={selectedDescription?.text}
+          onConfirm={handleDeleteDescriptionConfirm}
           onCancel={handleDeleteConfirmModalCancel}
         />
       )}

@@ -3,37 +3,37 @@ import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
 
 export const useDeleteLogic = () => {
   const {
-    definitionRefreshTrigger,
-    definitionsToDisplay,
+    descriptionRefreshTrigger,
+    descriptionsToDisplay,
     focus,
     inputValue,
     refreshTreeItemTrigger,
-    selectedDefinitionIndex,
+    selectedDescriptionIndex,
     selectedTreeItemIndex,
-    setDefinitionRefreshTrigger,
-    setDefinitionsToDisplay,
+    setDescriptionRefreshTrigger,
+    setDescriptionsToDisplay,
     setFocus,
     setInputValue,
     setRefreshTreeItemTrigger,
-    setSelectedDefinitionIndex,
+    setSelectedDescriptionIndex,
     setSelectedTreeItemIndex,
     setTreeItemsToDisplay,
     treeItemsToDisplay,
   } = useDictionaryStore();
 
-  const { captureService, definitionService, directoryService } = useServices();
+  const { entryService, descriptionService, folderService } = useServices();
 
-  const { currentDir, selectedDefinition, selectedTreeItem } =
+  const { currentFolder, selectedDescription, selectedTreeItem } =
     useHelperVariables();
 
   const handleDeleteTreeItemConfirm = async () => {
-    if (selectedTreeItem!.type === "capture" && focus.pane === "tree") {
-      await captureService
-        .deleteCapture(selectedTreeItem!.data.id)
+    if (selectedTreeItem!.type === "entry" && focus.pane === "tree") {
+      await entryService
+        .deleteEntry(selectedTreeItem!.data.id)
         .catch(console.error);
-    } else if (selectedTreeItem!.type === "dir") {
-      await directoryService
-        .deleteDirectory(selectedTreeItem!.data.id)
+    } else if (selectedTreeItem!.type === "folder") {
+      await folderService
+        .deleteFolder(selectedTreeItem!.data.id)
         .catch(console.error);
     }
 
@@ -41,11 +41,11 @@ export const useDeleteLogic = () => {
     setFocus({ pane: "tree", action: "idle" });
   };
 
-  const handleDeleteDefinitionConfirm = async () => {
-    if (focus.pane === "definition") {
-      await definitionService.deleteDefinition(selectedDefinition!.id);
-      setDefinitionRefreshTrigger();
-      setFocus({ pane: "definition", action: "idle" });
+  const handleDeleteDescriptionConfirm = async () => {
+    if (focus.pane === "description") {
+      await descriptionService.deleteDescription(selectedDescription!.id);
+      setDescriptionRefreshTrigger();
+      setFocus({ pane: "description", action: "idle" });
     }
   };
 
@@ -58,7 +58,7 @@ export const useDeleteLogic = () => {
       setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
     }
 
-    if (focus.pane === "definition" && definitionsToDisplay.length > 0) {
+    if (focus.pane === "description" && descriptionsToDisplay.length > 0) {
       setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
     }
   };
@@ -67,6 +67,6 @@ export const useDeleteLogic = () => {
     handleDeleteTreeItemConfirm,
     handleDeleteConfirmModalCancel,
     actionRequestDelete,
-    handleDeleteDefinitionConfirm,
+    handleDeleteDescriptionConfirm,
   };
 };

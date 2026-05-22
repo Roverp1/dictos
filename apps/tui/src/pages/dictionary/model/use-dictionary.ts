@@ -13,7 +13,7 @@ import type { TreeItem } from "./types";
 export const useDictionary = () => {
   // store
   const {
-    setDefinitionsToDisplay,
+    setDescriptionsToDisplay,
     treeItemsToDisplay,
     setTreeItemsToDisplay,
     focus,
@@ -21,14 +21,14 @@ export const useDictionary = () => {
     selectedTreeItemIndex,
     setSelectedTreeItemIndex,
     refreshTreeItemTrigger,
-    definitionRefreshTrigger,
+    descriptionRefreshTrigger,
     pathStack,
     setPathStack,
   } = useDictionaryStore();
 
-  const { selectedTreeItem, currentDir } = useHelperVariables();
+  const { selectedTreeItem, currentFolder } = useHelperVariables();
 
-  const { captureService, definitionService, directoryService } = useServices();
+  const { entryService, descriptionService, folderService } = useServices();
 
   const { actionRequestRename } = useRenameLogic();
   const { actionRequestCreate } = useCreateLogic();
@@ -61,59 +61,59 @@ export const useDictionary = () => {
   // effects
   useEffect(() => {
     const onMount = async () => {
-      const rootDir = await directoryService.getRootDirectory();
-      if (rootDir instanceof Error) {
-        console.error("Failed to get root directory:", rootDir);
+      const rootFolder = await folderService.getRootFolder();
+      if (rootFolder instanceof Error) {
+        console.error("Failed to get root folder:", rootFolder);
         return;
       }
 
-      setPathStack([rootDir]);
+      setPathStack([rootFolder]);
     };
 
     onMount();
-  }, [directoryService]);
+  }, [folderService]);
 
   useEffect(() => {
-    if (!currentDir) return;
+    if (!currentFolder) return;
 
     const loadItems = async () => {
-      const [dirsResult, capturesResult] = await Promise.all([
-        directoryService.getSubDirectories(currentDir.id),
-        captureService.getCapturesInDirectory(currentDir.id),
+      const [foldersResult, entriesResult] = await Promise.all([
+        folderService.getSubFolders(currentFolder.id),
+        entryService.getEntriesInFolder(currentFolder.id),
       ]);
 
-      if (dirsResult instanceof Error) {
+      if (foldersResult instanceof Error) {
         console.error(
-          "Failed to get sub-directories in current directory:",
-          dirsResult
+          "Failed to get sub-folders in current folder:",
+          foldersResult
         );
         return;
       }
-      if (capturesResult instanceof Error) {
+      if (entriesResult instanceof Error) {
         console.error(
-          "Failed to get captures in current directory:",
-          capturesResult
+          "Failed to get entries in current folder:",
+          entriesResult
         );
         return;
       }
 
       const items: TreeItem[] = [];
 
-      for (const childDir of dirsResult) {
+      for (const childFolder of foldersResult) {
         items.push({
-          id: `dir-${childDir.id}`,
-          type: "dir",
-          data: childDir,
-          label: ` ${childDir.name}`,
+          id: `folder-${childFolder.id}`,
+          type: "folder",
+          data: childFolder,
+          label: ` ${childFolder.name}`,
         });
       }
 
-      for (const capture of capturesResult) {
+      for (const entry of entriesResult) {
         items.push({
-          id: `capture-${capture.id}`,
-          type: "capture",
-          data: capture,
-          label: `${capture.text}`,
+          id: `entry-${entry.id}`,
+          type: "entry",
+          data: entry,
+          label: `${entry.text}`,
         });
       }
 
@@ -134,20 +134,20 @@ export const useDictionary = () => {
   }, [treeItemsToDisplay]);
 
   useEffect(() => {
-    const loadDefinitions = async () => {
-      if (!selectedTreeItem || selectedTreeItem.type !== "capture") return;
+    const loadDescriptions = async () => {
+      if (!selectedTreeItem || selectedTreeItem.type !== "entry") return;
 
-      const definitions = await definitionService.getDefintionsForCapture(
+      const descriptions = await descriptionService.getDescriptionsForEntry(
         selectedTreeItem.data.id
       );
-      if (definitions instanceof Error) {
-        console.error(definitions);
+      if (descriptions instanceof Error) {
+        console.error(descriptions);
         return;
       }
 
-      setDefinitionsToDisplay(definitions);
+      setDescriptionsToDisplay(descriptions);
     };
 
-    loadDefinitions();
-  }, [selectedTreeItemIndex, definitionRefreshTrigger]);
+    loadDescriptions();
+  }, [selectedTreeItemIndex, descriptionRefreshTrigger]);
 };

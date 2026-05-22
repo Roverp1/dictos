@@ -9,48 +9,48 @@ import {
 import { useRenameLogic } from "../model/rename";
 import { useCreateLogic } from "../model/create";
 
-export const DefinitionPane = () => {
+export const DescriptionPane = () => {
   const theme = useTheme();
 
   const {
     inputValue,
     focus,
-    definitionsToDisplay,
-    selectedDefinitionIndex,
-    setSelectedDefinitionIndex,
+    descriptionsToDisplay,
+    selectedDescriptionIndex,
+    setSelectedDescriptionIndex,
   } = useDictionaryStore();
 
   const { selectedTreeItem } = useHelperVariables();
 
-  const { handleRenameDefinitionSubmit } = useRenameLogic();
+  const { handleRenameDescriptionSubmit } = useRenameLogic();
 
-  const { handleCreateDefinitionSubmit } = useCreateLogic();
+  const { handleCreateDescriptionSubmit } = useCreateLogic();
   return (
     <box
-      id="definition-pane"
+      id="description-pane"
       width="50%"
       height="100%"
       flexDirection="column"
       gap={1}
     >
-      <text fg={focus.pane === "definition" ? theme.base0E : theme.base03}>
-        {selectedTreeItem?.type === "capture"
+      <text fg={focus.pane === "description" ? theme.base0E : theme.base03}>
+        {selectedTreeItem?.type === "entry"
           ? `${selectedTreeItem.data.text}`
           : ""}
       </text>
 
       <InteractiveList
-        id="definition-list"
+        id="description-list"
         contentOptions={{ gap: 1 }}
         flexGrow={1}
-        items={definitionsToDisplay}
-        focused={focus.pane === "definition"}
+        items={descriptionsToDisplay}
+        focused={focus.pane === "description"}
         focus={focus}
-        selectedIndex={selectedDefinitionIndex}
-        onIndexChange={setSelectedDefinitionIndex}
+        selectedIndex={selectedDescriptionIndex}
+        onIndexChange={setSelectedDescriptionIndex}
         renderItem={(item, i, isSelected) => {
           const isRenaming =
-            focus.action === "renameInput" && focus.pane === "definition";
+            focus.action === "renameInput" && focus.pane === "description";
 
           if (isSelected && isRenaming) {
             return (
@@ -60,7 +60,7 @@ export const DefinitionPane = () => {
               >
                 <SubmitTextarea
                   focused={true}
-                  onSave={handleRenameDefinitionSubmit}
+                  onSave={handleRenameDescriptionSubmit}
                   initialValue={inputValue}
                 />
               </box>
@@ -77,20 +77,19 @@ export const DefinitionPane = () => {
           );
         }}
         ListFooterComponent={
-          focus.pane === "definition" && focus.action === "createInput" ? (
+          focus.pane === "description" && focus.action === "createInput" ? (
             <box
               border
               borderColor={theme.base0B}
             >
               <SubmitTextarea
                 focused={true}
-                onSave={handleCreateDefinitionSubmit}
+                onSave={handleCreateDescriptionSubmit}
               />
             </box>
           ) : null
         }
       />
-      {/* <text>Press 'a' to add first definition for this capture</text> */}
     </box>
   );
 };

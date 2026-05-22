@@ -1,31 +1,31 @@
-import type { Capture, Directory } from "@dictos/core";
+import type { Entry, Folder } from "@dictos/core";
 
 type TreeFocus = {
   pane: "tree";
   action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
 };
 
-type DefinitionFocus = {
-  pane: "definition";
+type DescriptionFocus = {
+  pane: "description";
   action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
 };
 
-export type FocusState = TreeFocus | DefinitionFocus;
+export type FocusState = TreeFocus | DescriptionFocus;
 
-interface DirectoryTreeItem {
-  /** format: "dir-${dbId}" */
+interface FolderTreeItem {
+  /** format: "folder-${dbId}" */
   id: string;
-  type: "dir";
-  data: Directory;
+  type: "folder";
+  data: Folder;
   label: string;
 }
 
-interface CaptureTreeItem {
-  /** format: "capture-${dbId}" */
+interface EntryTreeItem {
+  /** format: "entry-${dbId}" */
   id: string;
-  type: "capture";
-  data: Capture;
+  type: "entry";
+  data: Entry;
   label: string;
 }
 
-export type TreeItem = DirectoryTreeItem | CaptureTreeItem;
+export type TreeItem = FolderTreeItem | EntryTreeItem;
