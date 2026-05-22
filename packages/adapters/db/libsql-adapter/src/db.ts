@@ -22,22 +22,22 @@ export const createLibSqlDatabase = async (dbUrl: string) => {
 };
 
 const seedDbOnInit = async (db: LibSQLDatabase<typeof schema>) => {
-  const [rootDir] = await db
+  const [rootFolder] = await db
     .select()
-    .from(schema.directoriesTable)
-    .where(isNull(schema.directoriesTable.parentId));
+    .from(schema.foldersTable)
+    .where(isNull(schema.foldersTable.parentId));
 
-  if (rootDir !== undefined) return;
+  if (rootFolder !== undefined) return;
 
   await db
-    .insert(schema.directoriesTable)
+    .insert(schema.foldersTable)
     .values({
       name: "/",
       parentId: null,
       privacy: "private",
     })
     .catch((e) => {
-      console.error("Failed to seed root directory:", e);
-      throw new Error("Could not seed root directory", { cause: e });
+      console.error("Failed to seed root folder:", e);
+      throw new Error("Could not seed root folder", { cause: e });
     });
 };

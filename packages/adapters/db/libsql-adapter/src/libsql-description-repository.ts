@@ -1,29 +1,29 @@
 import {
   DbError,
-  type Definition,
-  type DefinitionRepository,
-  type NewDefinition,
+  type Description,
+  type DescriptionRepository,
+  type NewDescription,
 } from "@dictos/core";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 
 import * as schema from "../../schema/schema";
 import { eq } from "drizzle-orm";
 
-export class LibSqlDefinitionRepository implements DefinitionRepository {
+export class LibSqlDescriptionRepository implements DescriptionRepository {
   constructor(private db: LibSQLDatabase<typeof schema>) {}
 
-  async save(definition: NewDefinition): Promise<Definition | DbError> {
+  async save(description: NewDescription): Promise<Description | DbError> {
     const result = await this.db
-      .insert(schema.definitionsTable)
+      .insert(schema.descriptionsTable)
       .values({
-        text: definition.text,
-        captureId: definition.captureId,
+        text: description.text,
+        entryId: description.entryId,
       })
       .returning()
       .catch(
         (e) =>
           new DbError({
-            operation: "insert_definition",
+            operation: "insert_description",
             reason: "Exception",
             cause: e,
           })
@@ -32,22 +32,22 @@ export class LibSqlDefinitionRepository implements DefinitionRepository {
     if (result instanceof Error) return result;
     if (!result[0])
       return new DbError({
-        operation: "insert_definition",
+        operation: "insert_description",
         reason: "No row returned",
       });
 
     return result[0];
   }
 
-  async findByCapture(captureId: number): Promise<Definition[] | DbError> {
+  async findByEntry(entryId: number): Promise<Description[] | DbError> {
     const result = await this.db
       .select()
-      .from(schema.definitionsTable)
-      .where(eq(schema.definitionsTable.captureId, captureId))
+      .from(schema.descriptionsTable)
+      .where(eq(schema.descriptionsTable.entryId, entryId))
       .catch(
         (e) =>
           new DbError({
-            operation: "find_definition_by_capture_id",
+            operation: "find_description_by_entry_id",
             reason: "Exception",
             cause: e,
           })
@@ -60,17 +60,17 @@ export class LibSqlDefinitionRepository implements DefinitionRepository {
 
   async update(
     id: number,
-    data: Partial<Omit<Definition, "id" | "createdAt" | "modifiedAt">>
-  ): Promise<Definition | DbError> {
+    data: Partial<Omit<Description, "id" | "createdAt" | "modifiedAt">>
+  ): Promise<Description | DbError> {
     const result = await this.db
-      .update(schema.definitionsTable)
+      .update(schema.descriptionsTable)
       .set(data)
-      .where(eq(schema.definitionsTable.id, id))
+      .where(eq(schema.descriptionsTable.id, id))
       .returning()
       .catch(
         (e) =>
           new DbError({
-            operation: "update_definition",
+            operation: "update_description",
             reason: "Exception",
             cause: e,
           })
@@ -79,22 +79,22 @@ export class LibSqlDefinitionRepository implements DefinitionRepository {
     if (result instanceof Error) return result;
     if (!result[0])
       return new DbError({
-        operation: "update_definition",
-        reason: "Definition not found",
+        operation: "update_description",
+        reason: "Description not found",
       });
 
     return result[0];
   }
 
-  async delete(id: number): Promise<Definition | DbError> {
+  async delete(id: number): Promise<Description | DbError> {
     const result = await this.db
-      .delete(schema.definitionsTable)
-      .where(eq(schema.definitionsTable.id, id))
+      .delete(schema.descriptionsTable)
+      .where(eq(schema.descriptionsTable.id, id))
       .returning()
       .catch(
         (e) =>
           new DbError({
-            operation: "delete_definition",
+            operation: "delete_description",
             reason: "Exception",
             cause: e,
           })
@@ -103,8 +103,8 @@ export class LibSqlDefinitionRepository implements DefinitionRepository {
     if (result instanceof Error) return result;
     if (!result[0])
       return new DbError({
-        operation: "delete_definition",
-        reason: "Definition not found",
+        operation: "delete_description",
+        reason: "Description not found",
       });
 
     return result[0];

@@ -1,26 +1,26 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import {
   DbError,
-  type Directory,
-  type DirectoryRepository,
-  type NewDirectory,
+  type Folder,
+  type FolderRepository,
+  type NewFolder,
 } from "@dictos/core";
 
 import * as schema from "../../schema/schema";
 import { eq, isNull } from "drizzle-orm";
 
-export class LibSqlDirectoryRepository implements DirectoryRepository {
+export class LibSqlFolderRepository implements FolderRepository {
   constructor(private db: LibSQLDatabase<typeof schema>) {}
 
-  async save(directory: NewDirectory): Promise<Directory | DbError> {
+  async save(folder: NewFolder): Promise<Folder | DbError> {
     const result = await this.db
-      .insert(schema.directoriesTable)
-      .values(directory)
+      .insert(schema.foldersTable)
+      .values(folder)
       .returning()
       .catch(
         (e) =>
           new DbError({
-            operation: "insert_directory",
+            operation: "insert_folder",
             reason: "Exception",
             cause: e,
           })
@@ -29,22 +29,22 @@ export class LibSqlDirectoryRepository implements DirectoryRepository {
     if (result instanceof Error) return result;
     if (!result[0])
       return new DbError({
-        operation: "insert_directory",
+        operation: "insert_folder",
         reason: "No row returned",
       });
 
     return result[0];
   }
 
-  async findRoot(): Promise<Directory | DbError> {
+  async findRoot(): Promise<Folder | DbError> {
     const result = await this.db
       .select()
-      .from(schema.directoriesTable)
-      .where(isNull(schema.directoriesTable.parentId))
+      .from(schema.foldersTable)
+      .where(isNull(schema.foldersTable.parentId))
       .catch(
         (e) =>
           new DbError({
-            operation: "select_root_directory",
+            operation: "select_root_folder",
             reason: "Exception",
             cause: e,
           })
@@ -55,15 +55,15 @@ export class LibSqlDirectoryRepository implements DirectoryRepository {
     return result[0]!;
   }
 
-  async findById(id: number): Promise<Directory | DbError | null> {
+  async findById(id: number): Promise<Folder | DbError | null> {
     const result = await this.db
       .select()
-      .from(schema.directoriesTable)
-      .where(eq(schema.directoriesTable.id, id))
+      .from(schema.foldersTable)
+      .where(eq(schema.foldersTable.id, id))
       .catch(
         (e) =>
           new DbError({
-            operation: "select_directory_by_id",
+            operation: "select_folder_by_id",
             reason: "Exception",
             cause: e,
           })
@@ -75,15 +75,15 @@ export class LibSqlDirectoryRepository implements DirectoryRepository {
     return result[0];
   }
 
-  async findByParentId(parentId: number): Promise<Directory[] | DbError> {
+  async findByParentId(parentId: number): Promise<Folder[] | DbError> {
     const result = await this.db
       .select()
-      .from(schema.directoriesTable)
-      .where(eq(schema.directoriesTable.parentId, parentId))
+      .from(schema.foldersTable)
+      .where(eq(schema.foldersTable.parentId, parentId))
       .catch(
         (e) =>
           new DbError({
-            operation: "select_directory_by_parent_id",
+            operation: "select_folder_by_parent_id",
             reason: "Exception",
             cause: e,
           })
@@ -92,14 +92,14 @@ export class LibSqlDirectoryRepository implements DirectoryRepository {
     return result;
   }
 
-  async findAll(): Promise<Directory[] | DbError> {
+  async findAll(): Promise<Folder[] | DbError> {
     const result = await this.db
       .select()
-      .from(schema.directoriesTable)
+      .from(schema.foldersTable)
       .catch(
         (e) =>
           new DbError({
-            operation: "select_all_directories",
+            operation: "select_all_folders",
             reason: "Exception",
             cause: e,
           })
@@ -112,17 +112,17 @@ export class LibSqlDirectoryRepository implements DirectoryRepository {
 
   async update(
     id: number,
-    data: Partial<Omit<Directory, "id" | "createdAt" | "modifiedAt">>
-  ): Promise<Directory | DbError> {
+    data: Partial<Omit<Folder, "id" | "createdAt" | "modifiedAt">>
+  ): Promise<Folder | DbError> {
     const result = await this.db
-      .update(schema.directoriesTable)
+      .update(schema.foldersTable)
       .set(data)
-      .where(eq(schema.directoriesTable.id, id))
+      .where(eq(schema.foldersTable.id, id))
       .returning()
       .catch(
         (e) =>
           new DbError({
-            operation: "update_directory",
+            operation: "update_folder",
             reason: "Exception",
             cause: e,
           })
@@ -131,22 +131,22 @@ export class LibSqlDirectoryRepository implements DirectoryRepository {
     if (result instanceof Error) return result;
     if (!result[0])
       return new DbError({
-        operation: "update_directory",
+        operation: "update_folder",
         reason: "No row returned",
       });
 
     return result[0];
   }
 
-  async delete(id: number): Promise<Directory | DbError> {
+  async delete(id: number): Promise<Folder | DbError> {
     const result = await this.db
-      .delete(schema.directoriesTable)
-      .where(eq(schema.directoriesTable.id, id))
+      .delete(schema.foldersTable)
+      .where(eq(schema.foldersTable.id, id))
       .returning()
       .catch(
         (e) =>
           new DbError({
-            operation: "delete_directory",
+            operation: "delete_folder",
             reason: "Exception",
             cause: e,
           })
@@ -155,7 +155,7 @@ export class LibSqlDirectoryRepository implements DirectoryRepository {
     if (result instanceof Error) return result;
     if (!result[0])
       return new DbError({
-        operation: "delete_directory",
+        operation: "delete_folder",
         reason: "No row returned",
       });
 

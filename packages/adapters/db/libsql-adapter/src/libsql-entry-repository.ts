@@ -1,7 +1,7 @@
 import {
-  type Capture,
-  type CaptureRepository,
-  type NewCapture,
+  type Entry,
+  type EntryRepository,
+  type NewEntry,
   DbError,
 } from "@dictos/core";
 import { LibSQLDatabase } from "drizzle-orm/libsql";
@@ -9,21 +9,21 @@ import { eq } from "drizzle-orm";
 
 import * as schema from "../../schema/schema";
 
-export class LibSqlCaptureRepository implements CaptureRepository {
+export class LibSqlEntryRepository implements EntryRepository {
   constructor(private db: LibSQLDatabase<typeof schema>) {}
 
-  async save(capture: NewCapture): Promise<Capture | DbError> {
+  async save(entry: NewEntry): Promise<Entry | DbError> {
     const result = await this.db
-      .insert(schema.capturesTable)
+      .insert(schema.entriesTable)
       .values({
-        text: capture.text,
-        directoryId: capture.directoryId,
+        text: entry.text,
+        folderId: entry.folderId,
       })
       .returning()
       .catch(
         (e) =>
           new DbError({
-            operation: "insert_capture",
+            operation: "insert_entry",
             reason: "Exception",
             cause: e,
           })
@@ -32,22 +32,22 @@ export class LibSqlCaptureRepository implements CaptureRepository {
     if (result instanceof Error) return result;
     if (!result[0])
       return new DbError({
-        operation: "insert_capture",
+        operation: "insert_entry",
         reason: "No row returned",
       });
 
     return result[0];
   }
 
-  async findById(id: number): Promise<Capture | DbError | null> {
+  async findById(id: number): Promise<Entry | DbError | null> {
     const result = await this.db
       .select()
-      .from(schema.capturesTable)
-      .where(eq(schema.capturesTable.id, id))
+      .from(schema.entriesTable)
+      .where(eq(schema.entriesTable.id, id))
       .catch(
         (e) =>
           new DbError({
-            operation: "find_capture",
+            operation: "find_entry",
             reason: "Exception",
             cause: e,
           })
@@ -59,15 +59,15 @@ export class LibSqlCaptureRepository implements CaptureRepository {
     return result[0];
   }
 
-  async findByDirectory(directoryId: number): Promise<Capture[] | DbError> {
+  async findByFolder(folderId: number): Promise<Entry[] | DbError> {
     const result = await this.db
       .select()
-      .from(schema.capturesTable)
-      .where(eq(schema.capturesTable.directoryId, directoryId))
+      .from(schema.entriesTable)
+      .where(eq(schema.entriesTable.folderId, folderId))
       .catch(
         (e) =>
           new DbError({
-            operation: "find_capture_by_dir",
+            operation: "find_entry_by_dir",
             reason: "Exception",
             cause: e,
           })
@@ -78,17 +78,17 @@ export class LibSqlCaptureRepository implements CaptureRepository {
 
   async update(
     id: number,
-    data: Partial<Omit<Capture, "id" | "createdAt" | "modifiedAt">>
-  ): Promise<Capture | DbError> {
+    data: Partial<Omit<Entry, "id" | "createdAt" | "modifiedAt">>
+  ): Promise<Entry | DbError> {
     const result = await this.db
-      .update(schema.capturesTable)
+      .update(schema.entriesTable)
       .set(data)
-      .where(eq(schema.capturesTable.id, id))
+      .where(eq(schema.entriesTable.id, id))
       .returning()
       .catch(
         (e) =>
           new DbError({
-            operation: "update_capture",
+            operation: "update_entry",
             reason: "Exception",
             cause: e,
           })
@@ -97,22 +97,22 @@ export class LibSqlCaptureRepository implements CaptureRepository {
     if (result instanceof Error) return result;
     if (!result[0])
       return new DbError({
-        operation: "update_capture",
-        reason: "Capture not found",
+        operation: "update_entry",
+        reason: "Entry not found",
       });
 
     return result[0];
   }
 
-  async delete(id: number): Promise<Capture | DbError> {
+  async delete(id: number): Promise<Entry | DbError> {
     const result = await this.db
-      .delete(schema.capturesTable)
-      .where(eq(schema.capturesTable.id, id))
+      .delete(schema.entriesTable)
+      .where(eq(schema.entriesTable.id, id))
       .returning()
       .catch(
         (e) =>
           new DbError({
-            operation: "delete_capture",
+            operation: "delete_entry",
             reason: "Exception",
             cause: e,
           })
@@ -121,8 +121,8 @@ export class LibSqlCaptureRepository implements CaptureRepository {
     if (result instanceof Error) return result;
     if (!result[0])
       return new DbError({
-        operation: "delete_capture",
-        reason: "Capture not found",
+        operation: "delete_entry",
+        reason: "Entry not found",
       });
 
     return result[0];

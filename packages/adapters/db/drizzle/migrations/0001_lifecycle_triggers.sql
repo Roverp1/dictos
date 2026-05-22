@@ -1,82 +1,82 @@
 -- Custom SQL migration file, put your code below! --
-CREATE TRIGGER set_captures_modified_at
-AFTER UPDATE ON captures
+CREATE TRIGGER set_entries_modified_at
+AFTER UPDATE ON entries
 FOR EACH ROW
 WHEN NEW.modified_at = OLD.modified_at
 BEGIN
-    UPDATE captures
+    UPDATE entries
     SET modified_at = strftime('%s', 'now')
     WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER set_definitions_modified_at
-AFTER UPDATE ON definitions
+CREATE TRIGGER set_descriptions_modified_at
+AFTER UPDATE ON descriptions
 FOR EACH ROW 
 WHEN NEW.modified_at = OLD.modified_at
 BEGIN
-    UPDATE definitions
+    UPDATE descriptions
     SET modified_at = strftime('%s', 'now')
     WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER set_prompts_modified_at
-AFTER UPDATE ON prompts
+CREATE TRIGGER set_instructions_modified_at
+AFTER UPDATE ON instructions
 FOR EACH ROW
 WHEN NEW.modified_at = OLD.modified_at
 BEGIN
-    UPDATE prompts
+    UPDATE instructions
     SET modified_at = strftime('%s', 'now')
     WHERE id = NEW.id;
 END;
 
-CREATE TRIGGER set_directories_modified_at
-AFTER UPDATE ON directories
+CREATE TRIGGER set_folders_modified_at
+AFTER UPDATE ON folders
 FOR EACH ROW
 WHEN NEW.modified_at = OLD.modified_at
 BEGIN
-    UPDATE directories
+    UPDATE folders
     SET modified_at = strftime('%s', 'now')
     WHERE id = NEW.id;
 END;
 
--- cascade modified_at for directories on capture change
-CREATE TRIGGER update_directory_on_capture_insert
-AFTER INSERT ON captures
+-- cascade modified_at for folders on entry change
+CREATE TRIGGER update_folder_on_entry_insert
+AFTER INSERT ON entries
 FOR EACH ROW
 BEGIN
-    UPDATE directories
+    UPDATE folders
     SET modified_at = strftime('%s', 'now')
-    WHERE id = NEW.directory_id;
+    WHERE id = NEW.folder_id;
 END;
 
-CREATE TRIGGER update_directory_on_capture_update
-AFTER UPDATE ON captures
+CREATE TRIGGER update_folder_on_entry_update
+AFTER UPDATE ON entries
 FOR EACH ROW
 BEGIN
-    UPDATE directories
+    UPDATE folders
     SET modified_at = strftime('%s', 'now')
-    WHERE id = NEW.directory_id;
+    WHERE id = NEW.folder_id;
 
-    UPDATE directories
+    UPDATE folders
     SET modified_at = strftime('%s', 'now')
-    WHERE id = OLD.directory_id AND OLD.directory_id != NEW.directory_id;
+    WHERE id = OLD.folder_id AND OLD.folder_id != NEW.folder_id;
 END;
 
-CREATE TRIGGER update_directory_on_capture_delete
-AFTER DELETE ON captures
+CREATE TRIGGER update_folder_on_entry_delete
+AFTER DELETE ON entries
 FOR EACH ROW
 BEGIN
-    UPDATE directories
+    UPDATE folders
     SET modified_at = strftime('%s', 'now')
-    WHERE id = OLD.directory_id;
+    WHERE id = OLD.folder_id;
 END;
 
--- update captures_added on new capture
-CREATE TRIGGER increment_captures_added_on_capture_insert
-AFTER INSERT ON captures
+-- update activity on new entry
+CREATE TRIGGER increment_activity_on_entry_insert
+AFTER INSERT ON entries
 FOR EACH ROW
 BEGIN
-    INSERT INTO captures_added (date)
+    INSERT INTO activity (date)
     VALUES (DATE('now'))
     ON CONFLICT (date) DO 
     UPDATE SET count = count + 1;

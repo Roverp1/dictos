@@ -5,22 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1777768315203,
-      "tag": "0000_common_kate_bishop",
+      "when": 1779480464896,
+      "tag": "0000_glamorous_frightful_four",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1777768678533,
+      "when": 1779480498448,
       "tag": "0001_lifecycle_triggers",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1779117490921,
-      "tag": "0002_rare_bug",
       "breakpoints": true
     }
   ]

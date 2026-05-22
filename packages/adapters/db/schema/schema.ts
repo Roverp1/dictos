@@ -8,14 +8,14 @@ import {
   unique,
 } from "drizzle-orm/sqlite-core";
 
-export const capturesTable = sqliteTable(
-  "captures",
+export const entriesTable = sqliteTable(
+  "entries",
   {
     id: int().primaryKey({ autoIncrement: true }),
     text: text().notNull(),
-    directoryId: int()
+    folderId: int()
       .notNull()
-      .references(() => directoriesTable.id, { onDelete: "cascade" }),
+      .references(() => foldersTable.id, { onDelete: "cascade" }),
     createdAt: int({ mode: "timestamp" })
       .notNull()
       .default(sql`(strftime('%s', 'now'))`),
@@ -23,14 +23,14 @@ export const capturesTable = sqliteTable(
       .notNull()
       .default(sql`(strftime('%s', 'now'))`),
   },
-  (t) => [unique().on(t.text, t.directoryId)]
+  (t) => [unique().on(t.text, t.folderId)]
 );
 
-export const definitionsTable = sqliteTable("definitions", {
+export const descriptionsTable = sqliteTable("descriptions", {
   id: int().primaryKey(),
-  captureId: int()
+  entryId: int()
     .notNull()
-    .references(() => capturesTable.id, { onDelete: "cascade" }),
+    .references(() => entriesTable.id, { onDelete: "cascade" }),
   text: text().notNull(),
   createdAt: int({ mode: "timestamp" })
     .notNull()
@@ -40,13 +40,13 @@ export const definitionsTable = sqliteTable("definitions", {
     .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const directoriesTable = sqliteTable(
-  "directories",
+export const foldersTable = sqliteTable(
+  "folders",
   {
     id: int().primaryKey(),
     name: text().notNull(),
     parentId: int("parent_id").references(
-      (): AnySQLiteColumn => directoriesTable.id,
+      (): AnySQLiteColumn => foldersTable.id,
       { onDelete: "cascade" }
     ),
     privacy: text("privacy", { enum: ["private", "public", "unlisted"] })
@@ -69,7 +69,7 @@ export const directoriesTable = sqliteTable(
   ]
 );
 
-export const promptsTable = sqliteTable("prompts", {
+export const instructionsTable = sqliteTable("instructions", {
   id: int().primaryKey(),
   name: text(),
   text: text().notNull(),
@@ -81,7 +81,7 @@ export const promptsTable = sqliteTable("prompts", {
     .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const capturesAddedTable = sqliteTable("captures_added", {
+export const activityTable = sqliteTable("activity", {
   id: int().primaryKey(),
   date: text().notNull().unique(),
   count: int().notNull().default(1),
