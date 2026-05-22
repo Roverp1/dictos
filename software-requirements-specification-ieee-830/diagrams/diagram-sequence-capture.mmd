@@ -1,0 +1,31 @@
+sequenceDiagram
+    actor U as User
+    participant T as TUI_View
+    participant C as CaptureService
+    participant DB as libSQL_DB
+    participant G as GeminiAdapter
+
+    U->>T: Enters capture text manually
+    T->>C: createCapture(text)
+    C->>DB: save(capture)
+    DB-->>C: returns saved capture
+    C-->>T: capture created
+    
+    U->>T: Requests definition (selects prompt)
+    T->>C: generateDefinition(captureId, promptId)
+    C->>DB: getCapture and getPrompt
+    DB-->>C: returns data
+    
+    loop Retry up to 3 times
+        C->>G: sendPrompt(text, prompt)
+        alt Success
+            G-->>C: returns definition text
+        else Network Error
+            G-->>C: throws Error
+        end
+    end
+    
+    C->>DB: save(definition)
+    DB-->>C: ok
+    C-->>T: definition generation complete
+    T-->>U: Updates UI with new definition
