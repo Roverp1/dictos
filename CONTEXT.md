@@ -35,3 +35,12 @@ _Avoid_: Publish, Upload, Social Sync
 **Mirroring**:
 The automated, unidirectional background process that pushes a user's shared data (folders, activity stats) from their local database to the central server so it can be viewed by others.
 _Avoid_: Social Sync, Publishing, Broadcasting
+
+**System Overview**:
+The primary entry point document (`docs/system-overview.md`) for understanding the project's purpose, architecture, tech stack, codebase map, and domain modules.
+
+**Documentation Module**:
+A folder in `/docs/modules/` dedicated to defining the contracts, data model, and domain rules for a specific Domain Module.
+
+**Specification**:
+A detailed plan document for a specific feature, located in dedicated specifications directory `/specs/`, containing the data model, spec, and tasks.
