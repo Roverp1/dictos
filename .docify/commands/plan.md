@@ -20,7 +20,7 @@ Determine _how_ to build the feature technically, establishing data models and i
 
 1. **Context Load**: Derive the target feature from the user input or context (if ambiguous among multiple active features, ask the user). Read the target feature's `spec.md` and the current `docs/system-overview.md`.
 
-2. **Template Instantiation**: Copy the content from `.docify/templates/specification/plan-template.md` to the target feature's directory as `plan.md`.
+2. **Template Instantiation**: Copy the template from `.docify/templates/specification/plan-template.md` to the target feature's directory as `plan.md` using shell commands (e.g., `cp`).
 
 3. **Micro-Grilling (Just-in-Time Resolution)**: As you map out the technical architecture, database schemas, and API contracts, you will likely hit low-level unknowns (e.g., "Should this be a soft delete?", "Do we need an index here?", "What HTTP status code is best?").
    - **DO NOT guess, hallucinate, or leave placeholders.**
@@ -32,5 +32,6 @@ Determine _how_ to build the feature technically, establishing data models and i
    - **Architectural Strategy**: Write a narrative explanation of the chosen approach and _why_ it was chosen over alternatives.
    - **Data Model Changes**: Explicitly define new tables, entities, or state changes.
    - **Interface Contracts**: Define the exact endpoints, ports, or service methods required.
+   - Remove all instructional HTML comments (like `<!-- ACTION REQUIRED -->`) from copied files.
 
 5. **Report**: Inform the user that the technical plan is ready and suggest running `/docify.tasks`.

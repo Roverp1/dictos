@@ -26,7 +26,8 @@ Initialize the documentation architecture for this project.
 2. **Establish Context**: Once the core concepts are clear, create or update `CONTEXT.md` at the project root using the established terminology format (Documentation, Specification, System Overview, Documentation Module). Capture any project-specific domain terms discussed.
 
 3. **Generate System Overview**:
-   - Copy the template from `.docify/templates/documentation/system-overview.md` to `docs/system-overview.md`.
+   - Copy the template from `.docify/templates/documentation/system-overview.md` to `docs/system-overview.md` using shell commands (e.g., `cp`).
    - Fill in the Project Purpose, High-Level Architecture, Tech Stack, Codebase Map, and Domain Modules based on the grilling session (ask additional questions if you detect any missing infromation).
+   - Remove all instructional HTML comments (like `<!-- ACTION REQUIRED -->`) from the copied file.
 
 4. **Handoff**: When complete, ask the user if they want to start exploring their first feature using `/docify.grill`.

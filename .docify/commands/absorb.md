@@ -19,8 +19,9 @@ Perform the final documentation handshake: update the evergreen System Overview 
 2. **Update Living Documentation**:
    - **System Overview**: Update `docs/system-overview.md` to reflect the new system capabilities, architecture, and domains introduced by this feature. Do not delete existing accurate information.
    - **Documentation Modules**:
-     - If a domain section in the System Overview has grown significantly (or will require description of data-models or contracts), extract it autonomously into a new Documentation Module (e.g., `docs/[domain]/domain.md`), copying the appropriate templates from `.docify/templates/documentation/directory-module/`.
+     - If a domain section in the System Overview has grown significantly (or will require description of data-models or contracts), extract it autonomously into a new Documentation Module (e.g., `docs/modules/[domain]/domain.md`), copying the appropriate templates from `.docify/templates/documentation/directory-module/` using shell commands (e.g., `cp`).
      - Update existing modules with new data models and contracts from the feature's `plan.md`.
+     - Remove all instructional HTML comments (like `<!-- ACTION REQUIRED -->`) from copied files.
 
 3. **Archive the Spec**:
    - Ensure a `specs/.archive/` directory exists.

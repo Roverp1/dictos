@@ -18,11 +18,12 @@ Stress-test a feature plan or idea against the project's language and documented
 
 ## Execution Steps
 
-1. **Context Load**: Read `docs/system-overview.md` and `CONTEXT.md` (if they exist) to understand the current reality of the system. If the user's idea relates to a specific existing domain, also read the corresponding `docs/[domain]/` files for deep context.
+1. **Context Load**: Read `docs/system-overview.md` and `CONTEXT.md` (if they exist) to understand the current reality of the system. If the user's idea relates to a specific existing domain, also read the corresponding `docs/modules/[domain]/` files for deep context.
 
-2. **The Interrogation**: Interview the user relentlessly about every aspect of their idea until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
+2. **The Interrogation**: Interview the user relentlessly about every aspect of their idea until you and the user reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one-by-one.
    - Ask the questions one at a time, waiting for feedback on each question before continuing.
    - For each question, provide your recommended answer.
+   - Answer all of the questions asked by the user (if any).
    - **Challenge against the glossary**: When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines X as Y, but you seem to mean Z — which is it?"
    - **Sharpen fuzzy language**: When the user uses vague or overloaded terms, propose a precise canonical term.
    - **Discuss concrete scenarios**: Stress-test domain relationships with specific scenarios and edge cases. Invent scenarios that force the user to be precise about boundaries.

@@ -20,7 +20,7 @@ Translate the agreed-upon feature idea into a structured, human-readable specifi
 
 1. **Generate Feature Name**: Create a concise short name (2-4 words) for the feature (e.g., `add-user-auth`). Create a directory `specs/00X-[short-name]/` (incrementing X based on existing folders in `specs/`).
 
-2. **Template Instantiation**: Copy the content from `.docify/templates/specification/spec-template.md` to `specs/00X-[short-name]/spec.md`.
+2. **Template Instantiation**: Copy the template from `.docify/templates/specification/spec-template.md` to `specs/00X-[short-name]/spec.md` using shell commands (e.g., `cp`).
 
 3. **Micro-Grilling (Just-in-Time Resolution)**: While translating the idea into the spec, if you encounter a missing product detail, an unhandled edge case, or an ambiguity:
    - **DO NOT guess, hallucinate, or leave placeholders.**
@@ -33,5 +33,6 @@ Translate the agreed-upon feature idea into a structured, human-readable specifi
    - **User Experience**: Define scenarios and workflows (not robotic requirement lists).
    - **Feature Boundaries**: Explicitly list what is out of scope to prevent bloat.
    - **Success Criteria**: Define measurable, technology-agnostic outcomes.
+   - Remove all instructional HTML comments (like `<!-- ACTION REQUIRED -->`) from copied files.
 
 5. **Report**: Inform the user that the specification is ready and suggest running `/docify.plan`.
