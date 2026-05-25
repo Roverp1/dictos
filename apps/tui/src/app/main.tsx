@@ -59,7 +59,7 @@ interface Props {
 }
 
 function App({ authService }: Props) {
-  const [route, setRoute] = useState<Route>("auth");
+  const [route, setRoute] = useState<Route>("dictionary");
 
   const renderer = useRenderer();
 
@@ -77,3 +77,4 @@ function App({ authService }: Props) {
 
   return <DictionaryPage />;
 }
+

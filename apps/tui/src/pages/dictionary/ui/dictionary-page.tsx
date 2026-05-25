@@ -9,8 +9,11 @@ import {
 } from "../model/use-dictionary-store";
 import { useCreateLogic } from "../model/create";
 import { useDeleteLogic } from "../model/delete";
+import { useTheme } from "@shared/lib/theme";
 
 export const DictionaryPage = () => {
+  const theme = useTheme();
+
   useDictionary();
 
   const { focus } = useDictionaryStore();
@@ -28,6 +31,7 @@ export const DictionaryPage = () => {
     <box
       height="100%"
       flexDirection="row"
+      backgroundColor={theme.base00}
     >
       <FolderTreePane />
 
@@ -63,3 +67,4 @@ export const DictionaryPage = () => {
     </box>
   );
 };
+
