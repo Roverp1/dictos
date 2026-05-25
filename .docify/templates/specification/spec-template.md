@@ -25,16 +25,17 @@
 
 <!--
   ACTION REQUIRED: Describe the feature from the user's perspective.
-  Use narrative scenarios or simple "When X happens, Y occurs" formats.
+  Use narrative scenarios or simple "Given [state], When [action], Then [result]" formats
+  to make these workflows easy to verify later.
 -->
 
 ### Core Workflows
 
 - **Scenario: First-time setup**
-  [Describe the flow. E.g., "The user opens the TUI and types `/login`. They are prompted for..."]
+  [Describe the flow. E.g., "Given a new installation, When the user opens the app and types `/login`, Then they are prompted for..."]
 
 - **Scenario: Offline behavior**
-  [Describe the flow. E.g., "If the user adds a word while disconnected from WiFi, the app saves it locally and..."]
+  [Describe the flow. E.g., "Given the user is disconnected from WiFi, When they add a word, Then the app saves it locally and..."]
 
 ## 4. Feature Boundaries (What is OUT of scope?)
 
@@ -54,11 +55,12 @@
 - [ ] [e.g., A user can add a capture on Device A, and it appears on Device B within 5 seconds.]
 - [ ] [e.g., The app remains fully functional and responsive even if the sync server goes down.]
 
-## 6. Open Questions & Unknowns
+## 6. Assumptions
 
 <!--
-  If there are things you and the agent still need to figure out during the technical `/docify.plan` phase, list them here.
+  ACTION REQUIRED: Document any reasonable defaults or decisions made during the specification phase
+  that were not explicitly stated by the user. Do NOT leave open questions here.
 -->
 
-- [ ] [e.g., Do we need to encrypt the data before it hits the central server?]
-
+- [ ] [e.g., Assuming standard JWT-based authentication for the initial implementation.]
+- [ ] [e.g., Assuming data retention policy defaults to indefinite local storage.]
