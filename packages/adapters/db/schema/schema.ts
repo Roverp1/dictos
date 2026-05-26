@@ -11,9 +11,11 @@ import {
 export const entriesTable = sqliteTable(
   "entries",
   {
-    id: int().primaryKey({ autoIncrement: true }),
+    id: text()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     text: text().notNull(),
-    folderId: int()
+    folderId: text()
       .notNull()
       .references(() => foldersTable.id, { onDelete: "cascade" }),
     createdAt: int({ mode: "timestamp" })
@@ -27,8 +29,10 @@ export const entriesTable = sqliteTable(
 );
 
 export const descriptionsTable = sqliteTable("descriptions", {
-  id: int().primaryKey(),
-  entryId: int()
+  id: text()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  entryId: text()
     .notNull()
     .references(() => entriesTable.id, { onDelete: "cascade" }),
   text: text().notNull(),
@@ -43,9 +47,11 @@ export const descriptionsTable = sqliteTable("descriptions", {
 export const foldersTable = sqliteTable(
   "folders",
   {
-    id: int().primaryKey(),
+    id: text()
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     name: text().notNull(),
-    parentId: int("parent_id").references(
+    parentId: text("parent_id").references(
       (): AnySQLiteColumn => foldersTable.id,
       { onDelete: "cascade" }
     ),
@@ -70,7 +76,9 @@ export const foldersTable = sqliteTable(
 );
 
 export const instructionsTable = sqliteTable("instructions", {
-  id: int().primaryKey(),
+  id: text()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: text(),
   text: text().notNull(),
   createdAt: int({ mode: "timestamp" })
@@ -82,7 +90,9 @@ export const instructionsTable = sqliteTable("instructions", {
 });
 
 export const activityTable = sqliteTable("activity", {
-  id: int().primaryKey(),
+  id: text()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   date: text().notNull().unique(),
   count: int().notNull().default(1),
 });
@@ -90,7 +100,9 @@ export const activityTable = sqliteTable("activity", {
 // server support
 
 export const usersTable = sqliteTable("users", {
-  id: int().primaryKey(), // will equal to central db id
+  id: text()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()), // will equal to central db id
   username: text().notNull(),
   email: text().notNull(),
   bio: text(),
@@ -100,15 +112,17 @@ export const usersTable = sqliteTable("users", {
 export const sessionTable = sqliteTable("session", {
   id: int().primaryKey(),
   token: text().notNull(),
-  userId: int()
+  userId: text()
     .notNull()
     .references(() => usersTable.id),
 });
 
 export const outboxTable = sqliteTable("outbox", {
-  id: int().primaryKey(),
+  id: text()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   tableName: text().notNull(),
-  recordId: int().notNull(), // id of the modified record
+  recordId: text().notNull(), // id of the modified record
   operation: text({ enum: ["INSERT", "UPDATE", "DELETE"] }).notNull(),
   createdAt: int({ mode: "timestamp" })
     .notNull()

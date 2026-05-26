@@ -9,8 +9,8 @@
 
 _(These tasks block the rest of the work. Establish the shared interfaces and database schemas first so devs can parallelize later)._
 
-- [ ] T001: Delete the existing local `.db` files and `/drizzle/migrations/` to start fresh and avoid complex data migration.
-- [ ] T002: Update Drizzle schemas (`foldersTable`, `entriesTable`, `descriptionsTable`) to replace integer `id` primary keys and foreign keys with `text` (UUIDs). Use `$defaultFn(() => crypto.randomUUID())` for local generation.
+- [x] T001: Delete the existing local `.db` files and `/drizzle/migrations/` to start fresh and avoid complex data migration.
+- [x] T002: Update Drizzle schemas (`foldersTable`, `entriesTable`, `descriptionsTable`) to replace integer `id` primary keys and foreign keys with `text` (UUIDs). Use `$defaultFn(() => crypto.randomUUID())` for local generation.
 - [ ] T003: [P] Update Core domain interfaces/types in `packages/core` to expect `string` IDs instead of `number` IDs.
 - [ ] T004: [P] Define TypeScript interfaces for the updated Auth payloads in the shared types module, including the new `turso: { url, token }` response object.
 
