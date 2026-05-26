@@ -1,9 +1,9 @@
 import { ValidationError } from "errors";
 
 export interface Folder {
-  id: number;
+  id: string;
   name: string;
-  parentId: number | null;
+  parentId: string | null;
   privacy: "private" | "public" | "unlisted";
   createdAt: Date;
   modifiedAt: Date;
@@ -17,9 +17,7 @@ export type NewFolder = Omit<
 
 const VALID_PRIVACY = ["private", "public", "unlisted"] as const;
 
-export function validateNewFolder(
-  data: NewFolder
-): void | ValidationError {
+export function validateNewFolder(data: NewFolder): void | ValidationError {
   if (!data.name || data.name.trim() === "")
     return new ValidationError({ reason: "Folder name cannot be empty." });
 
@@ -28,13 +26,9 @@ export function validateNewFolder(
       reason: "Folder name cannot contain slashes.",
     });
 
-  if (data.parentId !== null && data.parentId !== undefined) {
-    if (data.parentId <= 0 || !Number.isInteger(data.parentId))
-      return new ValidationError({ reason: "Invalid parent folder ID." });
-  }
-
   if (data.privacy && !VALID_PRIVACY.includes(data.privacy))
     return new ValidationError({
       reason: `Invalid privacy setting. Must be one of: ${VALID_PRIVACY.join(",")}.`,
     });
 }
+
