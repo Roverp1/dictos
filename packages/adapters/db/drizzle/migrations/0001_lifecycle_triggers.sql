@@ -1,4 +1,3 @@
--- Custom SQL migration file, put your code below! --
 CREATE TRIGGER set_entries_modified_at
 AFTER UPDATE ON entries
 FOR EACH ROW

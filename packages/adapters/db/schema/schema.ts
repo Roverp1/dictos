@@ -115,6 +115,8 @@ export const sessionTable = sqliteTable("session", {
   userId: text()
     .notNull()
     .references(() => usersTable.id),
+  tursoUrl: text(),
+  tursoToken: text(),
 });
 
 export const outboxTable = sqliteTable("outbox", {

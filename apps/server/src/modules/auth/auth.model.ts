@@ -1,7 +1,7 @@
 import { t } from "elysia";
 
 const userSchema = t.Object({
-  id: t.Number(),
+  id: t.String({ format: "uuid" }),
   username: t.String(),
   email: t.String(),
   bio: t.Nullable(t.String()),
