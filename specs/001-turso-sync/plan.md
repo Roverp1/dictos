@@ -115,11 +115,13 @@ export interface IBunTursoClient extends SyncPort {
 ```typescript
 // POST /auth/register & POST /auth/login Responses
 export interface AuthResponseDto {
-  user: { id: string; email: string };
-  token: string; // App JWT
-  turso: {
-    url: string;   // e.g., libsql://user-xyz.turso.io
-    token: string; // Database-scoped auth token
-  };
+  data: {
+    user: { id: string; email: string };
+    token: string; // App JWT
+    turso: {
+      url: string;   // e.g., libsql://user-xyz.turso.io
+      token: string; // Database-scoped auth token
+    };
+  }
 }
 ```

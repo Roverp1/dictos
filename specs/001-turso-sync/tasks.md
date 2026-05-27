@@ -13,6 +13,9 @@ _(These tasks block the rest of the work. Establish the shared interfaces and da
 - [x] T002: Update Drizzle schemas (`foldersTable`, `entriesTable`, `descriptionsTable`) to replace integer `id` primary keys and foreign keys with `text` (UUIDs). Use `$defaultFn(() => crypto.randomUUID())` for local generation.
 - [x] T003: [P] Update Core domain interfaces/types in `packages/core` to expect `string` IDs instead of `number` IDs.
 - [ ] T004: [P] Define TypeScript interfaces for the updated Auth payloads in the shared types module, including the new `turso: { url, token }` response object.
+- [x] T004b: Update central server database schemas (`usersTable`, `centralActivityTable`) to use UUID text primary keys, matching the local client schemas.
+- [x] T004c: Standardize central server API responses (wrap success in `data` object, format all errors to RFC 9457 specifications via global error plugin).
+- [x] T004d: Refactor `CentralApiAdapter` to safely parse Eden Treaty discriminated unions, mapping RFC 9457 HTTP errors into pure Core domain errors (`InputValidationError`, `AuthError`, etc.).
 
 ## Phase 2: Core Logic & Interfaces
 
