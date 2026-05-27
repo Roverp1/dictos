@@ -13,9 +13,9 @@
   },
   "dependencies": {
     "@dictos/core": "workspace:*",
+    "@dictos/server": "workspace:*",
     "@elysia/eden": "^1.4.10",
-    "@libsql/client": "^0.17.3",
-    "drizzle-orm": "^0.45.2",
-    "@dictos/server": "workspace:*"
+    "@tursodatabase/sync": "^0.6.1",
+    "drizzle-orm": "^0.45.2"
   }
 }
