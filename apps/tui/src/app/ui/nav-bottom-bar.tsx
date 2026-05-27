@@ -64,6 +64,15 @@ export const NavBottomBar = () => {
       >
         <text>dictionary</text>
       </box>
+
+      <box
+        paddingX={2}
+        paddingY={1}
+        backgroundColor={theme.base02}
+        // onMouseDown={() => yourFunction()}
+      >
+        <text>synchronise</text>
+      </box>
     </box>
   );
 };
