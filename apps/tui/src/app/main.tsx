@@ -7,6 +7,7 @@ import {
   SqliteEntryRepository,
   SqliteDescriptionRepository,
   SqliteFolderRepository,
+  SqliteUserRepository,
   FsSessionRepository,
   CentralApiAdapter,
   FsLocalStateRepository,
@@ -26,7 +27,6 @@ import { useServicesStore } from "@shared/lib/services";
 
 import { App } from "./app";
 import path from "path";
-import { SqliteUserRepository } from "../../../../packages/adapters/db/repositories/sqlite-user-repository";
 
 export const bootstrap = async () => {
   const dataDir = await getDictosDataDir();
