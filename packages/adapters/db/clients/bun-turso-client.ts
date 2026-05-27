@@ -1,7 +1,11 @@
 import { connect, type Database } from "@tursodatabase/sync";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
+import { migrate } from "drizzle-orm/sqlite-proxy/migrator";
+
+import path from "path";
 
 import * as schema from "@db/schema/schema";
+import { isNull } from "drizzle-orm";
 
 export class BunTursoClient {
   private client: Database;
@@ -46,6 +50,41 @@ export class BunTursoClient {
       { schema }
     );
 
+    await migrate(
+      db,
+      async (queries) => {
+        for (const query of queries) {
+          await client.exec(query);
+        }
+      },
+      { migrationsFolder: path.resolve(__dirname, "../drizzle/migrations/") }
+    );
+
+    await this.seedDbOnInit(db);
+
     return new BunTursoClient(client, db);
+  }
+
+  private static async seedDbOnInit(
+    db: ReturnType<typeof drizzle<typeof schema>>
+  ) {
+    const [rootDir] = await db
+      .select()
+      .from(schema.foldersTable)
+      .where(isNull(schema.foldersTable.parentId));
+
+    if (rootDir !== undefined) return;
+
+    await db
+      .insert(schema.foldersTable)
+      .values({
+        name: "/",
+        parentId: null,
+        privacy: "private",
+      })
+      .catch((e) => {
+        console.error("Failed to seed root directory:", e);
+        throw new Error("Could not seed root directory", { cause: e });
+      });
   }
 }
