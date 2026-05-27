@@ -7,9 +7,9 @@ import {
 import { LibSQLDatabase } from "drizzle-orm/libsql";
 import { eq } from "drizzle-orm";
 
-import * as schema from "../../schema/schema";
+import * as schema from "@db/schema/schema";
 
-export class LibSqlEntryRepository implements EntryRepository {
+export class SqliteEntryRepository implements EntryRepository {
   constructor(private db: LibSQLDatabase<typeof schema>) {}
 
   async save(entry: NewEntry): Promise<Entry | DbError> {
@@ -128,3 +128,4 @@ export class LibSqlEntryRepository implements EntryRepository {
     return result[0];
   }
 }
+

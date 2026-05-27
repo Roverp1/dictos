@@ -1,4 +1,6 @@
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import { eq, isNull } from "drizzle-orm";
+
 import {
   DbError,
   type Folder,
@@ -6,10 +8,9 @@ import {
   type NewFolder,
 } from "@dictos/core";
 
-import * as schema from "../../schema/schema";
-import { eq, isNull } from "drizzle-orm";
+import * as schema from "@db/schema/schema";
 
-export class LibSqlFolderRepository implements FolderRepository {
+export class SqliteFolderRepository implements FolderRepository {
   constructor(private db: LibSQLDatabase<typeof schema>) {}
 
   async save(folder: NewFolder): Promise<Folder | DbError> {
@@ -162,3 +163,4 @@ export class LibSqlFolderRepository implements FolderRepository {
     return result[0];
   }
 }
+

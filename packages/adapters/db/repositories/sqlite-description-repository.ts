@@ -6,10 +6,10 @@ import {
 } from "@dictos/core";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 
-import * as schema from "../../schema/schema";
+import * as schema from "@db/schema/schema";
 import { eq } from "drizzle-orm";
 
-export class LibSqlDescriptionRepository implements DescriptionRepository {
+export class SqliteDescriptionRepository implements DescriptionRepository {
   constructor(private db: LibSQLDatabase<typeof schema>) {}
 
   async save(description: NewDescription): Promise<Description | DbError> {

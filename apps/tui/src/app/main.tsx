@@ -4,10 +4,10 @@ import { createRoot, useKeyboard, useRenderer } from "@opentui/react";
 
 import {
   createLibSqlDatabase,
-  LibSqlEntryRepository,
-  LibSqlDescriptionRepository,
-  LibSqlFolderRepository,
-  LibSqlSessionRepository,
+  SqliteEntryRepository,
+  SqliteDescriptionRepository,
+  SqliteFolderRepository,
+  SqliteSessionRepository,
   CentralApiAdapter,
 } from "@dictos/adapters";
 import {
@@ -24,10 +24,10 @@ import { useServicesStore } from "@shared/lib/services";
 export const bootstrap = async () => {
   const db = await createLibSqlDatabase("file:./dictos.db");
 
-  const entryRepo = new LibSqlEntryRepository(db);
-  const folderRepo = new LibSqlFolderRepository(db);
-  const descriptionRepository = new LibSqlDescriptionRepository(db);
-  const sessionRepository = new LibSqlSessionRepository(db);
+  const entryRepo = new SqliteEntryRepository(db);
+  const folderRepo = new SqliteFolderRepository(db);
+  const descriptionRepository = new SqliteDescriptionRepository(db);
+  const sessionRepository = new SqliteSessionRepository(db);
 
   const centralApiAdapter = new CentralApiAdapter("http://localhost:1488/");
 
@@ -77,4 +77,3 @@ function App({ authService }: Props) {
 
   return <DictionaryPage />;
 }
-

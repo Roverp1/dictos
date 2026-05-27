@@ -1,14 +1,15 @@
+import type { LibSQLDatabase } from "drizzle-orm/libsql";
+import { eq } from "drizzle-orm";
+
 import {
   DbError,
   type AuthSession,
   type SessionRepository,
 } from "@dictos/core";
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
 
-import * as schema from "../../schema/schema";
-import { eq } from "drizzle-orm";
+import * as schema from "@db/schema/schema";
 
-export class LibSqlSessionRepository implements SessionRepository {
+export class SqliteSessionRepository implements SessionRepository {
   constructor(private db: LibSQLDatabase<typeof schema>) {}
 
   async clearSession(): Promise<void | DbError> {
