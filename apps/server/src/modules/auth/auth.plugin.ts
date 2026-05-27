@@ -2,6 +2,8 @@ import { Elysia, status } from "elysia";
 import jwt from "@elysia/jwt";
 import * as errore from "errore";
 
+import { errorsPlugin } from "plugins/errors.plugin";
+
 import {
   AuthService,
   InvalidCredentialsError,
@@ -17,6 +19,7 @@ export const authPlugin = (authService: AuthService) => {
         secret: process.env.JWT_SECRET || "dev-secret-key",
       })
     )
+    .use(errorsPlugin)
     .post(
       "/auth/register",
       async ({ body, jwt }) => {
@@ -44,6 +47,7 @@ export const authPlugin = (authService: AuthService) => {
         response: {
           201: authModel.session,
           409: authModel.error,
+          422: "errors.validation",
           500: authModel.error,
         },
       }
@@ -71,6 +75,7 @@ export const authPlugin = (authService: AuthService) => {
         response: {
           200: authModel.session,
           401: authModel.error,
+          422: "errors.validation",
           500: authModel.error,
         },
       }
