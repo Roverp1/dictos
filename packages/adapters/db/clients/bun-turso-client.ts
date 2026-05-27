@@ -1,43 +1,51 @@
-import { createClient } from "@libsql/client";
-import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
-import { migrate } from "drizzle-orm/libsql/migrator";
-import path from "path";
+import { connect, type Database } from "@tursodatabase/sync";
+import { drizzle } from "drizzle-orm/sqlite-proxy";
 
-import * as schema from "../../schema/schema";
-import { isNull } from "drizzle-orm";
+import * as schema from "@db/schema/schema";
 
-export const createLibSqlDatabase = async (dbUrl: string) => {
-  const client = createClient({ url: dbUrl });
-  await client.execute("PRAGMA foreign_keys = ON;");
+export class BunTursoClient {
+  private client: Database;
+  public db: ReturnType<typeof drizzle<typeof schema>>;
 
-  const db = drizzle({ client: client, schema, casing: "snake_case" });
+  private constructor(
+    client: Database,
+    db: ReturnType<typeof drizzle<typeof schema>>
+  ) {
+    this.client = client;
+    this.db = db;
+  }
 
-  await migrate(db, {
-    migrationsFolder: path.resolve(__dirname, "../../drizzle/migrations/"),
-  });
-
-  await seedDbOnInit(db);
-
-  return db;
-};
-
-const seedDbOnInit = async (db: LibSQLDatabase<typeof schema>) => {
-  const [rootFolder] = await db
-    .select()
-    .from(schema.foldersTable)
-    .where(isNull(schema.foldersTable.parentId));
-
-  if (rootFolder !== undefined) return;
-
-  await db
-    .insert(schema.foldersTable)
-    .values({
-      name: "/",
-      parentId: null,
-      privacy: "private",
-    })
-    .catch((e) => {
-      console.error("Failed to seed root folder:", e);
-      throw new Error("Could not seed root folder", { cause: e });
+  public static async create(localDbPath: string): Promise<BunTursoClient> {
+    const client = await connect({
+      path: localDbPath,
     });
-};
+
+    const db = drizzle(
+      async (sql, params, method) => {
+        try {
+          const stmt = await client.prepare(sql);
+
+          if (method === "run") {
+            await stmt.run(...params);
+            return { rows: [] };
+          }
+
+          if (method === "get") {
+            const row = await stmt.get(...params);
+            return { rows: row ? Object.values(row) : [] };
+          }
+
+          // Handles "all" and "values" methods
+          const rows = (await stmt.all(...params)) as Record<string, any>[];
+          return { rows: rows.map((row) => Object.values(row)) };
+        } catch (err) {
+          console.error("Turso proxy query error:", err);
+          throw err;
+        }
+      },
+      { schema }
+    );
+
+    return new BunTursoClient(client, db);
+  }
+}
