@@ -39,7 +39,7 @@ export class SqliteEntryRepository implements EntryRepository {
     return result[0];
   }
 
-  async findById(id: number): Promise<Entry | DbError | null> {
+  async findById(id: string): Promise<Entry | DbError | null> {
     const result = await this.db
       .select()
       .from(schema.entriesTable)
@@ -59,7 +59,7 @@ export class SqliteEntryRepository implements EntryRepository {
     return result[0];
   }
 
-  async findByFolder(folderId: number): Promise<Entry[] | DbError> {
+  async findByFolder(folderId: string): Promise<Entry[] | DbError> {
     const result = await this.db
       .select()
       .from(schema.entriesTable)
@@ -77,7 +77,7 @@ export class SqliteEntryRepository implements EntryRepository {
   }
 
   async update(
-    id: number,
+    id: string,
     data: Partial<Omit<Entry, "id" | "createdAt" | "modifiedAt">>
   ): Promise<Entry | DbError> {
     const result = await this.db
@@ -104,7 +104,7 @@ export class SqliteEntryRepository implements EntryRepository {
     return result[0];
   }
 
-  async delete(id: number): Promise<Entry | DbError> {
+  async delete(id: string): Promise<Entry | DbError> {
     const result = await this.db
       .delete(schema.entriesTable)
       .where(eq(schema.entriesTable.id, id))

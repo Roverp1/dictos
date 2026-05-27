@@ -3,11 +3,12 @@ import type { DbError } from "errors";
 
 export interface EntryRepository {
   save(entry: NewEntry): Promise<Entry | DbError>;
-  findById(id: number): Promise<Entry | DbError | null>;
-  findByFolder(folderId: number): Promise<Entry[] | DbError>;
+  findById(id: string): Promise<Entry | DbError | null>;
+  findByFolder(folderId: string): Promise<Entry[] | DbError>;
   update(
-    id: number,
+    id: string,
     data: Partial<Omit<Entry, "id" | "createdAt" | "modifiedAt">>
   ): Promise<Entry | DbError>;
-  delete(id: number): Promise<Entry | DbError>;
+  delete(id: string): Promise<Entry | DbError>;
 }
+

@@ -1,8 +1,4 @@
-import {
-  validateNewEntry,
-  type Entry,
-  type NewEntry,
-} from "@models/entry";
+import { validateNewEntry, type Entry, type NewEntry } from "@models/entry";
 import type { EntryRepository } from "@ports/outbound/entry-repository";
 import type { DbError, ValidationError } from "errors";
 
@@ -19,25 +15,24 @@ export class EntryService {
     return entry;
   }
 
-  async getEntryById(id: number): Promise<Entry | DbError | null> {
+  async getEntryById(id: string): Promise<Entry | DbError | null> {
     return await this.repo.findById(id);
   }
 
-  async getEntriesInFolder(
-    folderId: number
-  ): Promise<Entry[] | DbError> {
+  async getEntriesInFolder(folderId: string): Promise<Entry[] | DbError> {
     return await this.repo.findByFolder(folderId);
   }
 
   async updateEntry(
-    id: number,
+    id: string,
     data: Partial<NewEntry>
   ): Promise<Entry | DbError> {
     /* @todo: validate data later */
     return await this.repo.update(id, data);
   }
 
-  async deleteEntry(id: number): Promise<Entry | DbError> {
+  async deleteEntry(id: string): Promise<Entry | DbError> {
     return await this.repo.delete(id);
   }
 }
+

@@ -20,19 +20,20 @@ export class DescriptionService {
   }
 
   async getDescriptionsForEntry(
-    entryId: number
+    entryId: string
   ): Promise<Description[] | DbError> {
     return await this.repo.findByEntry(entryId);
   }
 
   async updateDescription(
-    id: number,
+    id: string,
     data: Partial<NewDescription>
   ): Promise<Description | DbError> {
     return await this.repo.update(id, data);
   }
 
-  async deleteDescription(id: number): Promise<Description | DbError> {
+  async deleteDescription(id: string): Promise<Description | DbError> {
     return await this.repo.delete(id);
   }
 }
+

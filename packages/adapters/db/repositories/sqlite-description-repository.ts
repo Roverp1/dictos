@@ -39,7 +39,7 @@ export class SqliteDescriptionRepository implements DescriptionRepository {
     return result[0];
   }
 
-  async findByEntry(entryId: number): Promise<Description[] | DbError> {
+  async findByEntry(entryId: string): Promise<Description[] | DbError> {
     const result = await this.db
       .select()
       .from(schema.descriptionsTable)
@@ -59,7 +59,7 @@ export class SqliteDescriptionRepository implements DescriptionRepository {
   }
 
   async update(
-    id: number,
+    id: string,
     data: Partial<Omit<Description, "id" | "createdAt" | "modifiedAt">>
   ): Promise<Description | DbError> {
     const result = await this.db
@@ -86,7 +86,7 @@ export class SqliteDescriptionRepository implements DescriptionRepository {
     return result[0];
   }
 
-  async delete(id: number): Promise<Description | DbError> {
+  async delete(id: string): Promise<Description | DbError> {
     const result = await this.db
       .delete(schema.descriptionsTable)
       .where(eq(schema.descriptionsTable.id, id))

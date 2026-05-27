@@ -1,8 +1,4 @@
-import {
-  validateNewFolder,
-  type Folder,
-  type NewFolder,
-} from "@models/folder";
+import { validateNewFolder, type Folder, type NewFolder } from "@models/folder";
 import type { FolderRepository } from "@ports/outbound";
 import { DbError, ValidationError } from "errors";
 
@@ -27,7 +23,7 @@ export class FolderService {
     return await this.repo.findRoot();
   }
 
-  async getSubFolders(parentId: number): Promise<Folder[] | DbError> {
+  async getSubFolders(parentId: string): Promise<Folder[] | DbError> {
     return await this.repo.findByParentId(parentId);
   }
 
@@ -69,7 +65,7 @@ export class FolderService {
   }
 
   async renameFolder(
-    id: number,
+    id: string,
     newName: string
   ): Promise<Folder | DbError | ValidationError> {
     if (!newName.trim())
@@ -78,7 +74,8 @@ export class FolderService {
     return await this.repo.update(id, { name: newName });
   }
 
-  async deleteFolder(id: number): Promise<Folder | DbError> {
+  async deleteFolder(id: string): Promise<Folder | DbError> {
     return await this.repo.delete(id);
   }
 }
+

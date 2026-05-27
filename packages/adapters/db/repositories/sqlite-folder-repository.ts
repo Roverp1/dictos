@@ -56,7 +56,7 @@ export class SqliteFolderRepository implements FolderRepository {
     return result[0]!;
   }
 
-  async findById(id: number): Promise<Folder | DbError | null> {
+  async findById(id: string): Promise<Folder | DbError | null> {
     const result = await this.db
       .select()
       .from(schema.foldersTable)
@@ -76,7 +76,7 @@ export class SqliteFolderRepository implements FolderRepository {
     return result[0];
   }
 
-  async findByParentId(parentId: number): Promise<Folder[] | DbError> {
+  async findByParentId(parentId: string): Promise<Folder[] | DbError> {
     const result = await this.db
       .select()
       .from(schema.foldersTable)
@@ -112,7 +112,7 @@ export class SqliteFolderRepository implements FolderRepository {
   }
 
   async update(
-    id: number,
+    id: string,
     data: Partial<Omit<Folder, "id" | "createdAt" | "modifiedAt">>
   ): Promise<Folder | DbError> {
     const result = await this.db
@@ -139,7 +139,7 @@ export class SqliteFolderRepository implements FolderRepository {
     return result[0];
   }
 
-  async delete(id: number): Promise<Folder | DbError> {
+  async delete(id: string): Promise<Folder | DbError> {
     const result = await this.db
       .delete(schema.foldersTable)
       .where(eq(schema.foldersTable.id, id))
