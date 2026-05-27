@@ -17,42 +17,68 @@ export class CentralApiAdapter implements AuthPort {
     this.client = treaty<App>(baseUrl);
   }
 
-  private mapEdenError<E extends { status: number; value: any }>(
-    error: E,
-    fallbackErrorClass: any
-  ) {
-    if (error.status === 422 && error.value) {
-      if ("type" in error.value && error.value.type === "validation") {
-        const path = error.value.property?.replace(/^\//, "") || "unknown";
-        const message = error.value.message || "Invalid input";
-
-        return new InputValidationError({
-          fields: [{ path, message }],
-        });
-      }
-    }
-
-    return new fallbackErrorClass({
-      reason: error.value?.message || "Operation failed",
-      cause: error,
-    });
-  }
-
-  async login(credentials: AuthCredentials): Promise<AuthSession | AuthError> {
-    const { data, error } = await this.client.auth.login.post(credentials);
-
-    if (error) return this.mapEdenError(error, AuthError);
-
-    return data;
-  }
-
   async register(
     credentials: RegisterCredentials
-  ): Promise<AuthSession | RegistrationError> {
-    const { data, error } = await this.client.auth.register.post(credentials);
+  ): Promise<AuthSession | InputValidationError | RegistrationError> {
+    try {
+      const { data, error, status } =
+        await this.client.auth.register.post(credentials);
 
-    if (error) return this.mapEdenError(error, RegistrationError);
+      if (error) {
+        switch (error.status) {
+          case 422:
+            const fields = error.value.errors.map((e) => ({
+              path: e.pointer.replace(/^#\//, ""),
+              message: e.reason,
+            }));
 
-    return data;
+            return new InputValidationError({ fields });
+
+          default:
+            return new RegistrationError({
+              reason: error.value.detail,
+            });
+        }
+      }
+
+      if (!data || "status" in data)
+        return new RegistrationError({
+          reason: "No data returned from the server",
+        });
+
+      return data.data;
+    } catch (err) {
+      return new RegistrationError({ reason: "Network failure", cause: err });
+    }
+  }
+
+  async login(
+    credentials: AuthCredentials
+  ): Promise<AuthSession | InputValidationError | AuthError> {
+    try {
+      const { data, error } = await this.client.auth.login.post(credentials);
+
+      if (error) {
+        switch (error.status) {
+          case 422:
+            const fields = error.value.errors.map((e) => ({
+              path: e.pointer.replace(/^#\//, ""),
+              message: e.reason,
+            }));
+            return new InputValidationError({ fields });
+
+          default:
+            return new AuthError({
+              reason: error.value.detail,
+            });
+        }
+      }
+
+      if (!data) return new AuthError({ reason: "No data returned" });
+
+      return data.data;
+    } catch (err) {
+      return new AuthError({ reason: "Network failure", cause: err });
+    }
   }
 }
