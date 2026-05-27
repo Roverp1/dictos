@@ -32,6 +32,8 @@ export const DescriptionPane = () => {
       height="100%"
       flexDirection="column"
       gap={1}
+      border={["left"]}
+      borderColor={focus.pane === "description" ? theme.base0D : theme.base04}
     >
       <text fg={focus.pane === "description" ? theme.base0E : theme.base03}>
         {selectedTreeItem?.type === "entry"
