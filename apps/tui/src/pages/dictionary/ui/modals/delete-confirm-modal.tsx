@@ -1,5 +1,7 @@
 import { useKeyboard } from "@opentui/react";
 
+import { useTheme } from "@shared/lib/theme";
+
 import { useDictionaryStore } from "../../model/use-dictionary-store";
 
 interface DeleteConfirmModalProps {
@@ -16,6 +18,8 @@ export const DeleteConfirmModal = ({
   if (!itemName) return;
 
   const { focus } = useDictionaryStore();
+
+  const theme = useTheme();
 
   useKeyboard((key) => {
     if (focus.action === "deleteConfirm") {
@@ -42,6 +46,7 @@ export const DeleteConfirmModal = ({
         justifyContent="space-between"
         width="35%"
         height={15}
+        backgroundColor={theme.base00}
       >
         <box flexGrow={1}>
           <text>Are you sure you want to delete this item</text>
@@ -52,8 +57,20 @@ export const DeleteConfirmModal = ({
           flexDirection="row"
           justifyContent="space-around"
         >
-          <text>[Y]es</text>
-          <text>[N]o</text>
+          <box
+            border={["right"]}
+            width="50%"
+            alignItems="center"
+          >
+            <text>[Y]es</text>
+          </box>
+
+          <box
+            width="50%"
+            alignItems="center"
+          >
+            <text>[N]o</text>
+          </box>
         </box>
       </box>
     </box>
