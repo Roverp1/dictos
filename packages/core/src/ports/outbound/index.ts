@@ -6,3 +6,5 @@ export * from "./LlmPort";
 
 export * from "./auth-port";
 export * from "./session-repository";
+export * from "./sync-port";
+
