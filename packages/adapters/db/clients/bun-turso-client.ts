@@ -1,22 +1,26 @@
 import { connect, type Database } from "@tursodatabase/sync";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { migrate } from "drizzle-orm/sqlite-proxy/migrator";
-
 import path from "path";
+
+import { type SyncPort, SyncError } from "@dictos/core";
 
 import * as schema from "@db/schema/schema";
 import { isNull } from "drizzle-orm";
 
-export class BunTursoClient {
+export class BunTursoClient implements SyncPort {
   private client: Database;
   public db: ReturnType<typeof drizzle<typeof schema>>;
+  localDbPath: string;
 
   private constructor(
     client: Database,
-    db: ReturnType<typeof drizzle<typeof schema>>
+    db: ReturnType<typeof drizzle<typeof schema>>,
+    localDbPath: string
   ) {
     this.client = client;
     this.db = db;
+    this.localDbPath = localDbPath;
   }
 
   public static async create(localDbPath: string): Promise<BunTursoClient> {
@@ -24,10 +28,12 @@ export class BunTursoClient {
       path: localDbPath,
     });
 
+    let instance: BunTursoClient;
+
     const db = drizzle(
       async (sql, params, method) => {
         try {
-          const stmt = await client.prepare(sql);
+          const stmt = await instance.client.prepare(sql);
 
           if (method === "run") {
             await stmt.run(...params);
@@ -50,6 +56,8 @@ export class BunTursoClient {
       { schema }
     );
 
+    instance = new BunTursoClient(client, db, localDbPath);
+
     await migrate(
       db,
       async (queries) => {
@@ -60,9 +68,52 @@ export class BunTursoClient {
       { migrationsFolder: path.resolve(__dirname, "../drizzle/migrations/") }
     );
 
-    await this.seedDbOnInit(db);
+    await BunTursoClient.seedDbOnInit(db);
 
-    return new BunTursoClient(client, db);
+    return instance;
+  }
+
+  async connectRemote(url: string, token: string): Promise<void | SyncError> {
+    try {
+      await this.client.close();
+
+      this.client = await connect({
+        path: this.localDbPath,
+        url: url,
+        authToken: token,
+      });
+
+      await this.client.pull();
+    } catch (err) {
+      return new SyncError({
+        reason: "Failed to connect to remote database",
+        cause: err,
+      });
+    }
+  }
+
+  async sync(): Promise<void | SyncError | Error> {
+    try {
+      await this.client.push();
+      await this.client.pull();
+    } catch (err) {
+      return new SyncError({ reason: "Sync push/pull failed", cause: err });
+    }
+  }
+
+  async disconnectRemote(): Promise<void | SyncError> {
+    try {
+      await this.client.close();
+
+      this.client = await connect({
+        path: this.localDbPath,
+      });
+    } catch (err) {
+      return new SyncError({
+        reason: "Failed to disconnect remote database",
+        cause: err,
+      });
+    }
   }
 
   private static async seedDbOnInit(
