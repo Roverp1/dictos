@@ -27,7 +27,7 @@ export const FolderTreePane = () => {
       flexDirection="column"
       id="folder-tree-pane"
       border={["right"]}
-      borderColor={theme.base04}
+      borderColor={focus.pane === "tree" ? theme.base0D : theme.base04}
       width="50%"
     >
       <box marginBottom={0}>
@@ -93,4 +93,3 @@ export const FolderTreePane = () => {
     </box>
   );
 };
-
