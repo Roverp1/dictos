@@ -1,15 +1,11 @@
 import { useState } from "react";
 import { useKeyboard } from "@opentui/react";
-import type { AuthService, User } from "@dictos/core";
+import type { User } from "@dictos/core";
 
 import { useTheme } from "@shared/lib/theme";
-import { password } from "bun";
+import { useServices } from "@shared/lib/services";
 
-export interface AuthPageProps {
-  authService: AuthService;
-}
-
-export const AuthPage = ({ authService }: AuthPageProps) => {
+export const AuthPage = () => {
   const theme = useTheme();
 
   // Active Pane State
@@ -25,6 +21,8 @@ export const AuthPage = ({ authService }: AuthPageProps) => {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState<User | null>(null);
+
+  const { authService } = useServices();
 
   // Focus Management
   type FocusableField =
