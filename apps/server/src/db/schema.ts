@@ -2,7 +2,9 @@ import { sql } from "drizzle-orm";
 import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const usersTable = sqliteTable("users", {
-  id: int().primaryKey(),
+  id: text()
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   username: text().notNull().unique(),
   email: text().notNull().unique(),
   passwordHash: text().notNull(),
@@ -16,11 +18,3 @@ export const usersTable = sqliteTable("users", {
     .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const centralActivityTable = sqliteTable("central_activity", {
-  id: int().primaryKey(),
-  userId: int()
-    .notNull()
-    .references(() => usersTable.id),
-  date: text().notNull().unique(), // YYYY-MM-DD
-  count: int().notNull().default(1),
-});
