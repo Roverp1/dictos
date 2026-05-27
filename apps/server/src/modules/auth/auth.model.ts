@@ -36,9 +36,11 @@ export const authModel = {
     password: t.String({ error: "Password is required" }),
   }),
 
-  session: t.Object({
-    user: userSchema,
-    token: t.String(),
+  sessionResponse: t.Object({
+    data: t.Object({
+      user: userSchema,
+      token: t.String(),
+    }),
   }),
 
   error: t.Object({

@@ -1,15 +1,18 @@
 import { Elysia, t } from "elysia";
 
-export const errorSchema = t.Object({
-  type: t.String(),
+export const errorResponseSchema = t.Object({
+  // for autocompletion
+  type: t.Unsafe<(string & {}) | "about:blank">(
+    t.Union([t.String(), t.Literal("about:blank")])
+  ),
   title: t.String(),
   status: t.Number(),
   detail: t.String(),
   instance: t.String(),
 });
 
-export const validationSchema = t.Composite([
-  errorSchema,
+export const validationErrorResponseSchema = t.Composite([
+  errorResponseSchema,
   t.Object({
     errors: t.Array(
       t.Object({
@@ -20,10 +23,14 @@ export const validationSchema = t.Composite([
   }),
 ]);
 
+export type ErrorResponse = typeof errorResponseSchema.static;
+export type ValidationErrorResponse =
+  typeof validationErrorResponseSchema.static;
+
 export const errorsPlugin = new Elysia({ name: "system-errors" })
   .model({
-    "errors.standard": errorSchema,
-    "errors.validation": validationSchema,
+    "errors.standard": errorResponseSchema,
+    "errors.validation": validationErrorResponseSchema,
   })
   .onError({ as: "global" }, ({ code, error, set, request }) => {
     console.error("Error:", error);
@@ -46,6 +53,16 @@ export const errorsPlugin = new Elysia({ name: "system-errors" })
         detail: "The request body failed to pass validaiton constraints.",
         instance: new URL(request.url).pathname,
         errors: mappedErrors,
-      };
+      } as ValidationErrorResponse;
     }
+
+    console.error("Unhandled server error:", error);
+    set.status = 500;
+    return {
+      type: "about:blank",
+      title: "Internal Server Error",
+      status: 500,
+      detail: "An unexpected error occurred",
+      instance: new URL(request.url).pathname,
+    } as ErrorResponse;
   });
