@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "4f7bc447-46b7-4518-871f-24ce2ae5be57",
+  "id": "9d4d2ae2-139e-45d1-8913-8160f6c01934",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "activity": {
@@ -12,7 +12,8 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(uuid7_str())"
         },
         "date": {
           "name": "date",
@@ -52,7 +53,8 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(uuid7_str())"
         },
         "entry_id": {
           "name": "entry_id",
@@ -113,7 +115,8 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(uuid7_str())"
         },
         "text": {
           "name": "text",
@@ -183,7 +186,8 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(uuid7_str())"
         },
         "name": {
           "name": "name",
@@ -266,7 +270,8 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(uuid7_str())"
         },
         "name": {
           "name": "name",
@@ -313,7 +318,8 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(uuid7_str())"
         },
         "table_name": {
           "name": "table_name",
@@ -418,7 +424,8 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(uuid7_str())"
         },
         "username": {
           "name": "username",

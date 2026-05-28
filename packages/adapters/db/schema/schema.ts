@@ -13,7 +13,7 @@ export const entriesTable = sqliteTable(
   {
     id: text()
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .default(sql`(uuid7_str())`),
     text: text().notNull(),
     folderId: text()
       .notNull()
@@ -31,7 +31,7 @@ export const entriesTable = sqliteTable(
 export const descriptionsTable = sqliteTable("descriptions", {
   id: text()
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+    .default(sql`(uuid7_str())`),
   entryId: text()
     .notNull()
     .references(() => entriesTable.id, { onDelete: "cascade" }),
@@ -49,7 +49,7 @@ export const foldersTable = sqliteTable(
   {
     id: text()
       .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
+      .default(sql`(uuid7_str())`),
     name: text().notNull(),
     parentId: text("parent_id").references(
       (): AnySQLiteColumn => foldersTable.id,
@@ -78,7 +78,7 @@ export const foldersTable = sqliteTable(
 export const instructionsTable = sqliteTable("instructions", {
   id: text()
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+    .default(sql`(uuid7_str())`),
   name: text(),
   text: text().notNull(),
   createdAt: int({ mode: "timestamp" })
@@ -92,7 +92,7 @@ export const instructionsTable = sqliteTable("instructions", {
 export const activityTable = sqliteTable("activity", {
   id: text()
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+    .default(sql`(uuid7_str())`),
   date: text().notNull().unique(),
   count: int().notNull().default(1),
 });
@@ -102,7 +102,7 @@ export const activityTable = sqliteTable("activity", {
 export const usersTable = sqliteTable("users", {
   id: text()
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()), // will equal to central db id
+    .default(sql`(uuid7_str())`), // will equal to central db id
   username: text().notNull(),
   email: text().notNull(),
   bio: text(),
@@ -122,7 +122,7 @@ export const sessionTable = sqliteTable("session", {
 export const outboxTable = sqliteTable("outbox", {
   id: text()
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+    .default(sql`(uuid7_str())`),
   tableName: text().notNull(),
   recordId: text().notNull(), // id of the modified record
   operation: text({ enum: ["INSERT", "UPDATE", "DELETE"] }).notNull(),

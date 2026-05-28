@@ -75,8 +75,8 @@ CREATE TRIGGER increment_activity_on_entry_insert
 AFTER INSERT ON entries
 FOR EACH ROW
 BEGIN
-    INSERT INTO activity (date)
-    VALUES (DATE('now'))
+    INSERT INTO activity (id, date)
+    VALUES (uuid7_str(), DATE('now'))
     ON CONFLICT (date) DO 
     UPDATE SET count = count + 1;
 END;
