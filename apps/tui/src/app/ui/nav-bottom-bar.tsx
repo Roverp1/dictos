@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 import { useTheme } from "@shared/lib/theme";
+import { useServices } from "@shared/lib/services";
 
 export const NavBottomBar = () => {
   const [isBarActive, setIsBarActive] = useState<boolean>(false);
@@ -11,6 +12,22 @@ export const NavBottomBar = () => {
 
   const location = useLocation();
   const navigate = useNavigate();
+
+  const { syncService } = useServices();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    const res = await syncService.sync();
+    setIsSyncing(false);
+
+    if (res instanceof Error) {
+      console.error("Sync failed:", res);
+      return;
+    }
+
+    console.log("Sync is successful:", res);
+  };
 
   useKeyboard((key) => {
     if (isBarActive === true && key.name === "escape") {
@@ -25,6 +42,10 @@ export const NavBottomBar = () => {
     if (key.name === "2") {
       navigate("/dictionary");
       setIsBarActive(false);
+    }
+
+    if (key.name === "3") {
+      handleSync();
     }
   });
 

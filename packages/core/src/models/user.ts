@@ -9,7 +9,7 @@ export interface User {
 export interface AuthSession {
   user: User;
   token: string;
-  turso: {
+  turso?: {
     url: string;
     token: string;
   };

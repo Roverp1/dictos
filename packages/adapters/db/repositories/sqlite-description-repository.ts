@@ -5,12 +5,13 @@ import {
   type NewDescription,
 } from "@dictos/core";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
-
-import * as schema from "@db/schema/schema";
 import { eq } from "drizzle-orm";
 
+import * as schema from "@db/schema/schema";
+import { type TursoDatabase } from "@db/clients";
+
 export class SqliteDescriptionRepository implements DescriptionRepository {
-  constructor(private db: LibSQLDatabase<typeof schema>) {}
+  constructor(private db: TursoDatabase) {}
 
   async save(description: NewDescription): Promise<Description | DbError> {
     const result = await this.db

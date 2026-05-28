@@ -1,4 +1,3 @@
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import { eq, isNull } from "drizzle-orm";
 
 import {
@@ -9,9 +8,10 @@ import {
 } from "@dictos/core";
 
 import * as schema from "@db/schema/schema";
+import { type TursoDatabase } from "@db/clients";
 
 export class SqliteFolderRepository implements FolderRepository {
-  constructor(private db: LibSQLDatabase<typeof schema>) {}
+  constructor(private db: TursoDatabase) {}
 
   async save(folder: NewFolder): Promise<Folder | DbError> {
     const result = await this.db
@@ -163,4 +163,3 @@ export class SqliteFolderRepository implements FolderRepository {
     return result[0];
   }
 }
-
