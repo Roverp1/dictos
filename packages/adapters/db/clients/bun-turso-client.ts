@@ -30,6 +30,8 @@ export class BunTursoClient implements SyncPort {
       path: localDbPath,
     });
 
+    await client.exec("PRAGMA foreign_keys = ON");
+
     let instance: BunTursoClient;
 
     const db = drizzle(
@@ -55,7 +57,8 @@ export class BunTursoClient implements SyncPort {
           throw err;
         }
       },
-      { schema }
+      undefined,
+      { schema, casing: "snake_case" }
     );
 
     instance = new BunTursoClient(client, db, localDbPath);

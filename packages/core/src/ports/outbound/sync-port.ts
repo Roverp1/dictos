@@ -1,9 +1,6 @@
 import * as errore from "errore";
 
-export class SyncError extends errore.createTaggedError({
-  name: "SyncError",
-  message: "Failed to sync with remote database: $reason",
-}) {}
+import { SyncError } from "errors";
 
 export interface SyncPort {
   /**

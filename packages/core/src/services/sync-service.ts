@@ -1,5 +1,5 @@
 import type { SyncPort } from "@ports/outbound";
-import type { SyncError } from "@ports/outbound";
+import type { SyncError } from "errors";
 
 export class SyncService {
   constructor(private syncPort: SyncPort) {}
