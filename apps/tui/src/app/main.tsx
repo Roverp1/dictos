@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { ConsolePosition, createCliRenderer } from "@opentui/core";
-import { createRoot, useKeyboard, useRenderer } from "@opentui/react";
+import { createRoot } from "@opentui/react";
+import { MemoryRouter } from "react-router-dom";
 
 import {
   createLibSqlDatabase,
@@ -17,9 +17,9 @@ import {
   FolderService,
 } from "@dictos/core";
 
-import { DictionaryPage } from "@pages/dictionary";
-import { AuthPage } from "@pages/auth";
 import { useServicesStore } from "@shared/lib/services";
+
+import { App } from "./app";
 
 export const bootstrap = async () => {
   const db = await createLibSqlDatabase("file:./dictos.db");
@@ -40,6 +40,7 @@ export const bootstrap = async () => {
     entryService,
     folderService,
     descriptionService,
+    authService,
   });
 
   const renderer = await createCliRenderer({
@@ -49,31 +50,9 @@ export const bootstrap = async () => {
     },
   });
 
-  createRoot(renderer).render(<App authService={authService} />);
+  createRoot(renderer).render(
+    <MemoryRouter initialEntries={["/dictionary"]}>
+      <App />
+    </MemoryRouter>
+  );
 };
-
-export type Route = "auth" | "dictionary";
-
-interface Props {
-  authService: AuthService;
-}
-
-function App({ authService }: Props) {
-  const [route, setRoute] = useState<Route>("dictionary");
-
-  const renderer = useRenderer();
-
-  useKeyboard((key) => {
-    if (key.name === "f12") {
-      renderer.console.toggle();
-    }
-
-    if (key.shift && key.name === "tab") {
-      setRoute((prev) => (prev === "auth" ? "dictionary" : "auth"));
-    }
-  });
-
-  if (route === "auth") return <AuthPage authService={authService} />;
-
-  return <DictionaryPage />;
-}
