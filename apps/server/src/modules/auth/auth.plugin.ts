@@ -23,24 +23,24 @@ export const authPlugin = (authService: AuthService) => {
     .post(
       "/auth/register",
       async ({ body, jwt, request }) => {
-        const user = await authService.register(
+        const result = await authService.register(
           body.username,
           body.email,
           body.password
         );
 
-        if (user instanceof UserExistsErorr) {
+        if (result instanceof UserExistsErorr) {
           return status(409, {
             type: "about:blank",
             status: 409,
             title: "Conflict",
-            detail: user.message,
+            detail: result.message,
             instance: new URL(request.url).pathname,
           } as ErrorResponse);
         }
 
-        if (user instanceof Error) {
-          console.error("Registration failed:", user);
+        if (result instanceof Error) {
+          console.error("Registration failed:", result);
           return status(500, {
             type: "about:blank",
             status: 500,
@@ -50,8 +50,10 @@ export const authPlugin = (authService: AuthService) => {
           } as ErrorResponse);
         }
 
+        const { turso, user } = result;
+
         const token = await jwt.sign({ sub: user.id.toString() });
-        return status(201, { data: { user, token } });
+        return status(201, { data: { user: user, token, turso } });
       },
       {
         body: authModel.register,
@@ -66,10 +68,10 @@ export const authPlugin = (authService: AuthService) => {
     .post(
       "/auth/login",
       async ({ body, jwt, request }) => {
-        const user = await authService.login(body.email, body.password);
+        const result = await authService.login(body.email, body.password);
 
-        if (user instanceof InvalidCredentialsError) {
-          console.error("Error during user login:", user);
+        if (result instanceof InvalidCredentialsError) {
+          console.error("Error during user login:", result);
           return status(401, {
             type: "about:blank",
             status: 401,
@@ -79,8 +81,8 @@ export const authPlugin = (authService: AuthService) => {
           } as ErrorResponse);
         }
 
-        if (user instanceof Error) {
-          console.error("Login failed:", user);
+        if (result instanceof Error) {
+          console.error("Login failed:", result);
           return status(500, {
             type: "about:blank",
             status: 500,
@@ -90,8 +92,10 @@ export const authPlugin = (authService: AuthService) => {
           } as ErrorResponse);
         }
 
+        const { turso, user } = result;
+
         const token = await jwt.sign({ sub: user.id.toString() });
-        return status(200, { data: { user, token } });
+        return status(200, { data: { user, token, turso } });
       },
       {
         body: authModel.login,

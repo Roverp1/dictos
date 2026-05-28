@@ -21,13 +21,13 @@ _(These tasks block the rest of the work. Establish the shared interfaces and da
 
 _(Backend and Frontend can often work in parallel here based on Phase 1 contracts)_
 
-- [ ] T005: [@Backend] Refactor Elysia server `/auth/register` to use the Turso Platform API to provision a dedicated per-user database and issue a scoped database token.
-- [ ] T006: [@Backend] Refactor Elysia server `/auth/login` to issue a fresh scoped database token for the existing user database.
-- [ ] T007: [@Frontend] Swap `@libsql/client` and `drizzle-orm/libsql` for `@tursodatabase/sync` and `drizzle-orm/sqlite-proxy` in `packages/adapters/package.json`.
-- [ ] T008: [@Frontend] Implement the `IBunTursoClient` class (e.g., `BunTursoClient`) in `packages/adapters/db/clients/bun-turso-client.ts` to expose the proxy `db` instance and manage the Turso client container.
-- [ ] T009: [@Frontend] Implement the `SyncPort` interface on `BunTursoClient` (`connectRemote`, `sync`, `disconnectRemote`).
+- [x] T005: [@Backend] Refactor Elysia server `/auth/register` to use the Turso Platform API to provision a dedicated per-user database and issue a scoped database token.
+- [x] T006: [@Backend] Refactor Elysia server `/auth/login` to issue a fresh scoped database token for the existing user database.
+- [x] T007: [@Frontend] Swap `@libsql/client` and `drizzle-orm/libsql` for `@tursodatabase/sync` and `drizzle-orm/sqlite-proxy` in `packages/adapters/package.json`.
+- [x] T008: [@Frontend] Implement the `IBunTursoClient` class (e.g., `BunTursoClient`) in `packages/adapters/db/clients/bun-turso-client.ts` to expose the proxy `db` instance and manage the Turso client container.
+- [x] T009: [@Frontend] Implement the `SyncPort` interface on `BunTursoClient` (`connectRemote`, `sync`, `disconnectRemote`).
 - [ ] T009b: [@Frontend] Create `ISyncService` and its implementation `SyncService` in `packages/core` to proxy calls to the `SyncPort`.
-- [ ] T009c: [@Frontend] Rename the legacy `LibSql*Repository` classes to `Sqlite*Repository` and move them into `packages/adapters/db/repositories/`.
+- [x] T009c: [@Frontend] Rename the legacy `LibSql*Repository` classes to `Sqlite*Repository` and move them into `packages/adapters/db/repositories/`.
 
 ## Phase 3: UI & Integration
 

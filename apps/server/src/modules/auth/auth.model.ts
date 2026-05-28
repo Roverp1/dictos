@@ -36,10 +36,19 @@ export const authModel = {
     password: t.String({ error: "Password is required" }),
   }),
 
+  turso: t.Object({
+    url: t.String(),
+    token: t.String(),
+  }),
+
   sessionResponse: t.Object({
     data: t.Object({
       user: userSchema,
       token: t.String(),
+      turso: t.Object({
+        url: t.String(),
+        token: t.String(),
+      }),
     }),
   }),
 
