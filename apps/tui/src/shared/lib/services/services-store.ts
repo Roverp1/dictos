@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import {
+  SyncService,
   type EntryService,
   type FolderService,
   type DescriptionService,
@@ -12,6 +13,7 @@ type ServicesStore = {
   folderService: FolderService | null;
   descriptionService: DescriptionService | null;
   authService: AuthService | null;
+  syncService: SyncService | null;
 
   initServices: (services: Omit<ServicesStore, "initServices">) => void;
 };
@@ -21,6 +23,7 @@ export const useServicesStore = create<ServicesStore>((set) => ({
   folderService: null,
   descriptionService: null,
   authService: null,
+  syncService: null,
   initServices: (services) => set(services),
 }));
 
@@ -31,7 +34,8 @@ export const useServices = () => {
     !store.entryService ||
     !store.descriptionService ||
     !store.folderService ||
-    !store.authService
+    !store.authService ||
+    !store.syncService
   ) {
     throw new Error("Services are not initialized!");
   }
@@ -41,5 +45,6 @@ export const useServices = () => {
     descriptionService: store.descriptionService,
     folderService: store.folderService,
     authService: store.authService,
+    syncService: store.syncService,
   };
 };

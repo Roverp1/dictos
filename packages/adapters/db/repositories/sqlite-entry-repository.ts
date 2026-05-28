@@ -8,9 +8,10 @@ import { LibSQLDatabase } from "drizzle-orm/libsql";
 import { eq } from "drizzle-orm";
 
 import * as schema from "@db/schema/schema";
+import { type TursoDatabase } from "@db/clients";
 
 export class SqliteEntryRepository implements EntryRepository {
-  constructor(private db: LibSQLDatabase<typeof schema>) {}
+  constructor(private db: TursoDatabase) {}
 
   async save(entry: NewEntry): Promise<Entry | DbError> {
     const result = await this.db
@@ -128,4 +129,3 @@ export class SqliteEntryRepository implements EntryRepository {
     return result[0];
   }
 }
-

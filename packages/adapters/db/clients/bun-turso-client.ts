@@ -8,9 +8,11 @@ import { type SyncPort, SyncError } from "@dictos/core";
 import * as schema from "@db/schema/schema";
 import { isNull } from "drizzle-orm";
 
+export type TursoDatabase = ReturnType<typeof drizzle<typeof schema>>;
+
 export class BunTursoClient implements SyncPort {
   private client: Database;
-  public db: ReturnType<typeof drizzle<typeof schema>>;
+  public db: TursoDatabase;
   localDbPath: string;
 
   private constructor(

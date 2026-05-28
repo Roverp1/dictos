@@ -8,9 +8,10 @@ import {
 } from "@dictos/core";
 
 import * as schema from "@db/schema/schema";
+import { type TursoDatabase } from "@db/clients";
 
 export class SqliteSessionRepository implements SessionRepository {
-  constructor(private db: LibSQLDatabase<typeof schema>) {}
+  constructor(private db: TursoDatabase) {}
 
   async clearSession(): Promise<void | DbError> {
     await this.db.delete(schema.sessionTable).catch(
@@ -61,6 +62,8 @@ export class SqliteSessionRepository implements SessionRepository {
         id: 1,
         userId: session.user.id,
         token: session.token,
+        tursoToken: session.turso?.token,
+        tursoUrl: session.turso?.url,
       })
       .catch(
         (e) =>
@@ -103,6 +106,13 @@ export class SqliteSessionRepository implements SessionRepository {
         bio: users.bio,
         avatarUrl: users.avatarUrl,
       },
+      turso:
+        session.tursoUrl && session.tursoToken
+          ? {
+              token: session.tursoToken,
+              url: session.tursoUrl,
+            }
+          : undefined,
     };
   }
 }

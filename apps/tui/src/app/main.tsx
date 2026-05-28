@@ -3,7 +3,7 @@ import { createRoot } from "@opentui/react";
 import { MemoryRouter } from "react-router-dom";
 
 import {
-  createLibSqlDatabase,
+  BunTursoClient,
   SqliteEntryRepository,
   SqliteDescriptionRepository,
   SqliteFolderRepository,
@@ -15,6 +15,8 @@ import {
   EntryService,
   DescriptionService,
   FolderService,
+  SyncService,
+  type AuthSession,
 } from "@dictos/core";
 
 import { useServicesStore } from "@shared/lib/services";
@@ -22,7 +24,8 @@ import { useServicesStore } from "@shared/lib/services";
 import { App } from "./app";
 
 export const bootstrap = async () => {
-  const db = await createLibSqlDatabase("file:./dictos.db");
+  const dbClient = await BunTursoClient.create("./dictos.db");
+  const db = dbClient.db;
 
   const entryRepo = new SqliteEntryRepository(db);
   const folderRepo = new SqliteFolderRepository(db);
@@ -35,12 +38,26 @@ export const bootstrap = async () => {
   const folderService = new FolderService(folderRepo);
   const descriptionService = new DescriptionService(descriptionRepository);
   const authService = new AuthService(centralApiAdapter, sessionRepository);
+  const syncService = new SyncService(dbClient);
+
+  const sessionResult = await sessionRepository.getSession();
+  if (sessionResult instanceof Error) {
+    console.error(sessionResult);
+  }
+
+  const session = sessionResult instanceof Error ? null : sessionResult;
+
+  if (session && session.turso) {
+    await syncService.connect(session.turso.url, session.turso.token);
+    await syncService.sync();
+  }
 
   useServicesStore.getState().initServices({
     entryService,
     folderService,
     descriptionService,
     authService,
+    syncService,
   });
 
   const renderer = await createCliRenderer({
