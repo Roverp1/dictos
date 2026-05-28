@@ -15,7 +15,7 @@ export interface SyncPort {
   /**
    * Pushes local changes to the remote database and pulls down new changes.
    */
-  sync(): Promise<void | SyncError | Error>;
+  sync(): Promise<void | SyncError>;
 
   /**
    * Disconnects the local database from the remote cloud database.

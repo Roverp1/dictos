@@ -92,7 +92,7 @@ export class BunTursoClient implements SyncPort {
     }
   }
 
-  async sync(): Promise<void | SyncError | Error> {
+  async sync(): Promise<void | SyncError> {
     try {
       await this.client.push();
       await this.client.pull();
