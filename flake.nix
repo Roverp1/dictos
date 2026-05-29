@@ -16,7 +16,7 @@
         pkgs = import nixpkgs {inherit system;};
       in {
         devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [turso-cli bun];
+          buildInputs = with pkgs; [turso-cli turso bun];
         };
         shellHook =
           # bash

@@ -31,10 +31,19 @@ _(Backend and Frontend can often work in parallel here based on Phase 1 contract
 
 ## Phase 3: UI & Integration
 
-- [ ] T010: Update the TUI Auth Service to handle the new Auth payload and securely store the `turso.url` and `turso.token` alongside the session JWT.
-- [ ] T011: Modify TUI `bootstrap()` in `main.tsx` to automatically invoke `connectRemote()` with stored credentials if they exist on app startup, otherwise defaulting to local-only initialization.
-- [ ] T012: Implement the "Sync Now" UI trigger (e.g., a keyboard shortcut or menu item in the dictionary view) that invokes the adapter's `sync()` method.
-- [ ] T013: Implement UI feedback (e.g., loading spinner, success message, error toast) for the sync action.
+- [x] T010: Update the `SqliteSessionRepository` to persist the `turso.url` and `turso.token` alongside the session JWT, handling the optional nature of the sync feature.
+- [x] T011: Modify TUI `bootstrap()` in `main.tsx` to automatically invoke `connectRemote()` with stored credentials if they exist on app startup.
+- [x] T012: Integrate `SyncService` into `AuthService` so that registering or logging in dynamically upgrades the live database connection to cloud-sync mode.
+- [x] T013: Implement the "Sync Now" UI trigger (e.g., a keyboard shortcut `3` or menu item in the dictionary view) that invokes the adapter's `sync()` method.
+- [ ] T014: Implement UI feedback (e.g., loading spinner, success message, error toast) for the sync action.
+
+### Discovered & Resolved Edge Cases
+
+- [x] E001: Resolve missing SQLite `folder_id` column error caused by `drizzle-orm/sqlite-proxy` ignoring the `casing: "snake_case"` configuration. Fixed by explicitly mapping column names in `schema.ts`.
+- [x] E002: Resolve `NOT NULL constraint failed: activity.id` caused by native SQLite triggers failing to generate text-based UUIDs. Fixed by updating migrations to use `lower(hex(randomblob(16)))`.
+- [x] E003: Re-enable foreign key constraints (`PRAGMA foreign_keys = ON;`) dynamically on every connection within `BunTursoClient` as the proxy driver defaults them to off.
+- [ ] E004: Reverse registration logic order to provision Turso database _before_ persisting user to central server to prevent orphaned central accounts if Turso Platform API fails.
+- [ ] E005: Fix: manual generation misses critical regional suffixes (e.g., `.aws-eu-west-1`).
 
 ---
 

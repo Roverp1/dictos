@@ -11,7 +11,7 @@ out
 !**/src/**/out
 dist
 *.tgz
-/**/*.db
+/**/*.db*
 
 # code coverage
 coverage
@@ -19,7 +19,7 @@ coverage
 
 # logs
 logs
-_.log
+_*.log
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # dotenv environment variable files
