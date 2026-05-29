@@ -2,6 +2,7 @@
 /**/*.pdf
 skills-lock.json
 tmp/
+.exports/
 
 # dependencies (bun install)
 node_modules

@@ -88,7 +88,7 @@ export class BunTursoClient implements SyncPort {
         authToken: token,
       });
 
-      await this.client.pull();
+      await this.sync();
     } catch (err) {
       return new SyncError({
         reason: "Failed to connect to remote database",

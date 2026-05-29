@@ -8,6 +8,7 @@ BEGIN
     SET modified_at = strftime('%s', 'now')
     WHERE id = NEW.id;
 END;
+--> statement-breakpoint
 
 CREATE TRIGGER set_descriptions_modified_at
 AFTER UPDATE ON descriptions
@@ -18,6 +19,7 @@ BEGIN
     SET modified_at = strftime('%s', 'now')
     WHERE id = NEW.id;
 END;
+--> statement-breakpoint
 
 CREATE TRIGGER set_instructions_modified_at
 AFTER UPDATE ON instructions
@@ -28,6 +30,7 @@ BEGIN
     SET modified_at = strftime('%s', 'now')
     WHERE id = NEW.id;
 END;
+--> statement-breakpoint
 
 CREATE TRIGGER set_folders_modified_at
 AFTER UPDATE ON folders
@@ -38,6 +41,7 @@ BEGIN
     SET modified_at = strftime('%s', 'now')
     WHERE id = NEW.id;
 END;
+--> statement-breakpoint
 
 -- cascade modified_at for folders on entry change
 CREATE TRIGGER update_folder_on_entry_insert
@@ -48,6 +52,7 @@ BEGIN
     SET modified_at = strftime('%s', 'now')
     WHERE id = NEW.folder_id;
 END;
+--> statement-breakpoint
 
 CREATE TRIGGER update_folder_on_entry_update
 AFTER UPDATE ON entries
@@ -61,6 +66,7 @@ BEGIN
     SET modified_at = strftime('%s', 'now')
     WHERE id = OLD.folder_id AND OLD.folder_id != NEW.folder_id;
 END;
+--> statement-breakpoint
 
 CREATE TRIGGER update_folder_on_entry_delete
 AFTER DELETE ON entries
@@ -70,6 +76,7 @@ BEGIN
     SET modified_at = strftime('%s', 'now')
     WHERE id = OLD.folder_id;
 END;
+--> statement-breakpoint
 
 -- update activity on new entry
 CREATE TRIGGER increment_activity_on_entry_insert
