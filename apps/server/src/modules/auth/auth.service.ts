@@ -91,11 +91,6 @@ export class AuthService {
     if (userRecord instanceof Error) return userRecord;
     if (!userRecord) return new InvalidCredentialsError();
 
-    console.log("=== LOGIN ATTEMPT ===");
-    console.log("Raw Password String:", JSON.stringify(passwordRaw));
-    console.log("Password Length:", passwordRaw.length);
-    console.log("=====================");
-
     const isMatch = await Bun.password.verify(
       passwordRaw,
       userRecord.passwordHash
