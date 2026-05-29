@@ -1,6 +1,6 @@
 {
-  "id": "eb607e5c-37d6-471b-9aef-46ed42d1afcc",
-  "prevId": "9d4d2ae2-139e-45d1-8913-8160f6c01934",
+  "id": "85d5e67a-d7b6-4d84-894c-90d393953687",
+  "prevId": "b3c8d478-ccea-41fc-8f1c-dff1ae9ed041",
   "version": "6",
   "dialect": "sqlite",
   "tables": {
@@ -13,7 +13,7 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false,
-          "default": "(uuid7_str())"
+          "default": "(uuid_str(uuid7()))"
         },
         "date": {
           "name": "date",
@@ -54,7 +54,7 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false,
-          "default": "(uuid7_str())"
+          "default": "(uuid_str(uuid7()))"
         },
         "entry_id": {
           "name": "entry_id",
@@ -116,7 +116,7 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false,
-          "default": "(uuid7_str())"
+          "default": "(uuid_str(uuid7()))"
         },
         "text": {
           "name": "text",
@@ -187,7 +187,7 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false,
-          "default": "(uuid7_str())"
+          "default": "(uuid_str(uuid7()))"
         },
         "name": {
           "name": "name",
@@ -271,7 +271,7 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false,
-          "default": "(uuid7_str())"
+          "default": "(uuid_str(uuid7()))"
         },
         "name": {
           "name": "name",
@@ -319,7 +319,7 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false,
-          "default": "(uuid7_str())"
+          "default": "(uuid_str(uuid7()))"
         },
         "table_name": {
           "name": "table_name",
@@ -425,7 +425,7 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false,
-          "default": "(uuid7_str())"
+          "default": "(uuid_str(uuid7()))"
         },
         "username": {
           "name": "username",

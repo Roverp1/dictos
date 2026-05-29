@@ -76,7 +76,7 @@ AFTER INSERT ON entries
 FOR EACH ROW
 BEGIN
     INSERT INTO activity (id, date)
-    VALUES (uuid7_str(), DATE('now'))
+    VALUES (uuid_str(uuid7()), DATE('now'))
     ON CONFLICT (date) DO 
     UPDATE SET count = count + 1;
 END;

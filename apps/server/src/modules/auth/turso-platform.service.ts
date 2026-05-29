@@ -52,7 +52,6 @@ export class TursoPlatformService {
     if (tokenRes instanceof Error) return tokenRes;
 
     return {
-      url: this.getDbUrl(dbName),
       token: tokenRes.jwt,
     };
   }
