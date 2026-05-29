@@ -10,24 +10,36 @@ import { isNull } from "drizzle-orm";
 
 export type TursoDatabase = ReturnType<typeof drizzle<typeof schema>>;
 
+interface SyncCredentials {
+  url: string | null;
+  token: string;
+}
+
 export class BunTursoClient implements SyncPort {
   private client: Database;
   public db: TursoDatabase;
   localDbPath: string;
+  private credentials: SyncCredentials;
 
   private constructor(
     client: Database,
     db: ReturnType<typeof drizzle<typeof schema>>,
-    localDbPath: string
+    localDbPath: string,
+    credentials: SyncCredentials
   ) {
     this.client = client;
     this.db = db;
     this.localDbPath = localDbPath;
+    this.credentials = credentials;
   }
 
   public static async create(localDbPath: string): Promise<BunTursoClient> {
+    const credentials: SyncCredentials = { url: null, token: "" };
+
     const client = await connect({
       path: localDbPath,
+      url: () => credentials.url,
+      authToken: () => Promise.resolve(credentials.token),
     });
 
     await client.exec("PRAGMA foreign_keys = ON");
@@ -61,7 +73,7 @@ export class BunTursoClient implements SyncPort {
       { schema, casing: "snake_case" }
     );
 
-    instance = new BunTursoClient(client, db, localDbPath);
+    instance = new BunTursoClient(client, db, localDbPath, credentials);
 
     await migrate(
       db,
@@ -80,16 +92,13 @@ export class BunTursoClient implements SyncPort {
 
   async connectRemote(url: string, token: string): Promise<void | SyncError> {
     try {
-      await this.client.close();
+      this.credentials.url = url;
+      this.credentials.token = token;
 
-      this.client = await connect({
-        path: this.localDbPath,
-        url: url,
-        authToken: token,
-      });
-
-      await this.sync();
-    } catch (err) {
+      await this.client.push();
+      await this.client.pull();
+    } catch (err: any) {
+      console.error("[Turso] connectRemote failed:", err.message || err);
       return new SyncError({
         reason: "Failed to connect to remote database",
         cause: err,
@@ -101,18 +110,17 @@ export class BunTursoClient implements SyncPort {
     try {
       await this.client.push();
       await this.client.pull();
-    } catch (err) {
+    } catch (err: any) {
+      console.error("[Turso] connectRemote failed:", err.message || err);
       return new SyncError({ reason: "Sync push/pull failed", cause: err });
     }
   }
 
   async disconnectRemote(): Promise<void | SyncError> {
     try {
-      await this.client.close();
-
-      this.client = await connect({
-        path: this.localDbPath,
-      });
+      this.credentials.url = null;
+      this.credentials.token = "";
+      // remove try catch ?
     } catch (err) {
       return new SyncError({
         reason: "Failed to disconnect remote database",

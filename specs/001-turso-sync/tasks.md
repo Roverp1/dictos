@@ -9,41 +9,46 @@
 
 _(These tasks block the rest of the work. Establish the shared interfaces and database schemas first so devs can parallelize later)._
 
-- [x] T001: Delete the existing local `.db` files and `/drizzle/migrations/` to start fresh and avoid complex data migration.
-- [x] T002: Update Drizzle schemas (`foldersTable`, `entriesTable`, `descriptionsTable`) to replace integer `id` primary keys and foreign keys with `text` (UUIDs). Use `$defaultFn(() => crypto.randomUUID())` for local generation.
-- [x] T003: [P] Update Core domain interfaces/types in `packages/core` to expect `string` IDs instead of `number` IDs.
-- [x] T004: [P] Define TypeScript interfaces for the updated Auth payloads in the shared types module, including the new `turso: { url, token }` response object.
-- [x] T004b: Update central server database schemas (`usersTable`, `centralActivityTable`) to use UUID text primary keys, matching the local client schemas.
-- [x] T004c: Standardize central server API responses (wrap success in `data` object, format all errors to RFC 9457 specifications via global error plugin).
-- [x] T004d: Refactor `CentralApiAdapter` to safely parse Eden Treaty discriminated unions, mapping RFC 9457 HTTP errors into pure Core domain errors (`InputValidationError`, `AuthError`, etc.).
+- [x] T001: Deleted the existing local `.db` files and `/drizzle/migrations/` to start fresh and avoid complex data migration.
+- [x] T002: Updated Drizzle schemas (`foldersTable`, `entriesTable`, `descriptionsTable`) to replace integer `id` primary keys and foreign keys with `text` (UUIDs). Use `$defaultFn(() => crypto.randomUUID())` for local generation.
+- [x] T003: [P] Updated Core domain interfaces/types in `packages/core` to expect `string` IDs instead of `number` IDs.
+- [x] T004: [P] Defined TypeScript interfaces for the updated Auth payloads in the shared types module, including the new `turso: { url, token }` response object.
+- [x] T004b: Updated central server database schemas (`usersTable`, `centralActivityTable`) to use UUID text primary keys, matching the local client schemas.
+- [x] T004c: Standardized central server API responses (wrap success in `data` object, format all errors to RFC 9457 specifications via global error plugin).
+- [x] T004d: Refactored `CentralApiAdapter` to safely parse Eden Treaty discriminated unions, mapping RFC 9457 HTTP errors into pure Core domain errors.
 
 ## Phase 2: Core Logic & Interfaces
 
 _(Backend and Frontend can often work in parallel here based on Phase 1 contracts)_
 
-- [x] T005: [@Backend] Refactor Elysia server `/auth/register` to use the Turso Platform API to provision a dedicated per-user database and issue a scoped database token.
-- [x] T006: [@Backend] Refactor Elysia server `/auth/login` to issue a fresh scoped database token for the existing user database.
-- [x] T007: [@Frontend] Swap `@libsql/client` and `drizzle-orm/libsql` for `@tursodatabase/sync` and `drizzle-orm/sqlite-proxy` in `packages/adapters/package.json`.
-- [x] T008: [@Frontend] Implement the `IBunTursoClient` class (e.g., `BunTursoClient`) in `packages/adapters/db/clients/bun-turso-client.ts` to expose the proxy `db` instance and manage the Turso client container.
-- [x] T009: [@Frontend] Implement the `SyncPort` interface on `BunTursoClient` (`connectRemote`, `sync`, `disconnectRemote`).
-- [ ] T009b: [@Frontend] Create `ISyncService` and its implementation `SyncService` in `packages/core` to proxy calls to the `SyncPort`.
-- [x] T009c: [@Frontend] Rename the legacy `LibSql*Repository` classes to `Sqlite*Repository` and move them into `packages/adapters/db/repositories/`.
+- [x] T005: [@Backend] Refactored Elysia server `/auth/register` to use the Turso Platform API to provision a dedicated per-user database and issue a scoped database token.
+- [x] T006: [@Backend] Refactored Elysia server `/auth/login` to issue a fresh scoped database token for the existing user database.
+- [x] T007: [@Frontend] Swapped `@libsql/client` and `drizzle-orm/libsql` for `@tursodatabase/sync` and `drizzle-orm/sqlite-proxy` in `packages/adapters/package.json`.
+- [x] T008: [@Frontend] Implemented the `BunTursoClient` class in `packages/adapters/db/clients/bun-turso-client.ts` to expose the proxy `db` instance and manage the Turso client container using deferred sync state.
+- [x] T009: [@Frontend] Implemented the `SyncPort` interface on `BunTursoClient` (`connectRemote`, `sync`, `disconnectRemote`).
+- [x] T009b: [@Frontend] Created `SyncService` in `packages/core` to proxy calls to the `SyncPort`.
+- [x] T009c: [@Frontend] Renamed the legacy `LibSql*Repository` classes to `Sqlite*Repository` and moved them into `packages/adapters/db/repositories/`.
 
 ## Phase 3: UI & Integration
 
-- [x] T010: Update the `SqliteSessionRepository` to persist the `turso.url` and `turso.token` alongside the session JWT, handling the optional nature of the sync feature.
-- [x] T011: Modify TUI `bootstrap()` in `main.tsx` to automatically invoke `connectRemote()` with stored credentials if they exist on app startup.
-- [x] T012: Integrate `SyncService` into `AuthService` so that registering or logging in dynamically upgrades the live database connection to cloud-sync mode.
-- [x] T013: Implement the "Sync Now" UI trigger (e.g., a keyboard shortcut `3` or menu item in the dictionary view) that invokes the adapter's `sync()` method.
+- [x] T010: Updated the `SqliteSessionRepository` to persist the `turso.url` and `turso.token` alongside the session JWT, handling the optional nature of the sync feature.
+- [x] T011: Modified TUI `bootstrap()` in `main.tsx` to automatically invoke `connectRemote()` with stored credentials if they exist on app startup.
+- [x] T012: Integrated `SyncService` into `AuthService` so that registering or logging in dynamically upgrades the live database connection to cloud-sync mode.
+- [x] T013: Implemented the "Sync Now" UI trigger that invokes the adapter's `sync()` method.
 - [ ] T014: Implement UI feedback (e.g., loading spinner, success message, error toast) for the sync action.
+- [ ] T015: [@Frontend] Implement deterministic UUIDv5 generation for `foldersTable` and remove the `unique().on(name, parentId)` constraint to allow conflict-free cross-device folder merging.
+- [ ] T016: [@Frontend] Remove `unique()` constraint on `activityTable.date` to support append-only sync and update frontend logic to `SUM(count)` activities per date.
 
 ### Discovered & Resolved Edge Cases
 
-- [x] E001: Resolve missing SQLite `folder_id` column error caused by `drizzle-orm/sqlite-proxy` ignoring the `casing: "snake_case"` configuration. Fixed by explicitly mapping column names in `schema.ts`.
-- [x] E002: Resolve `NOT NULL constraint failed: activity.id` caused by native SQLite triggers failing to generate text-based UUIDs. Fixed by updating migrations to use `lower(hex(randomblob(16)))`.
-- [x] E003: Re-enable foreign key constraints (`PRAGMA foreign_keys = ON;`) dynamically on every connection within `BunTursoClient` as the proxy driver defaults them to off.
-- [ ] E004: Reverse registration logic order to provision Turso database _before_ persisting user to central server to prevent orphaned central accounts if Turso Platform API fails.
-- [ ] E005: Fix: manual generation misses critical regional suffixes (e.g., `.aws-eu-west-1`).
+- [x] E001: Fixed missing SQLite `folder_id` column error caused by `drizzle-orm/sqlite-proxy` ignoring `casing` configuration by explicitly mapping column names in `schema.ts`.
+- [x] E002: Fixed `NOT NULL constraint failed: activity.id` caused by native SQLite triggers by updating migrations to use `lower(hex(randomblob(16)))`.
+- [x] E003: Re-enabled foreign key constraints dynamically on every connection within `BunTursoClient`.
+- [x] E004: Fixed `Host not found` TUI crash on startup by implementing late-binding lambdas for `url` and `authToken`.
+- [x] E005: Fixed silent `Sync push/pull failed` error by passing the mutable `SyncCredentials` state properly to the client constructor.
+- [ ] E006: Fix `UNIQUE constraint failed: activity.date` conflict during offline merge by adopting an append-only CRDT approach.
+- [ ] E007: Reverse registration logic order to provision Turso database _before_ persisting user to central server to prevent orphaned central accounts.
+- [ ] E008: Fix manual URL generation missing critical regional suffixes (e.g., `.aws-eu-west-1`).
 
 ---
 
