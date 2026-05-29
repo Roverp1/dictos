@@ -26,35 +26,6 @@ export class TursoPlatformService {
     return `dictos-${userId}`;
   }
 
-  private async initializeRemoteSchema(
-    dbUrl: string,
-    token: string
-  ): Promise<void | Error> {
-    try {
-      const remoteClient = createLibSqlClient({
-        url: dbUrl,
-        authToken: token,
-      });
-
-      const db = drizzle(remoteClient);
-
-      await migrate(db, {
-        migrationsFolder: path.resolve(
-          __dirname,
-          // todo: think how to avoid hardcoding the path to the migrations
-          "../../../../../packages/adapters/db/drizzle/migrations"
-        ),
-      });
-
-      remoteClient.close();
-    } catch (err) {
-      return new Error(
-        `Failed to initialize remote schema: ${(err as Error).message}`,
-        { cause: err }
-      );
-    }
-  }
-
   async provisionDatabase(
     userId: string
   ): Promise<{ url: string; token: string } | TursoPlatformError> {
@@ -82,14 +53,6 @@ export class TursoPlatformService {
 
     const url = `libsql://${createRes.hostname}`;
     const token = tokenRes.jwt;
-
-    const initRes = await this.initializeRemoteSchema(url, token);
-    if (initRes instanceof Error) {
-      return new TursoPlatformError({
-        operation: "initialize_schema",
-        cause: initRes,
-      });
-    }
 
     return {
       url,
