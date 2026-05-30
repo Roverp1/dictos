@@ -93,7 +93,7 @@ export const activityTable = sqliteTable("activity", {
   id: text()
     .primaryKey()
     .default(sql`(uuid_str(uuid7()))`),
-  date: text().notNull().unique(),
+  date: text().notNull(), // ISO 8601 format
   count: int().notNull().default(1),
 });
 
