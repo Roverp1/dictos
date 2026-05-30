@@ -1,4 +1,5 @@
 import { eq, isNull } from "drizzle-orm";
+import { v5 as uuidv5 } from "uuid";
 
 import {
   DbError,
@@ -14,9 +15,11 @@ export class SqliteFolderRepository implements FolderRepository {
   constructor(private db: TursoDatabase) {}
 
   async save(folder: NewFolder): Promise<Folder | DbError> {
+    const id = genFolderUUIDV5(`${folder.parentId || "root"}:${folder.name}`);
+
     const result = await this.db
       .insert(schema.foldersTable)
-      .values(folder)
+      .values({ ...folder, id })
       .returning()
       .catch(
         (e) =>
@@ -163,3 +166,9 @@ export class SqliteFolderRepository implements FolderRepository {
     return result[0];
   }
 }
+
+const genFolderUUIDV5 = (deterministicString: string) => {
+  const FOLDER_NAMESPACE = "dedc30c7-43ae-4ca3-9779-703ab44bc508";
+
+  return uuidv5(deterministicString, FOLDER_NAMESPACE);
+};

@@ -47,9 +47,7 @@ export const descriptionsTable = sqliteTable("descriptions", {
 export const foldersTable = sqliteTable(
   "folders",
   {
-    id: text()
-      .primaryKey()
-      .default(sql`(uuid_str(uuid7()))`),
+    id: text().primaryKey(),
     name: text().notNull(),
     parentId: text("parent_id").references(
       (): AnySQLiteColumn => foldersTable.id,
@@ -71,7 +69,6 @@ export const foldersTable = sqliteTable(
       "privacy_enum_check",
       sql`${t.privacy} IN ('private', 'public', 'unlisted')`
     ),
-    unique().on(t.name, t.parentId),
   ]
 );
 
