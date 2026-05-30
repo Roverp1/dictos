@@ -106,16 +106,6 @@ export const usersTable = sqliteTable("users", {
   avatarUrl: text(),
 });
 
-export const sessionTable = sqliteTable("session", {
-  id: int().primaryKey(),
-  token: text().notNull(),
-  userId: text()
-    .notNull()
-    .references(() => usersTable.id),
-  tursoUrl: text(),
-  tursoToken: text(),
-});
-
 export const outboxTable = sqliteTable("outbox", {
   id: text()
     .primaryKey()

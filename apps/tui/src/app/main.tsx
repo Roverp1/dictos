@@ -7,7 +7,7 @@ import {
   SqliteEntryRepository,
   SqliteDescriptionRepository,
   SqliteFolderRepository,
-  SqliteSessionRepository,
+  FsSessionRepository,
   CentralApiAdapter,
 } from "@dictos/adapters";
 import {
@@ -30,7 +30,7 @@ export const bootstrap = async () => {
   const entryRepo = new SqliteEntryRepository(db);
   const folderRepo = new SqliteFolderRepository(db);
   const descriptionRepository = new SqliteDescriptionRepository(db);
-  const sessionRepository = new SqliteSessionRepository(db);
+  const sessionRepository = new FsSessionRepository();
 
   const centralApiAdapter = new CentralApiAdapter("http://localhost:1488/");
 

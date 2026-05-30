@@ -14,7 +14,7 @@ import { getAppDataDir } from "fs/paths";
 const APP_DATA_DIR = getAppDataDir("dictos");
 const SESSION_FILE = path.join(APP_DATA_DIR, "session.json");
 
-export class FSSessionRepository implements SessionRepository {
+export class FsSessionRepository implements SessionRepository {
   async saveSession(session: AuthSession): Promise<void | StorageError> {
     const mkDirResult = await fs.mkdir(APP_DATA_DIR, { recursive: true }).catch(
       (e) =>
