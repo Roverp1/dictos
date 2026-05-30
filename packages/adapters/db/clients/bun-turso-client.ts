@@ -107,6 +107,12 @@ export class BunTursoClient implements SyncPort {
   }
 
   async sync(): Promise<void | SyncError> {
+    if (!this.credentials.url) {
+      return new SyncError({
+        reason: "Not connected to an account",
+      });
+    }
+
     try {
       await this.client.push();
       await this.client.pull();
