@@ -3,7 +3,7 @@ import type { AuthPort } from "@ports/outbound/auth-port";
 import type { SessionRepository } from "@ports/outbound/session-repository";
 import type {
   AuthError,
-  DbError,
+  StorageError,
   InputValidationError,
   RegistrationError,
 } from "errors";
@@ -16,7 +16,7 @@ export class AuthService {
 
   async register(
     credentials: RegisterCredentials
-  ): Promise<User | RegistrationError | InputValidationError | DbError> {
+  ): Promise<User | RegistrationError | InputValidationError | StorageError> {
     const session = await this.authPort.register(credentials);
     if (session instanceof Error) return session;
 
@@ -28,7 +28,7 @@ export class AuthService {
 
   async login(
     credentials: AuthCredentials
-  ): Promise<User | AuthError | InputValidationError | DbError> {
+  ): Promise<User | AuthError | InputValidationError | StorageError> {
     const session = await this.authPort.login(credentials);
     if (session instanceof Error) return session;
 
@@ -38,11 +38,11 @@ export class AuthService {
     return session.user;
   }
 
-  async logout(): Promise<void | DbError> {
+  async logout(): Promise<void | StorageError> {
     return await this.sessionRepo.clearSession();
   }
 
-  async getCurrentUser(): Promise<User | DbError | null> {
+  async getCurrentUser(): Promise<User | StorageError | null> {
     const session = await this.sessionRepo.getSession();
     if (session instanceof Error) return session;
     if (session === null) return null;
