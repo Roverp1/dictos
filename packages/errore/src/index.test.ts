@@ -105,7 +105,8 @@ describe('instanceof Error / isOk', () => {
       console.error(result)
     }
     if (result instanceof Error) {
-      return result
+      expect(result).toBeDefined()
+      return
     }
     console.log(result.id)
   })
@@ -793,12 +794,13 @@ describe('complex: Error | T | null | undefined', () => {
 
     if (result instanceof Error) {
       // TypeScript: result is ValidationError
-      return result.field
+      expect(result.field).toBeDefined()
+      return
     }
 
     if (result == null) {
       // TypeScript: result is null | undefined
-      return 'no data'
+      return
     }
 
     // TypeScript: result is { rows: string[] }
@@ -1453,7 +1455,7 @@ describe('reserved key collisions', () => {
     })
 
     // Internal fingerprint getter must win over user-provided value
-    expect(err.fingerprint).toEqual(['FingerprintError'])
+    expect(err.fingerprint as any).toEqual(['FingerprintError'])
     expect(err._tag).toBe('FingerprintError')
   })
 
@@ -1478,7 +1480,7 @@ describe('reserved key collisions', () => {
     const err = new TestError({ fingerprint: 'user-value' })
 
     // fingerprint getter must return stable internal value
-    expect(err.fingerprint).toEqual([
+    expect(err.fingerprint as any).toEqual([
       'TestError',
       'Error with $fingerprint value',
     ])
