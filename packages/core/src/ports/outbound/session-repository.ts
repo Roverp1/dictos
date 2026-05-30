@@ -1,8 +1,8 @@
 import type { AuthSession } from "@models/user";
-import type { DbError } from "errors";
+import type { StorageError } from "errors";
 
 export interface SessionRepository {
-  saveSession(session: AuthSession): Promise<void | DbError>;
-  getSession(): Promise<AuthSession | DbError | null>;
-  clearSession(): Promise<void | DbError>;
+  saveSession(session: AuthSession): Promise<void | StorageError>;
+  getSession(): Promise<AuthSession | StorageError | null>;
+  clearSession(): Promise<void | StorageError>;
 }
