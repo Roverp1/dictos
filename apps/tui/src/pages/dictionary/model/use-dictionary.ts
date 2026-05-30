@@ -24,6 +24,8 @@ export const useDictionary = () => {
     descriptionRefreshTrigger,
     pathStack,
     setPathStack,
+    setTreeItemsOnHoverToDisplay,
+    treeItemsOnHoverToDisplay,
   } = useDictionaryStore();
 
   const { selectedTreeItem, currentFolder } = useHelperVariables();
@@ -122,6 +124,56 @@ export const useDictionary = () => {
 
     loadItems();
   }, [pathStack, refreshTreeItemTrigger]);
+
+  useEffect(() => {
+    if (selectedTreeItem?.type !== "folder") return;
+
+    const loadItems = async () => {
+      const [foldersResult, entriesResult] = await Promise.all([
+        folderService.getSubFolders(selectedTreeItem.data.id),
+        entryService.getEntriesInFolder(selectedTreeItem.data.id),
+      ]);
+
+      if (foldersResult instanceof Error) {
+        console.error(
+          "Failed to get sub-folders in current folder:",
+          foldersResult
+        );
+        return;
+      }
+      if (entriesResult instanceof Error) {
+        console.error(
+          "Failed to get entries in current folder:",
+          entriesResult
+        );
+        return;
+      }
+
+      const items: TreeItem[] = [];
+
+      for (const childFolder of foldersResult) {
+        items.push({
+          id: `folder-${childFolder.id}`,
+          type: "folder",
+          data: childFolder,
+          label: ` ${childFolder.name}`,
+        });
+      }
+
+      for (const entry of entriesResult) {
+        items.push({
+          id: `entry-${entry.id}`,
+          type: "entry",
+          data: entry,
+          label: `${entry.text}`,
+        });
+      }
+
+      setTreeItemsOnHoverToDisplay(items);
+    };
+
+    loadItems();
+  }, [selectedTreeItem]);
 
   useEffect(() => {
     setSelectedTreeItemIndex((prev) => {

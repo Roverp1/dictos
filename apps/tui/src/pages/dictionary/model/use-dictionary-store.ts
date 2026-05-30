@@ -8,6 +8,7 @@ type DictionaryStore = {
   inputValue: string;
   focus: FocusState;
   treeItemsToDisplay: TreeItem[];
+  treeItemsOnHoverToDisplay: TreeItem[];
   descriptionsToDisplay: Description[];
   selectedTreeItemIndex: number;
   selectedDescriptionIndex: number;
@@ -20,6 +21,7 @@ type DictionaryStore = {
     newFocusValue: FocusState | ((prev: FocusState) => FocusState)
   ) => void;
   setTreeItemsToDisplay: (newTreeItems: TreeItem[]) => void;
+  setTreeItemsOnHoverToDisplay: (newTreeItems: TreeItem[]) => void;
   setDescriptionsToDisplay: (newDescriptionsValue: Description[]) => void;
   setSelectedTreeItemIndex: (
     newTreeItemIndex: number | SetStateAction<number>
@@ -29,9 +31,7 @@ type DictionaryStore = {
   ) => void;
   setRefreshTreeItemTrigger: () => void;
   setDescriptionRefreshTrigger: () => void;
-  setPathStack: (
-    newPathStack: Folder[] | SetStateAction<Folder[]>
-  ) => void;
+  setPathStack: (newPathStack: Folder[] | SetStateAction<Folder[]>) => void;
 };
 
 export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
@@ -41,6 +41,7 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
     action: "idle",
   } as FocusState,
   treeItemsToDisplay: [],
+  treeItemsOnHoverToDisplay: [],
   descriptionsToDisplay: [],
   selectedTreeItemIndex: 0,
   selectedDescriptionIndex: 0,
@@ -66,6 +67,12 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
   setTreeItemsToDisplay: (newTreeItems) => {
     set({
       treeItemsToDisplay: newTreeItems,
+    });
+  },
+
+  setTreeItemsOnHoverToDisplay: (newTreeItems) => {
+    set({
+      treeItemsOnHoverToDisplay: newTreeItems,
     });
   },
 
@@ -125,7 +132,7 @@ export const useHelperVariables = () => {
   );
 
   const currentFolder = useDictionaryStore(
-    (state) => state.pathStack[state.pathStack.length - 1]!
+    (state) => state.pathStack[state.pathStack.length - 1]
   );
 
   const isAtRoot = useDictionaryStore((state) => state.pathStack.length === 1);

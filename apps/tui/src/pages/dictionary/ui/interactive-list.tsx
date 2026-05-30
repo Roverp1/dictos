@@ -2,7 +2,7 @@ import type { ScrollBoxRenderable } from "@opentui/core";
 import { useKeyboard, type ScrollBoxProps } from "@opentui/react";
 import { useRef, type ReactNode, useEffect } from "react";
 
-import type { FocusState } from "../model/use-dictionary";
+import type { FocusState } from "../model/types";
 
 interface InteractiveListProps<T> extends Omit<ScrollBoxProps, "children"> {
   items: T[];
