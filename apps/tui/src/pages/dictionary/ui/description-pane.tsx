@@ -18,6 +18,7 @@ export const DescriptionPane = () => {
     descriptionsToDisplay,
     selectedDescriptionIndex,
     setSelectedDescriptionIndex,
+    treeItemsOnHoverToDisplay,
   } = useDictionaryStore();
 
   const { selectedTreeItem } = useHelperVariables();
@@ -25,6 +26,9 @@ export const DescriptionPane = () => {
   const { handleRenameDescriptionSubmit } = useRenameLogic();
 
   const { handleCreateDescriptionSubmit } = useCreateLogic();
+
+  if (!selectedTreeItem) return;
+
   return (
     <box
       id="description-pane"
@@ -38,60 +42,70 @@ export const DescriptionPane = () => {
       <text fg={focus.pane === "description" ? theme.base0E : theme.base03}>
         {selectedTreeItem?.type === "entry"
           ? `${selectedTreeItem.data.text}`
-          : ""}
+          : `${selectedTreeItem.label}`}
       </text>
 
-      <InteractiveList
-        id="description-list"
-        contentOptions={{ gap: 1 }}
-        flexGrow={1}
-        items={descriptionsToDisplay}
-        focused={focus.pane === "description"}
-        focus={focus}
-        selectedIndex={selectedDescriptionIndex}
-        onIndexChange={setSelectedDescriptionIndex}
-        renderItem={(item, i, isSelected) => {
-          const isRenaming =
-            focus.action === "renameInput" && focus.pane === "description";
+      {/* if hovered on word */}
+      {selectedTreeItem.type === "entry" ? (
+        <InteractiveList
+          id="description-list"
+          contentOptions={{ gap: 1 }}
+          flexGrow={1}
+          items={descriptionsToDisplay}
+          focused={focus.pane === "description"}
+          focus={focus}
+          selectedIndex={selectedDescriptionIndex}
+          onIndexChange={setSelectedDescriptionIndex}
+          renderItem={(item, i, isSelected) => {
+            const isRenaming =
+              focus.action === "renameInput" && focus.pane === "description";
 
-          if (isSelected && isRenaming) {
+            if (isSelected && isRenaming) {
+              return (
+                <box
+                  border
+                  borderColor={theme.base0D}
+                >
+                  <SubmitTextarea
+                    focused={true}
+                    onSave={handleRenameDescriptionSubmit}
+                    initialValue={inputValue}
+                  />
+                </box>
+              );
+            }
+
             return (
               <box
                 border
-                borderColor={theme.base0D}
+                borderColor={isSelected ? theme.base0D : theme.base03}
+              >
+                <text fg={theme.base05}>{item.text}</text>
+              </box>
+            );
+          }}
+          ListFooterComponent={
+            focus.pane === "description" && focus.action === "createInput" ? (
+              <box
+                border
+                borderColor={theme.base0B}
               >
                 <SubmitTextarea
                   focused={true}
-                  onSave={handleRenameDescriptionSubmit}
-                  initialValue={inputValue}
+                  onSave={handleCreateDescriptionSubmit}
                 />
               </box>
-            );
+            ) : null
           }
-
-          return (
-            <box
-              border
-              borderColor={isSelected ? theme.base0D : theme.base03}
-            >
-              <text fg={theme.base05}>{item.text}</text>
-            </box>
-          );
-        }}
-        ListFooterComponent={
-          focus.pane === "description" && focus.action === "createInput" ? (
-            <box
-              border
-              borderColor={theme.base0B}
-            >
-              <SubmitTextarea
-                focused={true}
-                onSave={handleCreateDescriptionSubmit}
-              />
-            </box>
-          ) : null
-        }
-      />
+        />
+      ) : (
+        // if hovered on folder
+        <box>
+          {treeItemsOnHoverToDisplay.map((item) => (
+            <text fg={theme.base05}>{item.label}</text>
+          ))}
+        </box>
+      )}
     </box>
   );
 };
