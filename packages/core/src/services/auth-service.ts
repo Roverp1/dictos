@@ -28,7 +28,7 @@ export class AuthService {
 
   async login(
     credentials: AuthCredentials
-  ): Promise<User | AuthError | DbError> {
+  ): Promise<User | AuthError | InputValidationError | DbError> {
     const session = await this.authPort.login(credentials);
     if (session instanceof Error) return session;
 
