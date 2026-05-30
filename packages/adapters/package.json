@@ -15,6 +15,7 @@
   "dependencies": {
     "@dictos/core": "workspace:*",
     "@dictos/server": "workspace:*",
+    "@dictos/errore": "workspace:*",
     "@elysia/eden": "^1.4.10",
     "@tursodatabase/sync": "^0.6.1",
     "drizzle-orm": "^0.45.2",
