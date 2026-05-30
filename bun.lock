@@ -55,6 +55,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@dictos/core": "workspace:*",
+        "@dictos/errore": "workspace:*",
         "@dictos/server": "workspace:*",
         "@elysia/eden": "^1.4.10",
         "@tursodatabase/sync": "^0.6.1",
@@ -79,11 +80,21 @@
         "typescript": "^6.0.0",
       },
     },
+    "packages/errore": {
+      "name": "@dictos/errore",
+      "version": "0.14.1",
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^6.0.0",
+      },
+    },
   },
   "packages": {
     "@dictos/adapters": ["@dictos/adapters@workspace:packages/adapters"],
 
     "@dictos/core": ["@dictos/core@workspace:packages/core"],
+
+    "@dictos/errore": ["@dictos/errore@workspace:packages/errore"],
 
     "@dictos/server": ["@dictos/server@workspace:apps/server"],
 

@@ -1,5 +1,5 @@
 {
-  "name": "errore",
+  "name": "@dictos/errore",
   "version": "0.14.1",
   "type": "module",
   "description": "Type-safe errors as values for TypeScript. Like Go, but with full type inference.",
