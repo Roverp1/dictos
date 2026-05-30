@@ -86,7 +86,7 @@ export const instructionsTable = sqliteTable("instructions", {
     .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const activityTable = sqliteTable("activity", {
+export const activitiesTable = sqliteTable("activities", {
   id: text()
     .primaryKey()
     .default(sql`(uuid_str(uuid7()))`),
