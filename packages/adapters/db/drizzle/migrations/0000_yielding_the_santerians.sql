@@ -1,10 +1,9 @@
-CREATE TABLE `activity` (
+CREATE TABLE `activities` (
 	`id` text PRIMARY KEY DEFAULT (uuid_str(uuid7())) NOT NULL,
 	`date` text NOT NULL,
 	`count` integer DEFAULT 1 NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `activity_date_unique` ON `activity` (`date`);--> statement-breakpoint
 CREATE TABLE `descriptions` (
 	`id` text PRIMARY KEY DEFAULT (uuid_str(uuid7())) NOT NULL,
 	`entry_id` text NOT NULL,
@@ -25,7 +24,7 @@ CREATE TABLE `entries` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `entries_text_folderId_unique` ON `entries` (`text`,`folder_id`);--> statement-breakpoint
 CREATE TABLE `folders` (
-	`id` text PRIMARY KEY DEFAULT (uuid_str(uuid7())) NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
 	`parent_id` text,
 	`privacy` text DEFAULT 'private' NOT NULL,
@@ -35,7 +34,6 @@ CREATE TABLE `folders` (
 	CONSTRAINT "privacy_enum_check" CHECK("folders"."privacy" IN ('private', 'public', 'unlisted'))
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `folders_name_parent_id_unique` ON `folders` (`name`,`parent_id`);--> statement-breakpoint
 CREATE TABLE `instructions` (
 	`id` text PRIMARY KEY DEFAULT (uuid_str(uuid7())) NOT NULL,
 	`name` text,
@@ -50,15 +48,6 @@ CREATE TABLE `outbox` (
 	`record_id` text NOT NULL,
 	`operation` text NOT NULL,
 	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE `session` (
-	`id` integer PRIMARY KEY NOT NULL,
-	`token` text NOT NULL,
-	`user_id` text NOT NULL,
-	`turso_url` text,
-	`turso_token` text,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE TABLE `users` (
