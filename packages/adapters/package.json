@@ -7,6 +7,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/uuid": "^11.0.0",
     "drizzle-kit": "^0.31.10",
     "elysia": "^1.4.28",
     "typescript": "^6.0.0"
@@ -16,6 +17,7 @@
     "@dictos/server": "workspace:*",
     "@elysia/eden": "^1.4.10",
     "@tursodatabase/sync": "^0.6.1",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "uuid": "^14.0.0"
   }
 }
