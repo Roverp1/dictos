@@ -1,12 +1,13 @@
 import { connect, type Database } from "@tursodatabase/sync";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { migrate } from "drizzle-orm/sqlite-proxy/migrator";
+import { isNull } from "drizzle-orm";
 import path from "path";
 
 import { type SyncPort, SyncError } from "@dictos/core";
 
 import * as schema from "@db/schema/schema";
-import { isNull } from "drizzle-orm";
+import { genFolderUUIDV5 } from "@db/uuid";
 
 export type TursoDatabase = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -145,9 +146,12 @@ export class BunTursoClient implements SyncPort {
 
     if (rootDir !== undefined) return;
 
+    const id = genFolderUUIDV5(`${"root"}:${"root"}`);
+
     await db
       .insert(schema.foldersTable)
       .values({
+        id,
         name: "/",
         parentId: null,
         privacy: "private",

@@ -1,5 +1,4 @@
 import { eq, isNull } from "drizzle-orm";
-import { v5 as uuidv5 } from "uuid";
 
 import {
   DbError,
@@ -10,6 +9,7 @@ import {
 
 import * as schema from "@db/schema/schema";
 import { type TursoDatabase } from "@db/clients";
+import { genFolderUUIDV5 } from "db/uuid";
 
 export class SqliteFolderRepository implements FolderRepository {
   constructor(private db: TursoDatabase) {}
@@ -166,9 +166,3 @@ export class SqliteFolderRepository implements FolderRepository {
     return result[0];
   }
 }
-
-const genFolderUUIDV5 = (deterministicString: string) => {
-  const FOLDER_NAMESPACE = "dedc30c7-43ae-4ca3-9779-703ab44bc508";
-
-  return uuidv5(deterministicString, FOLDER_NAMESPACE);
-};
