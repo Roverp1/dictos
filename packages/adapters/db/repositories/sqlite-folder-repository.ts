@@ -20,6 +20,7 @@ export class SqliteFolderRepository implements FolderRepository {
     const result = await this.db
       .insert(schema.foldersTable)
       .values({ ...folder, id })
+      .onConflictDoNothing()
       .returning()
       .catch(
         (e) =>
@@ -31,11 +32,17 @@ export class SqliteFolderRepository implements FolderRepository {
       );
 
     if (result instanceof Error) return result;
-    if (!result[0])
-      return new DbError({
-        operation: "insert_folder",
-        reason: "No row returned",
-      });
+    if (!result[0]) {
+      const existing = await this.findById(id);
+      if (existing instanceof Error) return existing;
+      if (!existing)
+        return new DbError({
+          operation: "insert_folder",
+          reason: "Failed to insert and could not find existing folder",
+        });
+
+      return existing;
+    }
 
     return result[0];
   }
@@ -143,26 +150,75 @@ export class SqliteFolderRepository implements FolderRepository {
   }
 
   async delete(id: string): Promise<Folder | DbError> {
-    const result = await this.db
-      .delete(schema.foldersTable)
-      .where(eq(schema.foldersTable.id, id))
-      .returning()
-      .catch(
-        (e) =>
-          new DbError({
-            operation: "delete_folder",
-            reason: "Exception",
-            cause: e,
-          })
-      );
+    // implemented custom 'ON CASCADE DELETE'
+    // remove after turso fixes https://github.com/tursodatabase/turso/issues/5154
+    return await this.db.transaction(async (tx) => {
+      const targetRes = await tx
+        .select()
+        .from(schema.foldersTable)
+        .where(eq(schema.foldersTable.id, id))
+        .catch(
+          (e) =>
+            new DbError({
+              operation: "select_folder",
+              reason: "Exception",
+              cause: e,
+            })
+        );
 
-    if (result instanceof Error) return result;
-    if (!result[0])
-      return new DbError({
-        operation: "delete_folder",
-        reason: "No row returned",
-      });
+      if (targetRes instanceof Error) return targetRes;
+      const targetFolder = targetRes[0];
+      if (targetFolder === undefined)
+        return new DbError({
+          operation: "select_folder",
+          reason: "No row returned",
+        });
 
-    return result[0];
+      const idsToDelete: string[] = [];
+      const queue: string[] = [id];
+
+      while (queue.length > 0) {
+        const currentId = queue.shift()!;
+        idsToDelete.push(currentId);
+
+        const children = await tx
+          .select({ id: schema.foldersTable.id })
+          .from(schema.foldersTable)
+          .where(eq(schema.foldersTable.parentId, currentId))
+          .catch(
+            (e) =>
+              new DbError({
+                operation: "selecet_folder_id",
+                reason: "Exception",
+                cause: e,
+              })
+          );
+
+        if (children instanceof Error) return children;
+
+        for (const child of children) {
+          queue.push(child.id);
+        }
+      }
+
+      idsToDelete.reverse();
+      for (const folderId of idsToDelete) {
+        const res = await tx
+          .delete(schema.foldersTable)
+          .where(eq(schema.foldersTable.id, folderId))
+          .catch(
+            (e) =>
+              new DbError({
+                operation: "delete_folder",
+                reason: "Exception",
+                cause: e,
+              })
+          );
+
+        if (res instanceof Error) return res;
+      }
+
+      return targetFolder;
+    });
   }
 }
