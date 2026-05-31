@@ -1,6 +1,6 @@
 {
-  "id": "b5a489b2-6f2f-489c-908b-9871a5a7cfca",
-  "prevId": "4dd8c811-5cac-41a6-8324-f227ffb3e83e",
+  "id": "e418d0cc-8d0b-4a6d-8315-db5a5158ce23",
+  "prevId": "429f8140-6189-48d3-a0bb-644930e071cc",
   "version": "6",
   "dialect": "sqlite",
   "tables": {
@@ -12,8 +12,7 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false,
-          "default": "(uuid_str(uuid7()))"
+          "autoincrement": false
         },
         "date": {
           "name": "date",

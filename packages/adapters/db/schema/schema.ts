@@ -87,9 +87,7 @@ export const instructionsTable = sqliteTable("instructions", {
 });
 
 export const activitiesTable = sqliteTable("activities", {
-  id: text()
-    .primaryKey()
-    .default(sql`(uuid_str(uuid7()))`),
+  id: text().primaryKey(), // uuidv5 based on deviceId+date
   date: text().notNull(), // ISO 8601 format
   count: int().notNull().default(1),
 });
