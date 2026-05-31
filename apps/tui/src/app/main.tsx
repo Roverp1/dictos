@@ -10,6 +10,7 @@ import {
   FsSessionRepository,
   CentralApiAdapter,
   FsLocalStateRepository,
+  getDictosDataDir,
 } from "@dictos/adapters";
 import {
   AuthService,
@@ -23,12 +24,19 @@ import {
 import { useServicesStore } from "@shared/lib/services";
 
 import { App } from "./app";
+import path from "path";
 
 export const bootstrap = async () => {
-  const dbClient = await BunTursoClient.create("./dictos.db");
+  const dataDir = await getDictosDataDir();
+  if (dataDir instanceof Error) {
+    console.error("Fatal: Cannot create app directory:", dataDir);
+    process.exit(1);
+  }
+
+  const dbClient = await BunTursoClient.create(path.join(dataDir, "dictos.db"));
   const db = dbClient.db;
 
-  const localStateRepo = new FsLocalStateRepository();
+  const localStateRepo = new FsLocalStateRepository(dataDir);
   const localState = await localStateRepo.getLocalState();
   // @todo properly handle errors
   // allow user to try to re-read or re-generate the state
@@ -37,7 +45,7 @@ export const bootstrap = async () => {
   const entryRepo = new SqliteEntryRepository(db, localState.deviceId);
   const folderRepo = new SqliteFolderRepository(db);
   const descriptionRepository = new SqliteDescriptionRepository(db);
-  const sessionRepository = new FsSessionRepository();
+  const sessionRepository = new FsSessionRepository(dataDir);
 
   const centralApiAdapter = new CentralApiAdapter("http://localhost:1488/");
 

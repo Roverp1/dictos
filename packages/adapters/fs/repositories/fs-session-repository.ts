@@ -8,25 +8,16 @@ import {
   type SessionRepository,
 } from "@dictos/core";
 
-import { getAppDataDir, APP_DATA_DIR } from "fs/paths";
-
-const SESSION_FILE = path.join(APP_DATA_DIR, "session.json");
-
 export class FsSessionRepository implements SessionRepository {
+  private localStateFile: string;
+
+  constructor(dataDir: string) {
+    this.localStateFile = path.join(dataDir, "session.json");
+  }
+
   async saveSession(session: AuthSession): Promise<void | StorageError> {
-    const mkDirResult = await fs.mkdir(APP_DATA_DIR, { recursive: true }).catch(
-      (e) =>
-        new StorageError({
-          operation: "fs_mkdir",
-          reason: "Could not create app data dir",
-          cause: e,
-        })
-    );
-
-    if (mkDirResult instanceof Error) return mkDirResult;
-
     const writeResult = await fs
-      .writeFile(SESSION_FILE, JSON.stringify(session, null, 2), "utf-8")
+      .writeFile(this.localStateFile, JSON.stringify(session, null, 2), "utf-8")
       .catch(
         (e) =>
           new StorageError({
@@ -40,16 +31,18 @@ export class FsSessionRepository implements SessionRepository {
   }
 
   async getSession(): Promise<AuthSession | StorageError | null> {
-    const readResult = await fs.readFile(SESSION_FILE, "utf-8").catch((e) => {
-      const err = e as ErrnoException;
-      if (err.code === "ENOENT") return null;
+    const readResult = await fs
+      .readFile(this.localStateFile, "utf-8")
+      .catch((e) => {
+        const err = e as ErrnoException;
+        if (err.code === "ENOENT") return null;
 
-      return new StorageError({
-        operation: "fs_read",
-        reason: "Could not read session file",
-        cause: err,
+        return new StorageError({
+          operation: "fs_read",
+          reason: "Could not read session file",
+          cause: err,
+        });
       });
-    });
 
     if (readResult instanceof Error) return readResult;
     if (readResult === null) return null;
@@ -69,7 +62,7 @@ export class FsSessionRepository implements SessionRepository {
   }
 
   async clearSession(): Promise<void | StorageError> {
-    const rmResult = await fs.unlink(SESSION_FILE).catch((e) => {
+    const rmResult = await fs.unlink(this.localStateFile).catch((e) => {
       const err = e as ErrnoException;
       if (err.code === "ENOENT") return;
 

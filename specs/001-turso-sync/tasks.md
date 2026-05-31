@@ -36,8 +36,11 @@ _(Backend and Frontend can often work in parallel here based on Phase 1 contract
 - [x] T012: Integrated `SyncService` into `AuthService` so that registering or logging in dynamically upgrades the live database connection to cloud-sync mode.
 - [x] T013: Implemented the "Sync Now" UI trigger that invokes the adapter's `sync()` method.
 - [ ] T014: Implement UI feedback (e.g., loading spinner, success message, error toast) for the sync action.
-- [ ] T015: [@Frontend] Implement deterministic UUIDv5 generation for `foldersTable` and remove the `unique().on(name, parentId)` constraint to allow conflict-free cross-device folder merging.
-- [ ] T016: [@Frontend] Remove `unique()` constraint on `activityTable.date` to support append-only sync and update frontend logic to `SUM(count)` activities per date.
+- [x] T015: [@Frontend] Implement deterministic UUIDv5 generation for `foldersTable` and remove the `unique().on(name, parentId)` constraint to allow conflict-free cross-device folder merging.
+- [x] T016: [@Frontend] Remove `unique()` constraint on `activityTable.date` to support append-only sync and update frontend logic to `SUM(count)` activities per date.
+- [x] T017: [@Frontend] Split `LocalState` into `ConfigRepository` (device-specific state) and `SessionRepository` (auth-specific state) to prevent JWT sync overwrites.
+- [x] T018: [@Frontend] Move local file storage logic (config/session) into a dedicated `fs` adapter (`packages/adapters/fs`), keeping core independent of `node:fs`.
+- [ ] T019: [@Frontend] Implement UUIDv5 generation for `entriesTable` and remove `unique(text, folderId)` constraint to prevent sync crashes on duplicated entry texts.
 
 ### Discovered & Resolved Edge Cases
 
@@ -46,8 +49,9 @@ _(Backend and Frontend can often work in parallel here based on Phase 1 contract
 - [x] E003: Re-enabled foreign key constraints dynamically on every connection within `BunTursoClient`.
 - [x] E004: Fixed `Host not found` TUI crash on startup by implementing late-binding lambdas for `url` and `authToken`.
 - [x] E005: Fixed silent `Sync push/pull failed` error by passing the mutable `SyncCredentials` state properly to the client constructor.
-- [ ] E006: Fix `UNIQUE constraint failed: activity.date` conflict during offline merge by adopting an append-only CRDT approach.
-- [ ] E007: Reverse registration logic order to provision Turso database _before_ persisting user to central server to prevent orphaned central accounts.
+- [x] E006: Fix `UNIQUE constraint failed: activity.date` conflict during offline merge by removing database triggers and utilizing a `deviceId`-based UUIDv5 for upserts inside Drizzle transactions.
+- [x] E006b: Fix "Session Overwrite" bug by ensuring device-specific credentials (`deviceId`, JWT, Turso URL) are persisted in a local `session.json`/`config.json` via file-system adapters instead of the synced database.
+- [ ] E007: Decouple registration logic order from provision cloud Turso database to prevent orphaned central accounts.
 - [ ] E008: Fix manual URL generation missing critical regional suffixes (e.g., `.aws-eu-west-1`).
 
 ---
@@ -56,3 +60,4 @@ _(Backend and Frontend can often work in parallel here based on Phase 1 contract
 
 - [ ] Run `/docify.absorb` to automatically update the living Documentation (`docs/system-overview.md` and module docs) with the newly defined sync architectural approach and proxy patterns.
 - [ ] **Manual Verification:** Ensure any new domain vocabulary used during this feature (like "Sync", "Bootstrap") was grilled and added to `CONTEXT.md` if applicable.
+

@@ -9,18 +9,20 @@ import {
 } from "@dictos/core";
 import * as errore from "@dictos/errore";
 
-import { APP_DATA_DIR } from "fs/paths";
-
-const LOCAL_STATE_FILE = path.join(APP_DATA_DIR, "local-state.json");
-
 export class FsLocalStateRepository implements LocalStateRepository {
+  private localStateFile: string;
+
+  constructor(dataDir: string) {
+    this.localStateFile = path.join(dataDir, "local-state.json");
+  }
+
   async resetLocalState(): Promise<LocalState | StorageError> {
     const newLocalState = {
       deviceId: randomUUID(),
     } as LocalState;
 
     const writeRes = await fs
-      .writeFile(LOCAL_STATE_FILE, JSON.stringify(newLocalState), "utf-8")
+      .writeFile(this.localStateFile, JSON.stringify(newLocalState), "utf-8")
       .catch(
         (e) =>
           new StorageError({
@@ -35,7 +37,7 @@ export class FsLocalStateRepository implements LocalStateRepository {
   }
 
   async getLocalState(): Promise<LocalState | StorageError> {
-    const data = await fs.readFile(LOCAL_STATE_FILE, "utf-8").catch((e) => {
+    const data = await fs.readFile(this.localStateFile, "utf-8").catch((e) => {
       const err = e as ErrnoException;
       if (err.code === "ENOENT") return null;
       return new StorageError({
