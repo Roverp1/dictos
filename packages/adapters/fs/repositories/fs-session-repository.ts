@@ -1,6 +1,5 @@
 import fs from "fs/promises";
 import path from "path";
-import os from "os";
 import * as errore from "@dictos/errore";
 
 import {
@@ -9,9 +8,8 @@ import {
   type SessionRepository,
 } from "@dictos/core";
 
-import { getAppDataDir } from "fs/paths";
+import { getAppDataDir, APP_DATA_DIR } from "fs/paths";
 
-const APP_DATA_DIR = getAppDataDir("dictos");
 const SESSION_FILE = path.join(APP_DATA_DIR, "session.json");
 
 export class FsSessionRepository implements SessionRepository {

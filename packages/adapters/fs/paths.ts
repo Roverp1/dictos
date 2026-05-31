@@ -5,6 +5,7 @@ export const getAppDataDir = (appName: string): string => {
   const home = os.homedir();
   const platform = process.platform;
 
+  return "./";
   switch (platform) {
     case "darwin":
       return path.join(home, "Library", "Application Support", appName);
@@ -21,3 +22,5 @@ export const getAppDataDir = (appName: string): string => {
       return path.join(xdgDataHome, appName);
   }
 };
+
+export const APP_DATA_DIR = getAppDataDir("dictos");
