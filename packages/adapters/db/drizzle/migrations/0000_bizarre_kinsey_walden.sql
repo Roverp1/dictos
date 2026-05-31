@@ -1,5 +1,5 @@
 CREATE TABLE `activities` (
-	`id` text PRIMARY KEY DEFAULT (uuid_str(uuid7())) NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
 	`date` text NOT NULL,
 	`count` integer DEFAULT 1 NOT NULL
 );

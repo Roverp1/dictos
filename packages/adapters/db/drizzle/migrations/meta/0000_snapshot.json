@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "4dd8c811-5cac-41a6-8324-f227ffb3e83e",
+  "id": "429f8140-6189-48d3-a0bb-644930e071cc",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "activities": {
@@ -12,8 +12,7 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false,
-          "default": "(uuid_str(uuid7()))"
+          "autoincrement": false
         },
         "date": {
           "name": "date",

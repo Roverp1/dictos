@@ -76,15 +76,3 @@ BEGIN
     SET modified_at = strftime('%s', 'now')
     WHERE id = OLD.folder_id;
 END;
---> statement-breakpoint
-
--- update activity on new entry
-CREATE TRIGGER increment_activity_on_entry_insert
-AFTER INSERT ON entries
-FOR EACH ROW
-BEGIN
-    INSERT INTO activities (date)
-    VALUES (DATE('now'))
-    ON CONFLICT (date) DO 
-    UPDATE SET count = count + 1;
-END;
