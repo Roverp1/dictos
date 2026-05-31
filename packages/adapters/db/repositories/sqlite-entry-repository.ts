@@ -4,13 +4,13 @@ import {
   type NewEntry,
   DbError,
 } from "@dictos/core";
-import { LibSQLDatabase } from "drizzle-orm/libsql";
 import { eq, sql } from "drizzle-orm";
 
 import * as schema from "@db/schema/schema";
 import { type TursoDatabase } from "@db/clients";
 import { randomUUIDv5 } from "bun";
 
+const ENTRY_NAMESPACE = "604605f1-8982-4520-b13a-67b9bc799681";
 const ACTIVITY_NAMESPACE = "29450149-2bd6-420b-bb01-a6c36d3e94a5";
 
 export class SqliteEntryRepository implements EntryRepository {
@@ -20,13 +20,18 @@ export class SqliteEntryRepository implements EntryRepository {
   ) {}
 
   async save(entry: NewEntry): Promise<Entry | DbError> {
+    const entryIdString = `${entry.text}:${entry.folderId}`;
+    const entryId = randomUUIDv5(entryIdString, ENTRY_NAMESPACE);
+
     const savedEntry = await this.db.transaction(async (tx) => {
       const result = await tx
         .insert(schema.entriesTable)
         .values({
+          id: entryId,
           text: entry.text,
           folderId: entry.folderId,
         })
+        .onConflictDoNothing()
         .returning()
         .catch(
           (e) =>
@@ -38,7 +43,17 @@ export class SqliteEntryRepository implements EntryRepository {
         );
 
       if (result instanceof Error) return result;
-      if (!result[0])
+
+      let savedEntry = result[0];
+      if (savedEntry === undefined) {
+        const existing = await tx
+          .select()
+          .from(schema.entriesTable)
+          .where(eq(schema.entriesTable.id, entryId));
+
+        savedEntry = existing[0];
+      }
+      if (savedEntry === undefined)
         return new DbError({
           operation: "insert_entry",
           reason: "No row returned",
@@ -70,7 +85,7 @@ export class SqliteEntryRepository implements EntryRepository {
 
       if (activityRes instanceof Error) return activityRes;
 
-      return result[0];
+      return savedEntry;
     });
 
     return savedEntry;

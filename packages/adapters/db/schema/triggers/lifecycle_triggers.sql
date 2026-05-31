@@ -71,6 +71,7 @@ END;
 CREATE TRIGGER update_folder_on_entry_delete
 AFTER DELETE ON entries
 FOR EACH ROW
+WHEN EXISTS (SELECT 1 FROM folders WHERE id = OLD.folder_id)
 BEGIN
     UPDATE folders
     SET modified_at = strftime('%s', 'now')

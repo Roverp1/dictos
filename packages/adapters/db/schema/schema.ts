@@ -5,28 +5,21 @@ import {
   text,
   type AnySQLiteColumn,
   check,
-  unique,
 } from "drizzle-orm/sqlite-core";
 
-export const entriesTable = sqliteTable(
-  "entries",
-  {
-    id: text()
-      .primaryKey()
-      .default(sql`(uuid_str(uuid7()))`),
-    text: text().notNull(),
-    folderId: text()
-      .notNull()
-      .references(() => foldersTable.id, { onDelete: "cascade" }),
-    createdAt: int({ mode: "timestamp" })
-      .notNull()
-      .default(sql`(strftime('%s', 'now'))`),
-    modifiedAt: int({ mode: "timestamp" })
-      .notNull()
-      .default(sql`(strftime('%s', 'now'))`),
-  },
-  (t) => [unique().on(t.text, t.folderId)]
-);
+export const entriesTable = sqliteTable("entries", {
+  id: text().primaryKey(), // uuidv5 based on text+folderId
+  text: text().notNull(),
+  folderId: text()
+    .notNull()
+    .references(() => foldersTable.id, { onDelete: "cascade" }),
+  createdAt: int({ mode: "timestamp" })
+    .notNull()
+    .default(sql`(strftime('%s', 'now'))`),
+  modifiedAt: int({ mode: "timestamp" })
+    .notNull()
+    .default(sql`(strftime('%s', 'now'))`),
+});
 
 export const descriptionsTable = sqliteTable("descriptions", {
   id: text()
