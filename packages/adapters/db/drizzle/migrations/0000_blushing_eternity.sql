@@ -14,7 +14,7 @@ CREATE TABLE `descriptions` (
 );
 --> statement-breakpoint
 CREATE TABLE `entries` (
-	`id` text PRIMARY KEY DEFAULT (uuid_str(uuid7())) NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
 	`text` text NOT NULL,
 	`folder_id` text NOT NULL,
 	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
@@ -22,7 +22,6 @@ CREATE TABLE `entries` (
 	FOREIGN KEY (`folder_id`) REFERENCES `folders`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `entries_text_folderId_unique` ON `entries` (`text`,`folder_id`);--> statement-breakpoint
 CREATE TABLE `folders` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,

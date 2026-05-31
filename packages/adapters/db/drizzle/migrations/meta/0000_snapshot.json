@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "429f8140-6189-48d3-a0bb-644930e071cc",
+  "id": "26dbb96d-ef37-45e8-9c6b-643e7ef26b7f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "activities": {
@@ -106,8 +106,7 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false,
-          "default": "(uuid_str(uuid7()))"
+          "autoincrement": false
         },
         "text": {
           "name": "text",
@@ -140,16 +139,7 @@
           "default": "(strftime('%s', 'now'))"
         }
       },
-      "indexes": {
-        "entries_text_folderId_unique": {
-          "name": "entries_text_folderId_unique",
-          "columns": [
-            "text",
-            "folder_id"
-          ],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "entries_folder_id_folders_id_fk": {
           "name": "entries_folder_id_folders_id_fk",
