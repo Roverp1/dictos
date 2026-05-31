@@ -9,6 +9,7 @@ import {
   SqliteFolderRepository,
   FsSessionRepository,
   CentralApiAdapter,
+  FsLocalStateRepository,
 } from "@dictos/adapters";
 import {
   AuthService,
@@ -27,7 +28,13 @@ export const bootstrap = async () => {
   const dbClient = await BunTursoClient.create("./dictos.db");
   const db = dbClient.db;
 
-  const entryRepo = new SqliteEntryRepository(db);
+  const localStateRepo = new FsLocalStateRepository();
+  const localState = await localStateRepo.getLocalState();
+  // @todo properly handle errors
+  // allow user to try to re-read or re-generate the state
+  if (localState instanceof Error) throw localState;
+
+  const entryRepo = new SqliteEntryRepository(db, localState.deviceId);
   const folderRepo = new SqliteFolderRepository(db);
   const descriptionRepository = new SqliteDescriptionRepository(db);
   const sessionRepository = new FsSessionRepository();
