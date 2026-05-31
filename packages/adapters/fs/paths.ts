@@ -1,11 +1,17 @@
 import os from "os";
+import fs from "fs/promises";
 import path from "path";
 
+import { StorageError } from "@dictos/core";
+
 export const getAppDataDir = (appName: string): string => {
+  if (process.env.NODE_ENV === "development") {
+    return path.join(process.cwd(), ".data");
+  }
+
   const home = os.homedir();
   const platform = process.platform;
 
-  return "./";
   switch (platform) {
     case "darwin":
       return path.join(home, "Library", "Application Support", appName);
@@ -23,4 +29,19 @@ export const getAppDataDir = (appName: string): string => {
   }
 };
 
-export const APP_DATA_DIR = getAppDataDir("dictos");
+export const getDictosDataDir = async (): Promise<string | StorageError> => {
+  const dictosDataDir = getAppDataDir("dictos");
+
+  const mkDirResult = await fs.mkdir(dictosDataDir, { recursive: true }).catch(
+    (e) =>
+      new StorageError({
+        operation: "fs_mkdir",
+        reason: "Could not create app data dir",
+        cause: e,
+      })
+  );
+
+  if (mkDirResult instanceof Error) return mkDirResult;
+
+  return dictosDataDir;
+};

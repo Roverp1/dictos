@@ -3,6 +3,7 @@
 skills-lock.json
 tmp/
 .exports/
+.data/
 
 # dependencies (bun install)
 node_modules
