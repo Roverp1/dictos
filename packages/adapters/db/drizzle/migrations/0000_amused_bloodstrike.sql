@@ -29,7 +29,7 @@ CREATE TABLE `folders` (
 	`privacy` text DEFAULT 'private' NOT NULL,
 	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
 	`modified_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
-	FOREIGN KEY (`parent_id`) REFERENCES `folders`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`parent_id`) REFERENCES `folders`(`id`) ON UPDATE no action ON DELETE no action,
 	CONSTRAINT "privacy_enum_check" CHECK("folders"."privacy" IN ('private', 'public', 'unlisted'))
 );
 --> statement-breakpoint

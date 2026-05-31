@@ -43,8 +43,9 @@ export const foldersTable = sqliteTable(
     id: text().primaryKey(),
     name: text().notNull(),
     parentId: text("parent_id").references(
-      (): AnySQLiteColumn => foldersTable.id,
-      { onDelete: "cascade" }
+      (): AnySQLiteColumn => foldersTable.id
+      // { onDelete: "cascade" } // @todo enable when turso will have https://github.com/tursodatabase/turso/issues/5154 fixed
+      // // for now recursive deletion is handled in the FolderRepository
     ),
     privacy: text("privacy", { enum: ["private", "public", "unlisted"] })
       .notNull()
