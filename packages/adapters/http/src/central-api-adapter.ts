@@ -35,7 +35,7 @@ export class CentralApiAdapter implements AuthPort {
 
           default:
             return new RegistrationError({
-              reason: error.value.detail,
+              reason: error.value.detail || "Server unreachable",
             });
         }
       }
@@ -77,7 +77,7 @@ export class CentralApiAdapter implements AuthPort {
 
           default:
             return new AuthError({
-              reason: error.value.detail,
+              reason: error.value.detail || "Server unreachable",
             });
         }
       }
