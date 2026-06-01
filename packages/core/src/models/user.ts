@@ -7,12 +7,17 @@ export interface User {
 }
 
 export interface AuthSession {
-  user: User;
+  userId: string;
   token: string;
   turso?: {
     url: string;
     token: string;
   };
+}
+
+export interface AuthResult {
+  user: User;
+  session: AuthSession;
 }
 
 export interface AuthCredentials {

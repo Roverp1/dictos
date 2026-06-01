@@ -4,7 +4,7 @@ import {
   RegistrationError,
   type AuthCredentials,
   type AuthPort,
-  type AuthSession,
+  type AuthResult,
   type RegisterCredentials,
 } from "@dictos/core";
 import { treaty } from "@elysia/eden";
@@ -19,10 +19,9 @@ export class CentralApiAdapter implements AuthPort {
 
   async register(
     credentials: RegisterCredentials
-  ): Promise<AuthSession | InputValidationError | RegistrationError> {
+  ): Promise<AuthResult | InputValidationError | RegistrationError> {
     try {
-      const { data, error, status } =
-        await this.client.auth.register.post(credentials);
+      const { data, error } = await this.client.auth.register.post(credentials);
 
       if (error) {
         switch (error.status) {
@@ -46,7 +45,16 @@ export class CentralApiAdapter implements AuthPort {
           reason: "No data returned from the server",
         });
 
-      return data.data;
+      const serverPayload = data.data;
+
+      return {
+        user: serverPayload.user,
+        session: {
+          userId: serverPayload.user.id,
+          token: serverPayload.token,
+          turso: serverPayload.turso,
+        },
+      };
     } catch (err) {
       return new RegistrationError({ reason: "Network failure", cause: err });
     }
@@ -54,7 +62,7 @@ export class CentralApiAdapter implements AuthPort {
 
   async login(
     credentials: AuthCredentials
-  ): Promise<AuthSession | InputValidationError | AuthError> {
+  ): Promise<AuthResult | InputValidationError | AuthError> {
     try {
       const { data, error } = await this.client.auth.login.post(credentials);
 
@@ -76,7 +84,16 @@ export class CentralApiAdapter implements AuthPort {
 
       if (!data) return new AuthError({ reason: "No data returned" });
 
-      return data.data;
+      const serverPayload = data.data;
+
+      return {
+        user: serverPayload.user,
+        session: {
+          userId: serverPayload.user.id,
+          token: serverPayload.token,
+          turso: serverPayload.turso,
+        },
+      };
     } catch (err) {
       return new AuthError({ reason: "Network failure", cause: err });
     }
