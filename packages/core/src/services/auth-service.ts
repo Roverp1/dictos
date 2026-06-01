@@ -8,12 +8,14 @@ import type {
   InputValidationError,
   RegistrationError,
 } from "errors";
+import type { SyncService } from "./sync-service";
 
 export class AuthService {
   constructor(
     private authPort: AuthPort,
     private sessionRepo: SessionRepository,
-    private userRepo: UserRepository
+    private userRepo: UserRepository,
+    private syncService: SyncService
   ) {}
 
   async register(
@@ -29,6 +31,10 @@ export class AuthService {
 
     const sessionRes = await this.sessionRepo.saveSession(session);
     if (sessionRes instanceof Error) return sessionRes;
+
+    if (session.turso) {
+      await this.syncService.connect(session.turso.url, session.turso.token);
+    }
 
     return user;
   }
@@ -46,6 +52,10 @@ export class AuthService {
 
     const sessionRes = await this.sessionRepo.saveSession(session);
     if (sessionRes instanceof Error) return sessionRes;
+
+    if (session.turso) {
+      await this.syncService.connect(session.turso.url, session.turso.token);
+    }
 
     return user;
   }
