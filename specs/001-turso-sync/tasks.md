@@ -40,7 +40,12 @@ _(Backend and Frontend can often work in parallel here based on Phase 1 contract
 - [x] T016: [@Frontend] Remove `unique()` constraint on `activityTable.date` to support append-only sync and update frontend logic to `SUM(count)` activities per date.
 - [x] T017: [@Frontend] Split `LocalState` into `ConfigRepository` (device-specific state) and `SessionRepository` (auth-specific state) to prevent JWT sync overwrites.
 - [x] T018: [@Frontend] Move local file storage logic (config/session) into a dedicated `fs` adapter (`packages/adapters/fs`), keeping core independent of `node:fs`.
-- [ ] T019: [@Frontend] Implement UUIDv5 generation for `entriesTable` and remove `unique(text, folderId)` constraint to prevent sync crashes on duplicated entry texts.
+- [x] T019: [@Frontend] Implement UUIDv5 generation for `entriesTable` and remove `unique(text, folderId)` constraint to prevent sync crashes on duplicated entry texts.
+- [x] T020: [@Frontend] Implement "Thin Session" pattern by persisting `User` profile in synced `usersTable` and extracting only `AuthSession` secrets to local fs adapter.
+- [x] T021: [@Frontend] Implement `ConnectivityPort` to provide fast-fail offline detection for `SyncService` prior to initiating database sync.
+- [x] T022: [@Frontend] Update sync logic to be non-blocking in TUI bootstrap (using an IIFE) to ensure instant UI rendering while syncing in the background.
+- [x] T023: [@Frontend] Translate `SyncResult` network stats (bytes, cdc operations) into useful UI signals (`pushedLocalChanges`, `pulledRemoteChanges`).
+- [x] T024: [@Frontend] Implement manual BFS recursive deletion for folders to circumvent TursoDB self-referencing `ON DELETE CASCADE` engine crash.
 
 ### Discovered & Resolved Edge Cases
 
@@ -51,8 +56,10 @@ _(Backend and Frontend can often work in parallel here based on Phase 1 contract
 - [x] E005: Fixed silent `Sync push/pull failed` error by passing the mutable `SyncCredentials` state properly to the client constructor.
 - [x] E006: Fix `UNIQUE constraint failed: activity.date` conflict during offline merge by removing database triggers and utilizing a `deviceId`-based UUIDv5 for upserts inside Drizzle transactions.
 - [x] E006b: Fix "Session Overwrite" bug by ensuring device-specific credentials (`deviceId`, JWT, Turso URL) are persisted in a local `session.json`/`config.json` via file-system adapters instead of the synced database.
-- [ ] E007: Decouple registration logic order from provision cloud Turso database to prevent orphaned central accounts.
+- [-] E007: [POSTPONED] Decouple registration logic order from provision cloud Turso database to prevent orphaned central accounts.
 - [ ] E008: Fix manual URL generation missing critical regional suffixes (e.g., `.aws-eu-west-1`).
+- [x] E009: Bypass TursoDB `ON DELETE CASCADE` engine crash on self-referential keys by implementing application-level recursive BFS folder deletion.
+- [x] E010: Prevent TUI startup lockup from blocking network calls by separating `connect()` and `sync()` into background promises.
 
 ---
 
@@ -60,4 +67,3 @@ _(Backend and Frontend can often work in parallel here based on Phase 1 contract
 
 - [ ] Run `/docify.absorb` to automatically update the living Documentation (`docs/system-overview.md` and module docs) with the newly defined sync architectural approach and proxy patterns.
 - [ ] **Manual Verification:** Ensure any new domain vocabulary used during this feature (like "Sync", "Bootstrap") was grilled and added to `CONTEXT.md` if applicable.
-
