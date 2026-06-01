@@ -58,3 +58,8 @@ export class InputValidationError extends errore.createTaggedError({
     this.fields = options.fields;
   }
 }
+
+export class OfflineError extends errore.createTaggedError({
+  name: "OfflineError",
+  message: "Device is offline or server is unreachable.",
+}) {}

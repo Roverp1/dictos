@@ -1,1 +1,1 @@
-export * from "./src/central-api-adapter";
+export * from "./adapters/";
