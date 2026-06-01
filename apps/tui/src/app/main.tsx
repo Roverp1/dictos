@@ -54,8 +54,13 @@ export const bootstrap = async () => {
   const entryService = new EntryService(entryRepo);
   const folderService = new FolderService(folderRepo);
   const descriptionService = new DescriptionService(descriptionRepo);
-  const authService = new AuthService(centralApiAdapter, sessionRepo, userRepo);
   const syncService = new SyncService(dbClient);
+  const authService = new AuthService(
+    centralApiAdapter,
+    sessionRepo,
+    userRepo,
+    syncService
+  );
 
   const sessionResult = await sessionRepo.getSession();
   if (sessionResult instanceof Error) {
