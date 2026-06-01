@@ -9,3 +9,4 @@ export * from "./user-repository";
 export * from "./LlmPort";
 export * from "./auth-port";
 export * from "./sync-port";
+export * from "./connectivity-port";

@@ -11,6 +11,7 @@ import {
   CentralApiAdapter,
   FsLocalStateRepository,
   getDictosDataDir,
+  HttpConnectivityAdapter,
 } from "@dictos/adapters";
 import {
   AuthService,
@@ -50,11 +51,14 @@ export const bootstrap = async () => {
   const sessionRepo = new FsSessionRepository(dataDir);
 
   const centralApiAdapter = new CentralApiAdapter("http://localhost:1488/");
+  const httpConnectivityAdapter = new HttpConnectivityAdapter(
+    "https://turso.tech/"
+  );
 
   const entryService = new EntryService(entryRepo);
   const folderService = new FolderService(folderRepo);
   const descriptionService = new DescriptionService(descriptionRepo);
-  const syncService = new SyncService(dbClient);
+  const syncService = new SyncService(dbClient, httpConnectivityAdapter);
   const authService = new AuthService(
     centralApiAdapter,
     sessionRepo,
@@ -70,8 +74,17 @@ export const bootstrap = async () => {
   const session = sessionResult instanceof Error ? null : sessionResult;
 
   if (session && session.turso) {
-    await syncService.connect(session.turso.url, session.turso.token);
-    await syncService.sync();
+    (async () => {
+      try {
+        await syncService.connect(session.turso!.url, session.turso!.token);
+        const result = await syncService.sync();
+
+        if (!(result instanceof Error) && result.pulledRemoteChanges) {
+        } // refresh ui or smth
+      } catch (e) {
+        console.error("Background sync failed on startup:", e);
+      }
+    })();
   }
 
   useServicesStore.getState().initServices({
