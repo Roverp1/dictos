@@ -4,7 +4,7 @@ import { migrate } from "drizzle-orm/sqlite-proxy/migrator";
 import { isNull } from "drizzle-orm";
 import path from "path";
 
-import { type SyncPort, SyncError } from "@dictos/core";
+import { type SyncPort, type SyncResult, SyncError } from "@dictos/core";
 
 import * as schema from "@db/schema/schema";
 import { genFolderUUIDV5 } from "@db/uuid";
@@ -107,20 +107,49 @@ export class BunTursoClient implements SyncPort {
     }
   }
 
-  async sync(): Promise<void | SyncError> {
+  async sync(): Promise<SyncResult | SyncError> {
     if (!this.credentials.url) {
       return new SyncError({
         reason: "Not connected to an account",
       });
     }
 
-    try {
-      await this.client.push();
-      await this.client.pull();
-    } catch (err: any) {
-      console.error("[Turso] connectRemote failed:", err.message || err);
-      return new SyncError({ reason: "Sync push/pull failed", cause: err });
-    }
+    const beforeStats = await this.client
+      .stats()
+      .catch(
+        (e) => new SyncError({ reason: "Failed to fetch stats", cause: e })
+      );
+    if (beforeStats instanceof Error) return beforeStats;
+
+    const pushRes = await this.client
+      .push()
+      .catch((e) => new SyncError({ reason: "Push failed", cause: e }));
+    if (pushRes instanceof Error) return pushRes;
+
+    const pullRes = await this.client
+      .pull()
+      .catch((e) => new SyncError({ reason: "Pull failed", cause: e }));
+    if (pullRes instanceof Error) return pullRes;
+
+    const afterStats = await this.client
+      .stats()
+      .catch(
+        (e) => new SyncError({ reason: "Failed to fetch stats", cause: e })
+      );
+    if (afterStats instanceof Error) return afterStats;
+
+    const syncResult: SyncResult = {
+      pulledRemoteChanges: pullRes,
+      pushedLocalChanges: beforeStats.cdcOperations > 0,
+      stats: {
+        bytesSent: afterStats.networkSentBytes - beforeStats.networkSentBytes,
+        bytesReceived:
+          afterStats.networkReceivedBytes - beforeStats.networkReceivedBytes,
+        operationsSynced: beforeStats.cdcOperations,
+      },
+    } as const;
+
+    return syncResult;
   }
 
   async disconnectRemote(): Promise<void | SyncError> {
@@ -137,6 +166,7 @@ export class BunTursoClient implements SyncPort {
   }
 
   private static async seedDbOnInit(
+    // swap to this.db?
     db: ReturnType<typeof drizzle<typeof schema>>
   ) {
     const [rootDir] = await db

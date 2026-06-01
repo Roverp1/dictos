@@ -1,6 +1,11 @@
-import * as errore from "errore";
-
 import { SyncError } from "errors";
+
+export interface SyncResult {
+  /** will be true after push */
+  pulledRemoteChanges: boolean;
+  pushedLocalChanges: boolean;
+  stats: { bytesSent: number; bytesReceived: number; operationsSynced: number };
+}
 
 export interface SyncPort {
   /**
@@ -12,7 +17,7 @@ export interface SyncPort {
   /**
    * Pushes local changes to the remote database and pulls down new changes.
    */
-  sync(): Promise<void | SyncError>;
+  sync(): Promise<SyncResult | SyncError>;
 
   /**
    * Disconnects the local database from the remote cloud database.
