@@ -1,4 +1,4 @@
-import type { SyncPort } from "@ports/outbound";
+import type { SyncPort, SyncResult } from "@ports/outbound";
 import type { SyncError } from "errors";
 
 export class SyncService {
@@ -8,7 +8,7 @@ export class SyncService {
     return await this.syncPort.connectRemote(url, token);
   }
 
-  async sync(): Promise<void | SyncError> {
+  async sync(): Promise<SyncResult | SyncError> {
     return await this.syncPort.sync();
   }
 
