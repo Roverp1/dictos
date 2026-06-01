@@ -25,6 +25,7 @@ import { useServicesStore } from "@shared/lib/services";
 
 import { App } from "./app";
 import path from "path";
+import { SqliteUserRepository } from "../../../../packages/adapters/db/repositories/sqlite-user-repository";
 
 export const bootstrap = async () => {
   const dataDir = await getDictosDataDir();
@@ -44,18 +45,19 @@ export const bootstrap = async () => {
 
   const entryRepo = new SqliteEntryRepository(db, localState.deviceId);
   const folderRepo = new SqliteFolderRepository(db);
-  const descriptionRepository = new SqliteDescriptionRepository(db);
-  const sessionRepository = new FsSessionRepository(dataDir);
+  const descriptionRepo = new SqliteDescriptionRepository(db);
+  const userRepo = new SqliteUserRepository(db);
+  const sessionRepo = new FsSessionRepository(dataDir);
 
   const centralApiAdapter = new CentralApiAdapter("http://localhost:1488/");
 
   const entryService = new EntryService(entryRepo);
   const folderService = new FolderService(folderRepo);
-  const descriptionService = new DescriptionService(descriptionRepository);
-  const authService = new AuthService(centralApiAdapter, sessionRepository);
+  const descriptionService = new DescriptionService(descriptionRepo);
+  const authService = new AuthService(centralApiAdapter, sessionRepo, userRepo);
   const syncService = new SyncService(dbClient);
 
-  const sessionResult = await sessionRepository.getSession();
+  const sessionResult = await sessionRepo.getSession();
   if (sessionResult instanceof Error) {
     console.error(sessionResult);
   }

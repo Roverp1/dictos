@@ -4,6 +4,7 @@ export * from "./folder-repository";
 export * from "./instruction-repository";
 export * from "./session-repository";
 export * from "./local-state-repository";
+export * from "./user-repository";
 
 export * from "./LlmPort";
 export * from "./auth-port";
