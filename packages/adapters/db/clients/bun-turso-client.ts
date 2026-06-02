@@ -138,6 +138,15 @@ export class BunTursoClient implements SyncPort {
       );
     if (afterStats instanceof Error) return afterStats;
 
+    this.client
+      .checkpoint()
+      .catch((e) =>
+        console.error(
+          "[Turso] Non-fatal: Failed to checkpoint WAL after sync:",
+          e
+        )
+      );
+
     const syncResult: SyncResult = {
       pulledRemoteChanges: pullRes,
       pushedLocalChanges: beforeStats.cdcOperations > 0,
