@@ -1,6 +1,7 @@
 import { useKeyboard } from "@opentui/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { toast } from "@opentui-ui/toast";
 
 import { useTheme } from "@shared/lib/theme";
 import { useServices } from "@shared/lib/services";
@@ -14,19 +15,30 @@ export const NavBottomBar = () => {
   const navigate = useNavigate();
 
   const { syncService } = useServices();
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSync = async () => {
-    setIsSyncing(true);
-    const res = await syncService.sync();
-    setIsSyncing(false);
+    const performSync = async () => {
+      const result = await syncService.sync();
 
-    if (res instanceof Error) {
-      console.error("Sync failed:", res);
-      return;
-    }
+      if (result instanceof Error) {
+        console.error(result);
+        throw result;
+      }
 
-    console.log("Sync is successful:", res);
+      return result;
+    };
+
+    const user = await toast
+      .promise(performSync(), {
+        loading: "Synchronizing...",
+        success: "Synchorization successful!",
+        error: (err: any) =>
+          err.reason || err.message || "Synchronization failed",
+      })
+      ?.unwrap()
+      .catch(() => {});
+
+    console.log("Sync is successful:", user);
   };
 
   useKeyboard((key) => {
