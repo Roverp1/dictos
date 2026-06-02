@@ -1,0 +1,9 @@
+description = "Create a Pull Request based on the project's PR template using the GitHub CLI (gh), ensuring quality through a rigorous pre-review grilling process."
+prompt = """
+@{.docify/commands/pr.md}
+
+**Gemini CLI Execution Notes:**
+You are running as a Gemini CLI agent. Please ignore the `scripts` YAML frontmatter in the included markdown document. Instead, use your `run_shell_command` tool to autonomously execute the Dependency Check and Repository State Check described in the **Pre-Execution Checks** section before proceeding to the other steps.
+
+{{args}}
+"""
