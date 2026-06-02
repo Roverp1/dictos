@@ -43,6 +43,7 @@ Before speaking to the user, you must autonomously gather empirical data about t
 - Check if the branch has an upstream: `git rev-parse --abbrev-ref --symbolic-full-name @{u}`. If it fails, push the branch using `git push -u origin HEAD`.
 - Determine the base branch if not specificied by the user (default to `main` or `master`): `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`
 - Get the commit history for this branch: `git log --oneline --graph`
+- Check for fixup/squash commits: `git log origin/<base-branch>..HEAD --grep="^fixup\!\|^squash\!" --oneline`
 - Get the full diff: `git diff origin/<base-branch>..HEAD` (use stat and detailed diffs as needed).
 
 ### 2. Locate PR Template
@@ -64,6 +65,7 @@ Based on your context gathering and the PR template, generate an internal queue 
 
 **Examples of Grill Targets:**
 
+- **Fixup Commits**: If `fixup!` or `squash!` commits exist in the branch history, this is an immediate Grill Target. Advise the user to squash them (e.g., `git rebase -i --autosquash origin/<base-branch>`) before proceeding.
 - **Template Mismatches**: The template requires an issue ticket, but none is found in the branch name or commits.
 - **Unverified Checklists**: The PR template checklist mentions "Execution verified in staging" or "Manual verification completed". You cannot prove this from a diff. You MUST grill the user about it.
 - **Empirical Check**: Did they add complex logic without tests? Run a search to see if test files were actually modified. If not, this is a Grill Target.
@@ -77,6 +79,7 @@ You will now interview the user relentlessly about the changes until reaching a 
 **Rules for Grilling:**
 
 - **One at a time**: Ask exactly ONE question per turn. Walk down each branch of the decision tree resolving dependencies one-by-one.
+- **Answer User Questions First**: If the user replies to your question with a question of their own, you MUST answer their question first, clarify any confusion, and ensure they are satisfied before moving on to the next Grill Target.
 - **Explore Code**: If a question can be answered by exploring the codebase, explore the codebase instead.
 - **Provide Recommendations**: For every question you ask, provide your recommended answer or technical suggestion based on best practices.
 - **Update Internal State**: As the user answers, keep track of their justifications. You will use these exact justifications to populate the "Why is this change needed?" and "How to Review" sections of the PR template, and to check off (`[x]`) checklist items.
@@ -144,7 +147,7 @@ _(Append `--draft` if the user requested a draft PR in the arguments)._
 Clean up the temporary file (only if pr was created with `gh`):
 
 ```bash
-rm .git/PR_BODY_DRAFT.md
+rm tmp/${00X-pr-title}.md
 ```
 
 ## Post-Execution
@@ -153,4 +156,3 @@ Report the final status to the user:
 
 - Output the URL of the newly created Pull Request.
 - Suggest next steps, such as adding reviewers (`gh pr edit --add-reviewer <username>`) or viewing the PR in the browser (`gh pr view --web`).
-
