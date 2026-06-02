@@ -1,9 +1,11 @@
 import { useKeyboard } from "@opentui/react";
+import { toast } from "@opentui-ui/toast/react";
+import { InputValidationError } from "@dictos/core";
 
 import { useTheme } from "@shared/lib/theme";
+import { useServices } from "@shared/lib/services";
 
 import { useAuthStore } from "../model/use-auth-store";
-import { useServices } from "@shared/lib/services";
 
 export const AuthPage = () => {
   const theme = useTheme();
@@ -46,19 +48,34 @@ export const AuthPage = () => {
       useAuthStore.getState();
 
     setErrorMessage(null);
-    const result = await authService.login({
-      email: loginEmail.trim(),
-      password: loginPassword.trim(),
-    });
+    const performLogin = async () => {
+      const result = await authService.login({
+        email: loginEmail.trim(),
+        password: loginPassword.trim(),
+      });
 
-    if (result instanceof Error) {
-      setErrorMessage(result.message);
-      console.error(result);
-      return;
-    }
+      if (result instanceof InputValidationError) {
+        console.error(result.fields);
+      }
 
-    console.log("result:", result);
-    setSuccess(result);
+      if (result instanceof Error) {
+        console.error(result);
+        throw result;
+      }
+
+      return result;
+    };
+
+    const user = await toast
+      .promise(performLogin(), {
+        loading: "Logging in...",
+        success: "Login successful!",
+        error: (err: any) => err.message || "Auth failed",
+      })
+      ?.unwrap()
+      .catch(() => {});
+
+    console.log("result:", user);
   };
 
   const handleRegister = async () => {
@@ -71,20 +88,36 @@ export const AuthPage = () => {
     } = useAuthStore.getState();
 
     setErrorMessage(null);
-    const result = await authService.register({
-      username: registerUsername.trim(),
-      email: registerEmail.trim(),
-      password: registerPassword.trim(),
-    });
 
-    if (result instanceof Error) {
-      setErrorMessage(result.message);
-      console.error(result);
-      return;
-    }
+    const performLogin = async () => {
+      const result = await authService.register({
+        username: registerUsername.trim(),
+        email: registerEmail.trim(),
+        password: registerPassword.trim(),
+      });
 
-    console.log("result:", result);
-    setSuccess(result);
+      if (result instanceof InputValidationError) {
+        console.error(result.fields);
+      }
+
+      if (result instanceof Error) {
+        console.error(result);
+        throw result;
+      }
+
+      return result;
+    };
+
+    const user = await toast
+      .promise(performLogin(), {
+        loading: "Registrating...",
+        success: "Registration successful!",
+        error: (err: any) => err.message || "Registration failed",
+      })
+      ?.unwrap()
+      .catch(() => {});
+
+    console.log("result:", user);
   };
 
   return (
