@@ -57,7 +57,7 @@ _(Backend and Frontend can often work in parallel here based on Phase 1 contract
 - [x] E006: Fix `UNIQUE constraint failed: activity.date` conflict during offline merge by removing database triggers and utilizing a `deviceId`-based UUIDv5 for upserts inside Drizzle transactions.
 - [x] E006b: Fix "Session Overwrite" bug by ensuring device-specific credentials (`deviceId`, JWT, Turso URL) are persisted in a local `session.json`/`config.json` via file-system adapters instead of the synced database.
 - [-] E007: [POSTPONED] Decouple registration logic order from provision cloud Turso database to prevent orphaned central accounts.
-- [ ] E008: Fix manual URL generation missing critical regional suffixes (e.g., `.aws-eu-west-1`).
+- [x] E008: Fix manual URL generation missing critical regional suffixes by utilizing the `hostname` directly returned by the Turso Platform API.
 - [x] E009: Bypass TursoDB `ON DELETE CASCADE` engine crash on self-referential keys by implementing application-level recursive BFS folder deletion.
 - [x] E010: Prevent TUI startup lockup from blocking network calls by separating `connect()` and `sync()` into background promises.
 

@@ -33,5 +33,5 @@ The project uses a monorepo structure. It employs Hexagonal Architecture to isol
 - **Dictionary Management**: Core domain handling `Entries`, `Descriptions`, `Folders`, and basic `Activity` tracking. See: [Documentation Module - Dictionary Management](./modules/dictionary-management/domain.md)
 - **LLM Generation**: Manages reusable `Instructions` and the generation of `Descriptions` via the Gemini API.
 - **Import/Export**: Handles ingesting raw text from various sources and `Export` of data (e.g., to Anki, JSON).
-- **Sync**: Handles the rules and conflict resolution for the bidirectional replication of private local data across a single user's devices.
+- **Sync**: Handles the rules and conflict resolution for the bidirectional replication of private local data across a single user's devices. See: [Documentation Module - Sync](./modules/sync/domain.md)
 - **Social**: Handles `Mirroring` of data to the central server for public viewing and socialization features.

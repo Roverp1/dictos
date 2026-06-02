@@ -6,25 +6,25 @@
 
 ```typescript
 export interface Entry {
-  id: number;
+  id: string;
   text: string;
-  folderId: number;
+  folderId: string;
   createdAt: Date;
   modifiedAt: Date;
 }
 
 export interface Description {
-  id: number;
+  id: string;
   text: string;
-  entryId: number;
+  entryId: string;
   createdAt: Date;
   modifiedAt: Date;
 }
 
 export interface Folder {
-  id: number;
+  id: string;
   name: string;
-  parentId: number | null;
+  parentId: string | null;
   privacy: "private" | "public" | "unlisted";
   createdAt: Date;
   modifiedAt: Date;
@@ -39,14 +39,14 @@ Nested containers for entries.
 
 | Column       | Type             | Constraints                     | Description |
 | ------------ | ---------------- | ------------------------------- | ----------- |
-| `id`         | `int`            | PK                              | Auto-incremented ID |
+| `id`         | `text`           | PK                              | Deterministic UUIDv5 (`parentId:name`) |
 | `name`       | `text`           | NOT NULL                        | Name of the folder |
-| `parentId`   | `int`            | FK (`folders.id`) CASCADE       | Nullable root, self-referencing |
+| `parentId`   | `text`           | FK (`folders.id`)               | Nullable root, self-referencing |
 | `privacy`    | `text (enum)`    | NOT NULL, Default: "private"    | 'private', 'public', or 'unlisted' |
 | `createdAt`  | `int (timestamp)`| NOT NULL                        | Creation timestamp |
 | `modifiedAt` | `int (timestamp)`| NOT NULL                        | Last modification timestamp |
 
-*Constraints: Unique composite index on `(name, parentId)`.*
+*Note: Native `UNIQUE` constraints are omitted. Duplicate offline creations merge seamlessly during Turso sync due to deterministic UUIDv5 primary keys.*
 
 ### `entries`
 
@@ -54,13 +54,13 @@ Text fragments stored in folders.
 
 | Column       | Type             | Constraints                     | Description |
 | ------------ | ---------------- | ------------------------------- | ----------- |
-| `id`         | `int`            | PK                              | Auto-incremented ID |
+| `id`         | `text`           | PK                              | Deterministic UUIDv5 (`folderId:text`) |
 | `text`       | `text`           | NOT NULL                        | The capture text |
-| `folderId`   | `int`            | FK (`folders.id`) CASCADE       | Target folder |
+| `folderId`   | `text`           | FK (`folders.id`) CASCADE       | Target folder |
 | `createdAt`  | `int (timestamp)`| NOT NULL                        | Creation timestamp |
 | `modifiedAt` | `int (timestamp)`| NOT NULL                        | Last modification timestamp |
 
-*Constraints: Unique composite index on `(text, folderId)`.*
+*Note: Native `UNIQUE` constraints are omitted to prevent sync crashes. Duplicate creations resolve via UUIDv5 merge.*
 
 ### `descriptions`
 
@@ -68,8 +68,8 @@ Explanations attached to entries.
 
 | Column       | Type             | Constraints                     | Description |
 | ------------ | ---------------- | ------------------------------- | ----------- |
-| `id`         | `int`            | PK                              | Auto-incremented ID |
-| `entryId`    | `int`            | FK (`entries.id`) CASCADE       | Target entry |
+| `id`         | `text`           | PK                              | UUIDv7 |
+| `entryId`    | `text`           | FK (`entries.id`) CASCADE       | Target entry |
 | `text`       | `text`           | NOT NULL                        | The description content |
 | `createdAt`  | `int (timestamp)`| NOT NULL                        | Creation timestamp |
 | `modifiedAt` | `int (timestamp)`| NOT NULL                        | Last modification timestamp |
