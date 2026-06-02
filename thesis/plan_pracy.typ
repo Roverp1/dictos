@@ -39,7 +39,7 @@ The goal is to build a system that works offline first. Core data stays on the d
 = Technologies Used
 
 == Core Domain and Backend
-I use TypeScript with Bun as the runtime. Bun is fast and handles SQLite natively. The core domain follows Hexagonal Architecture, keeping business rules independent of the user interface. The app uses libSQL (a SQLite fork) for local storage. Turso provides the synchronization layer. This setup allows the app to write data locally and sync changes to a remote database when the network is available. Drizzle ORM handles database queries and migrations.
+I use TypeScript with Bun as the runtime. The core domain follows Hexagonal Architecture, keeping business rules independent of the user interface. The app uses the Turso database engine (formerly Limbo) for local storage. Turso cloud provides the synchronization layer. This setup allows the app to write data locally and sync changes to a remote database when the network is available. Drizzle ORM handles database queries and migrations.
 
 #v(vSpace)
 
@@ -60,7 +60,7 @@ I separated the application into three layers: adapters, core domain, and client
 #v(vSpace)
 
 == User Interface: Terminal UI
-The TUI focuses on keyboard speed. Users navigate folders, capture text, and trigger Gemini API requests without touching a mouse.
+The TUI focuses on keyboard speed. Users navigate folders, capture text, and trigger LLM requests without touching a mouse.
 
 #v(vSpace)
 
@@ -70,7 +70,7 @@ The mobile client focuses on reading on the go. It provides a touch interface fo
 #v(vSpace)
 
 == Database Schema
-The database uses deterministic UUIDv5s for primary keys instead of auto-incrementing integers or relying on SQLite UNIQUE constraints. This prevents split-brain conflicts if a user creates identical folders on two offline devices.
+The database uses deterministic UUIDv5s for primary keys instead of auto-incrementing integers or relying on SQLite UNIQUE constraints. This prevents conflicts if a user creates identical folders on two offline devices.
 
 #v(vSpace)
 
@@ -105,6 +105,10 @@ The core domain is tested in isolation. The tests verify that saving an entry of
 
 #v(vSpace)
 
+== Conclusions
+This section outlines the technical findings from building the system, addressing any challenges faced during the implementation of the cross-platform clients and the offline-first synchronization.
+#v(vSpace)
+
 #v(vSpace)
 
 = Summary
@@ -113,7 +117,6 @@ This section will summarize the final state of the project, evaluating whether t
 #v(vSpace)
 
 = Bibliography
-1. Martin, R. C., Clean Architecture: A Craftsman's Guide to Software Structure and Design. Prentice Hall, 2017.
 2. Kleppmann, V., Designing Data-Intensive Applications. O'Reilly Media, 2017.
-3. Official libSQL/Turso Documentation.
+3. Official Turso documentation.
 4. Additional academic and technical sources covering CRDTs, offline-first design, and spaced repetition.

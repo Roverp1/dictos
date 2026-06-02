@@ -4,7 +4,7 @@
 
 ## Project Purpose
 
-Dictos is a local-first, application for building and managing personal dictionaries. It allows users to capture text fragments (Entries) from digital reading, organize them into Folders, generate LLM-powered explanations (Descriptions) using reusable templates (Instructions), and export the data for spaced-repetition study (e.g., Anki). While the initial primary client is a Terminal UI, Dictos is designed as a cross-platform system that will eventually support Mobile (Android/iOS) and Web platforms.
+Dictos is a local-first, application for building and managing personal dictionaries. It allows users to capture text fragments (Entries) from digital reading, organize them into Folders, generate LLM-powered explanations (Descriptions) using reusable templates (Instructions), and export the data for spaced-repetition study (e.g., Anki). While the initial client is a Terminal UI, Dictos is designed as a cross-platform system that is also implementing a Mobile (React Native) client, with Web platforms planned for the future.
 
 ## High-Level Architecture
 
