@@ -1,15 +1,11 @@
 import { useKeyboard } from "@opentui/react";
-import type { AuthService } from "@dictos/core";
 
 import { useTheme } from "@shared/lib/theme";
 
-export interface AuthPageProps {
-  authService: AuthService;
-}
-
 import { useAuthStore } from "../model/use-auth-store";
+import { useServices } from "@shared/lib/services";
 
-export const AuthPage = ({ authService }: AuthPageProps) => {
+export const AuthPage = () => {
   const theme = useTheme();
 
   const {
@@ -26,6 +22,8 @@ export const AuthPage = ({ authService }: AuthPageProps) => {
     setRegisterUsername,
     focusedField,
   } = useAuthStore();
+
+  const { authService } = useServices();
 
   useKeyboard((key) => {
     if (key.name === "tab") {
