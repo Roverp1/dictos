@@ -7,31 +7,36 @@ import type {
   AuthService,
   SyncService,
 } from "@dictos/core";
+import { type Logger } from "@dictos/logger";
 
-interface DictosServices {
+interface DictosDependencies {
   entryService: EntryService;
   folderService: FolderService;
   descriptionService: DescriptionService;
 
   authService: AuthService;
   syncService: SyncService;
+
+  logger: Logger;
 }
 
-const DictosContext = createContext<DictosServices | null>(null);
+const DependenciesContext = createContext<DictosDependencies | null>(null);
 
 interface DictosProviderProps {
-  services: DictosServices;
+  services: DictosDependencies;
   children: ReactNode;
 }
 
 export const DictosProvider = ({ services, children }: DictosProviderProps) => {
   return (
-    <DictosContext.Provider value={services}>{children}</DictosContext.Provider>
+    <DependenciesContext.Provider value={services}>
+      {children}
+    </DependenciesContext.Provider>
   );
 };
 
-export const useServices = (): DictosServices => {
-  const context = useContext(DictosContext);
+export const useDependencies = (): DictosDependencies => {
+  const context = useContext(DependenciesContext);
 
   if (!context) {
     throw new Error("useServices must be used within a DictosProvider");

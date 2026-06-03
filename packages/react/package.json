@@ -6,7 +6,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@dictos/core": "workspace:*"
+    "@dictos/core": "workspace:*",
+    "@dictos/logger": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.0.0",

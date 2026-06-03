@@ -89,11 +89,19 @@
         "typescript": "^6.0.0",
       },
     },
+    "packages/logger": {
+      "name": "@dictos/logger",
+      "version": "0.0.0",
+      "devDependencies": {
+        "typescript": "^6.0.0",
+      },
+    },
     "packages/react": {
       "name": "@dictos/react",
       "version": "0.0.0",
       "dependencies": {
         "@dictos/core": "workspace:*",
+        "@dictos/logger": "workspace:*",
       },
       "devDependencies": {
         "@types/react": "^19.0.0",
@@ -112,6 +120,8 @@
     "@dictos/core": ["@dictos/core@workspace:packages/core"],
 
     "@dictos/errore": ["@dictos/errore@workspace:packages/errore"],
+
+    "@dictos/logger": ["@dictos/logger@workspace:packages/logger"],
 
     "@dictos/react": ["@dictos/react@workspace:packages/react"],
 
