@@ -8,6 +8,8 @@ export const useCreateLogic = () => {
     setFocus,
     setInputValue,
     setRefreshTreeItemTrigger,
+    setSelectedTreeItemIndex,
+    treeItemsToDisplay,
   } = useDictionaryStore();
 
   const { entryService, descriptionService, folderService } = useServices();
@@ -26,6 +28,11 @@ export const useCreateLogic = () => {
       return;
     }
 
+    if (!currentFolder) {
+      setFocus({ pane: "tree", action: "idle" });
+      return;
+    }
+
     if (trimmed.endsWith("/")) {
       const name = trimmed.slice(0, -1);
       await folderService
@@ -34,10 +41,22 @@ export const useCreateLogic = () => {
           parentId: currentFolder.id,
         })
         .catch(console.error);
+
+      const foldersToDisplay = []; // contains only old folders without new folder
+
+      for (let i = 0; i < treeItemsToDisplay.length; i++) {
+        if (treeItemsToDisplay[i]?.type === "folder") {
+          foldersToDisplay.push(treeItemsToDisplay[i]);
+        }
+      }
+
+      setSelectedTreeItemIndex(foldersToDisplay.length);
     } else {
       await entryService
         .createEntry({ text: trimmed, folderId: currentFolder.id })
         .catch(console.error);
+
+      setSelectedTreeItemIndex(treeItemsToDisplay.length);
     }
 
     setRefreshTreeItemTrigger();

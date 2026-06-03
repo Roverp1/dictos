@@ -68,6 +68,7 @@ export const useDictionary = () => {
         console.error("Failed to get root folder:", rootFolder);
         return;
       }
+      console.log("rootFolder: ", rootFolder);
 
       setPathStack([rootFolder]);
     };
