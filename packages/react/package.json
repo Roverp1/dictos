@@ -1,0 +1,21 @@
+{
+  "name": "@dictos/react",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0"
+  },
+  "peerDependencies": {
+    "@dictos/core": "workspace:*",
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "react-router": "^7.0.0",
+    "zustand": "^5.0.0"
+  },
+  "dependencies": {
+    "@dictos/core": "workspace:*"
+  }
+}
