@@ -96,11 +96,10 @@
         "@dictos/core": "workspace:*",
       },
       "devDependencies": {
+        "@types/react": "^19.0.0",
         "typescript": "^6.0.0",
       },
       "peerDependencies": {
-        "@dictos/core": "workspace:*",
-        "@types/react": "^19.0.0",
         "react": "^19.0.0",
         "react-router": "^7.0.0",
         "zustand": "^5.0.0",
