@@ -14,9 +14,6 @@ const bootstrap = async () => {
   const app = new Elysia()
     .use(cors())
     .use(openapi())
-    .onError(({ code, error, set }) => {
-      console.error("Error:", error);
-    })
     .get("/", () => {
       return status(200, { message: "Hello" });
     })

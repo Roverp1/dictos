@@ -1,0 +1,34 @@
+flowchart LR
+    User([User])
+    Gemini([Gemini API])
+    Cloud([Cloud Server])
+
+    subgraph V1[Release 1: Local Core]
+        UC1(Import Notes)
+        UC2(Manual Capture Entry)
+        UC3(Manage Directories)
+        UC4(Generate Definition)
+        UC5(Save Prompt Template)
+    end
+
+    subgraph V2[Release 2: Cloud Sync]
+        UC6(Sync Data)
+        UC7(View Social Data)
+    end
+
+    subgraph V3[Release 3: Mobile]
+        UC8(Mobile Capture)
+    end
+
+    User --> UC1
+    User --> UC2
+    User --> UC3
+    User --> UC4
+    User --> UC5
+    User --> UC6
+    User --> UC7
+    User --> UC8
+
+    UC4 --> Gemini
+    UC6 -.-> Cloud
+    UC7 -.-> Cloud

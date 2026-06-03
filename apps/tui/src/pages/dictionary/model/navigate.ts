@@ -1,4 +1,4 @@
-import type { Directory } from "@dictos/core";
+import type { Folder } from "@dictos/core";
 import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
 
 export const useNavigateLogic = () => {
@@ -7,8 +7,8 @@ export const useNavigateLogic = () => {
 
   const { selectedTreeItem, isAtRoot } = useHelperVariables();
 
-  const navigateInto = (selectedDir: Directory) => {
-    setPathStack((prevStack) => [...prevStack, selectedDir]);
+  const navigateInto = (selectedFolder: Folder) => {
+    setPathStack((prevStack) => [...prevStack, selectedFolder]);
     setSelectedTreeItemIndex(0);
   };
 
@@ -20,15 +20,15 @@ export const useNavigateLogic = () => {
   };
 
   const actionNavigateIn = () => {
-    if (focus.pane === "tree" && selectedTreeItem?.type === "dir") {
+    if (focus.pane === "tree" && selectedTreeItem?.type === "folder") {
       navigateInto(selectedTreeItem.data);
-    } else if (focus.pane === "tree" && selectedTreeItem?.type === "capture") {
-      setFocus({ pane: "definition", action: "idle" });
+    } else if (focus.pane === "tree" && selectedTreeItem?.type === "entry") {
+      setFocus({ pane: "description", action: "idle" });
     }
   };
 
   const actionNavigateOut = () => {
-    if (focus.pane === "definition") {
+    if (focus.pane === "description") {
       setFocus({ pane: "tree", action: "idle" });
     } else if (focus.pane === "tree" && !isAtRoot) {
       navigateUp();

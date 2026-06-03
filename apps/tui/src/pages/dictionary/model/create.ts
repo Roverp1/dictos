@@ -4,15 +4,15 @@ import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
 
 export const useCreateLogic = () => {
   const {
-    setDefinitionRefreshTrigger,
+    setDescriptionRefreshTrigger,
     setFocus,
     setInputValue,
     setRefreshTreeItemTrigger,
   } = useDictionaryStore();
 
-  const { captureService, definitionService, directoryService } = useServices();
+  const { entryService, descriptionService, folderService } = useServices();
 
-  const { currentDir, selectedTreeItem } = useHelperVariables();
+  const { currentFolder, selectedTreeItem } = useHelperVariables();
 
   const actionRequestCreate = () => {
     setInputValue("");
@@ -28,15 +28,15 @@ export const useCreateLogic = () => {
 
     if (trimmed.endsWith("/")) {
       const name = trimmed.slice(0, -1);
-      await directoryService
-        .createDirectory({
+      await folderService
+        .createFolder({
           name: name,
-          parentId: currentDir.id,
+          parentId: currentFolder.id,
         })
         .catch(console.error);
     } else {
-      await captureService
-        .createCapture({ text: trimmed, directoryId: currentDir.id })
+      await entryService
+        .createEntry({ text: trimmed, folderId: currentFolder.id })
         .catch(console.error);
     }
 
@@ -44,25 +44,25 @@ export const useCreateLogic = () => {
     setFocus({ pane: "tree", action: "idle" });
   };
 
-  const handleCreateDefinitionSubmit = async (finalText: string) => {
+  const handleCreateDescriptionSubmit = async (finalText: string) => {
     const trimmed = finalText.trim();
     if (!trimmed || !selectedTreeItem) {
-      setFocus({ pane: "definition", action: "idle" });
+      setFocus({ pane: "description", action: "idle" });
       return;
     }
 
-    await definitionService.createDefinition({
-      captureId: selectedTreeItem.data.id,
+    await descriptionService.createDescription({
+      entryId: selectedTreeItem.data.id,
       text: trimmed,
     });
 
-    setDefinitionRefreshTrigger();
-    setFocus({ pane: "definition", action: "idle" });
+    setDescriptionRefreshTrigger();
+    setFocus({ pane: "description", action: "idle" });
   };
 
   return {
     handleCreateTreeItemSubmit,
-    handleCreateDefinitionSubmit,
+    handleCreateDescriptionSubmit,
     actionRequestCreate,
   };
 };

@@ -1,0 +1,70 @@
+classDiagram
+    direction TB
+    
+    %% Core Domain
+    class Directory {
+        +int id
+        +string name
+        +int parentId
+        +string privacy
+    }
+    class Capture {
+        +int id
+        +string text
+        +int directoryId
+    }
+    class Definition {
+        +int id
+        +string text
+        +int captureId
+    }
+    class Prompt {
+        +int id
+        +string name
+        +string text
+    }
+
+    Directory "1" *-- "*" Capture : contains
+    Capture "1" *-- "*" Definition : has
+    Directory "1" --> "0..1" Directory
+
+    %% Ports
+    class CaptureRepository {
+        <<interface>>
+        +save()
+        +findById()
+    }
+    class LlmPort {
+        <<interface>>
+        +generateText()
+    }
+
+    %% Services
+    class CaptureService {
+        +createCapture()
+        +getCaptures()
+        +generateDefinition()
+    }
+    class DirectoryService {
+        +createDirectory()
+        +moveDirectory()
+    }
+    class DefinitionService {
+        +getDefinitions()
+        +updateDefinition()
+    }
+
+    %% Adapters
+    class LibSqlCaptureRepository {
+        +save()
+        +findById()
+    }
+    class GeminiAdapter {
+        +generateText()
+    }
+
+    %% Dependencies
+    CaptureService ..> CaptureRepository : uses
+    CaptureService ..> LlmPort : uses
+    LibSqlCaptureRepository ..|> CaptureRepository : implements
+    GeminiAdapter ..|> LlmPort : implements

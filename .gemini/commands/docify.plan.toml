@@ -1,0 +1,6 @@
+description = "Create the technical blueprint (plan.md) for a feature specification."
+prompt = """
+@{.docify/commands/plan.md}
+
+{{args}}
+"""

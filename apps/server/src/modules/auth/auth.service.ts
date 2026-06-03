@@ -4,6 +4,7 @@ import { DbError } from "@dictos/core";
 
 import type { CentralDatabase } from "db/db";
 import * as schema from "db/schema";
+import { TursoPlatformService } from "./turso-platform.service";
 
 export class UserExistsErorr extends errore.createTaggedError({
   name: "UserExistsError",
@@ -16,6 +17,8 @@ export class InvalidCredentialsError extends errore.createTaggedError({
 }) {}
 
 export class AuthService {
+  private tursoService = new TursoPlatformService();
+
   constructor(private db: CentralDatabase) {}
 
   async register(username: string, email: string, passwordRaw: string) {
@@ -63,7 +66,11 @@ export class AuthService {
       });
 
     const { passwordHash: _, ...safeUser } = result;
-    return safeUser;
+
+    const turso = await this.tursoService.provisionDatabase(safeUser.id);
+    if (turso instanceof Error) return turso;
+
+    return { user: safeUser, turso };
   }
 
   async login(email: string, passwordRaw: string) {
@@ -83,11 +90,6 @@ export class AuthService {
 
     if (userRecord instanceof Error) return userRecord;
     if (!userRecord) return new InvalidCredentialsError();
-
-    console.log("=== LOGIN ATTEMPT ===");
-    console.log("Raw Password String:", JSON.stringify(passwordRaw));
-    console.log("Password Length:", passwordRaw.length);
-    console.log("=====================");
 
     const isMatch = await Bun.password.verify(
       passwordRaw,
@@ -113,6 +115,10 @@ export class AuthService {
     if (updateRes instanceof Error) return updateRes;
 
     const { passwordHash: _, ...safeUser } = userRecord;
-    return safeUser;
+
+    const turso = await this.tursoService.issueDatabaseToken(safeUser.id);
+    if (turso instanceof Error) return turso;
+
+    return { user: safeUser, turso };
   }
 }

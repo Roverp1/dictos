@@ -1,6 +1,6 @@
 import type {
   AuthCredentials,
-  AuthSession,
+  AuthResult,
   RegisterCredentials,
 } from "@models/user";
 import type {
@@ -12,8 +12,8 @@ import type {
 export interface AuthPort {
   login(
     credentials: AuthCredentials
-  ): Promise<AuthSession | AuthError | InputValidationError>;
+  ): Promise<AuthResult | AuthError | InputValidationError>;
   register(
     credentials: RegisterCredentials
-  ): Promise<AuthSession | RegistrationError | InputValidationError>;
+  ): Promise<AuthResult | RegistrationError | InputValidationError>;
 }

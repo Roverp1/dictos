@@ -1,4 +1,6 @@
-export * from "./CaptureService";
-export * from "./DirectoryService";
-export * from "./DefinitionService";
+export * from "./entry-service";
+export * from "./folder-service";
+export * from "./description-service";
 export * from "./auth-service";
+export * from "./sync-service";
+

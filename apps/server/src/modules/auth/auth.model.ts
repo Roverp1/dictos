@@ -1,7 +1,7 @@
 import { t } from "elysia";
 
 const userSchema = t.Object({
-  id: t.Number(),
+  id: t.String({ format: "uuid" }),
   username: t.String(),
   email: t.String(),
   bio: t.Nullable(t.String()),
@@ -14,16 +14,13 @@ export const authModel = {
   register: t.Object({
     username: t.String({
       minLength: 3,
-      error: "Username must be at least 3 characters long",
     }),
     email: t.String({
       format: "email",
       default: "user@exapmle.com",
-      error: "Must be a valid email address",
     }),
     password: t.String({
       minLength: 8,
-      error: "Password must be at least 8 characters long",
     }),
   }),
 
@@ -31,14 +28,24 @@ export const authModel = {
     email: t.String({
       format: "email",
       default: "user@exapmle.com",
-      error: "Email is required",
     }),
-    password: t.String({ error: "Password is required" }),
+    password: t.String(),
   }),
 
-  session: t.Object({
-    user: userSchema,
+  turso: t.Object({
+    url: t.String(),
     token: t.String(),
+  }),
+
+  sessionResponse: t.Object({
+    data: t.Object({
+      user: userSchema,
+      token: t.String(),
+      turso: t.Object({
+        url: t.String(),
+        token: t.String(),
+      }),
+    }),
   }),
 
   error: t.Object({

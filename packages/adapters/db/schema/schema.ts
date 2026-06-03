@@ -5,32 +5,29 @@ import {
   text,
   type AnySQLiteColumn,
   check,
-  unique,
 } from "drizzle-orm/sqlite-core";
 
-export const capturesTable = sqliteTable(
-  "captures",
-  {
-    id: int().primaryKey({ autoIncrement: true }),
-    text: text().notNull(),
-    directoryId: int()
-      .notNull()
-      .references(() => directoriesTable.id, { onDelete: "cascade" }),
-    createdAt: int({ mode: "timestamp" })
-      .notNull()
-      .default(sql`(strftime('%s', 'now'))`),
-    modifiedAt: int({ mode: "timestamp" })
-      .notNull()
-      .default(sql`(strftime('%s', 'now'))`),
-  },
-  (t) => [unique().on(t.text, t.directoryId)]
-);
-
-export const definitionsTable = sqliteTable("definitions", {
-  id: int().primaryKey(),
-  captureId: int()
+export const entriesTable = sqliteTable("entries", {
+  id: text().primaryKey(), // uuidv5 based on text+folderId
+  text: text().notNull(),
+  folderId: text()
     .notNull()
-    .references(() => capturesTable.id, { onDelete: "cascade" }),
+    .references(() => foldersTable.id, { onDelete: "cascade" }),
+  createdAt: int({ mode: "timestamp" })
+    .notNull()
+    .default(sql`(strftime('%s', 'now'))`),
+  modifiedAt: int({ mode: "timestamp" })
+    .notNull()
+    .default(sql`(strftime('%s', 'now'))`),
+});
+
+export const descriptionsTable = sqliteTable("descriptions", {
+  id: text()
+    .primaryKey()
+    .default(sql`(uuid_str(uuid7()))`),
+  entryId: text()
+    .notNull()
+    .references(() => entriesTable.id, { onDelete: "cascade" }),
   text: text().notNull(),
   createdAt: int({ mode: "timestamp" })
     .notNull()
@@ -40,14 +37,15 @@ export const definitionsTable = sqliteTable("definitions", {
     .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const directoriesTable = sqliteTable(
-  "directories",
+export const foldersTable = sqliteTable(
+  "folders",
   {
-    id: int().primaryKey(),
+    id: text().primaryKey(),
     name: text().notNull(),
-    parentId: int("parent_id").references(
-      (): AnySQLiteColumn => directoriesTable.id,
-      { onDelete: "cascade" }
+    parentId: text("parent_id").references(
+      (): AnySQLiteColumn => foldersTable.id
+      // { onDelete: "cascade" } // @todo enable when turso will have https://github.com/tursodatabase/turso/issues/5154 fixed
+      // // for now recursive deletion is handled in the FolderRepository
     ),
     privacy: text("privacy", { enum: ["private", "public", "unlisted"] })
       .notNull()
@@ -65,12 +63,13 @@ export const directoriesTable = sqliteTable(
       "privacy_enum_check",
       sql`${t.privacy} IN ('private', 'public', 'unlisted')`
     ),
-    unique().on(t.name, t.parentId),
   ]
 );
 
-export const promptsTable = sqliteTable("prompts", {
-  id: int().primaryKey(),
+export const instructionsTable = sqliteTable("instructions", {
+  id: text()
+    .primaryKey()
+    .default(sql`(uuid_str(uuid7()))`),
   name: text(),
   text: text().notNull(),
   createdAt: int({ mode: "timestamp" })
@@ -81,34 +80,30 @@ export const promptsTable = sqliteTable("prompts", {
     .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const capturesAddedTable = sqliteTable("captures_added", {
-  id: int().primaryKey(),
-  date: text().notNull().unique(),
+export const activitiesTable = sqliteTable("activities", {
+  id: text().primaryKey(), // uuidv5 based on deviceId+date
+  date: text().notNull(), // ISO 8601 format
   count: int().notNull().default(1),
 });
 
 // server support
 
 export const usersTable = sqliteTable("users", {
-  id: int().primaryKey(), // will equal to central db id
+  id: text()
+    .primaryKey()
+    .default(sql`(uuid_str(uuid7()))`), // will equal to central db id
   username: text().notNull(),
   email: text().notNull(),
   bio: text(),
   avatarUrl: text(),
 });
 
-export const sessionTable = sqliteTable("session", {
-  id: int().primaryKey(),
-  token: text().notNull(),
-  userId: int()
-    .notNull()
-    .references(() => usersTable.id),
-});
-
 export const outboxTable = sqliteTable("outbox", {
-  id: int().primaryKey(),
+  id: text()
+    .primaryKey()
+    .default(sql`(uuid_str(uuid7()))`),
   tableName: text().notNull(),
-  recordId: int().notNull(), // id of the modified record
+  recordId: text().notNull(), // id of the modified record
   operation: text({ enum: ["INSERT", "UPDATE", "DELETE"] }).notNull(),
   createdAt: int({ mode: "timestamp" })
     .notNull()

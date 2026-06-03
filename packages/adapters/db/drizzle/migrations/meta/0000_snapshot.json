@@ -1,15 +1,15 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "9378cf65-0cd2-4ebe-8742-5a9da9066840",
+  "id": "ce3f06a9-cf84-4eba-8493-63446ecd38d6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "captures_added": {
-      "name": "captures_added",
+    "activities": {
+      "name": "activities",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false
@@ -30,103 +30,26 @@
           "default": 1
         }
       },
-      "indexes": {
-        "captures_added_date_unique": {
-          "name": "captures_added_date_unique",
-          "columns": [
-            "date"
-          ],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "captures": {
-      "name": "captures",
+    "descriptions": {
+      "name": "descriptions",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "text": {
-          "name": "text",
           "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "directory_id": {
-          "name": "directory_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(strftime('%s', 'now'))"
-        },
-        "modified_at": {
-          "name": "modified_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(strftime('%s', 'now'))"
-        }
-      },
-      "indexes": {
-        "captures_text_directoryId_unique": {
-          "name": "captures_text_directoryId_unique",
-          "columns": [
-            "text",
-            "directory_id"
-          ],
-          "isUnique": true
-        }
-      },
-      "foreignKeys": {
-        "captures_directory_id_directories_id_fk": {
-          "name": "captures_directory_id_directories_id_fk",
-          "tableFrom": "captures",
-          "tableTo": "directories",
-          "columnsFrom": [
-            "directory_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "definitions": {
-      "name": "definitions",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(uuid_str(uuid7()))"
         },
-        "capture_id": {
-          "name": "capture_id",
-          "type": "integer",
+        "entry_id": {
+          "name": "entry_id",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -157,12 +80,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "definitions_capture_id_captures_id_fk": {
-          "name": "definitions_capture_id_captures_id_fk",
-          "tableFrom": "definitions",
-          "tableTo": "captures",
+        "descriptions_entry_id_entries_id_fk": {
+          "name": "descriptions_entry_id_entries_id_fk",
+          "tableFrom": "descriptions",
+          "tableTo": "entries",
           "columnsFrom": [
-            "capture_id"
+            "entry_id"
           ],
           "columnsTo": [
             "id"
@@ -175,12 +98,73 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "directories": {
-      "name": "directories",
+    "entries": {
+      "name": "entries",
       "columns": {
         "id": {
           "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "folder_id": {
+          "name": "folder_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(strftime('%s', 'now'))"
+        },
+        "modified_at": {
+          "name": "modified_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(strftime('%s', 'now'))"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "entries_folder_id_folders_id_fk": {
+          "name": "entries_folder_id_folders_id_fk",
+          "tableFrom": "entries",
+          "tableTo": "folders",
+          "columnsFrom": [
+            "folder_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "folders": {
+      "name": "folders",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false
@@ -194,7 +178,7 @@
         },
         "parent_id": {
           "name": "parent_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -224,28 +208,19 @@
           "default": "(strftime('%s', 'now'))"
         }
       },
-      "indexes": {
-        "directories_name_parent_id_unique": {
-          "name": "directories_name_parent_id_unique",
-          "columns": [
-            "name",
-            "parent_id"
-          ],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "directories_parent_id_directories_id_fk": {
-          "name": "directories_parent_id_directories_id_fk",
-          "tableFrom": "directories",
-          "tableTo": "directories",
+        "folders_parent_id_folders_id_fk": {
+          "name": "folders_parent_id_folders_id_fk",
+          "tableFrom": "folders",
+          "tableTo": "folders",
           "columnsFrom": [
             "parent_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
@@ -254,19 +229,20 @@
       "checkConstraints": {
         "privacy_enum_check": {
           "name": "privacy_enum_check",
-          "value": "\"directories\".\"privacy\" IN ('private', 'public', 'unlisted')"
+          "value": "\"folders\".\"privacy\" IN ('private', 'public', 'unlisted')"
         }
       }
     },
-    "prompts": {
-      "name": "prompts",
+    "instructions": {
+      "name": "instructions",
       "columns": {
         "id": {
           "name": "id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": true,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(uuid_str(uuid7()))"
         },
         "name": {
           "name": "name",
@@ -297,6 +273,99 @@
           "notNull": true,
           "autoincrement": false,
           "default": "(strftime('%s', 'now'))"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "outbox": {
+      "name": "outbox",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(uuid_str(uuid7()))"
+        },
+        "table_name": {
+          "name": "table_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "record_id": {
+          "name": "record_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "operation": {
+          "name": "operation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(strftime('%s', 'now'))"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "users": {
+      "name": "users",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(uuid_str(uuid7()))"
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bio": {
+          "name": "bio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         }
       },
       "indexes": {},

@@ -1,23 +1,29 @@
 import { create } from "zustand";
 
-import type {
-  CaptureService,
-  DirectoryService,
-  DefinitionService,
+import {
+  SyncService,
+  type EntryService,
+  type FolderService,
+  type DescriptionService,
+  AuthService,
 } from "@dictos/core";
 
 type ServicesStore = {
-  captureService: CaptureService | null;
-  directoryService: DirectoryService | null;
-  definitionService: DefinitionService | null;
+  entryService: EntryService | null;
+  folderService: FolderService | null;
+  descriptionService: DescriptionService | null;
+  authService: AuthService | null;
+  syncService: SyncService | null;
 
   initServices: (services: Omit<ServicesStore, "initServices">) => void;
 };
 
 export const useServicesStore = create<ServicesStore>((set) => ({
-  captureService: null,
-  directoryService: null,
-  definitionService: null,
+  entryService: null,
+  folderService: null,
+  descriptionService: null,
+  authService: null,
+  syncService: null,
   initServices: (services) => set(services),
 }));
 
@@ -25,16 +31,20 @@ export const useServices = () => {
   const store = useServicesStore();
 
   if (
-    !store.captureService ||
-    !store.definitionService ||
-    !store.directoryService
+    !store.entryService ||
+    !store.descriptionService ||
+    !store.folderService ||
+    !store.authService ||
+    !store.syncService
   ) {
     throw new Error("Services are not initialized!");
   }
 
   return {
-    captureService: store.captureService,
-    definitionService: store.definitionService,
-    directoryService: store.directoryService,
+    entryService: store.entryService,
+    descriptionService: store.descriptionService,
+    folderService: store.folderService,
+    authService: store.authService,
+    syncService: store.syncService,
   };
 };

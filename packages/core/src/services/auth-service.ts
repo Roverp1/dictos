@@ -1,52 +1,79 @@
 import type { AuthCredentials, RegisterCredentials, User } from "@models/user";
+import type { UserRepository } from "@ports/outbound";
 import type { AuthPort } from "@ports/outbound/auth-port";
 import type { SessionRepository } from "@ports/outbound/session-repository";
 import type {
   AuthError,
-  DbError,
+  StorageError,
   InputValidationError,
   RegistrationError,
 } from "errors";
+import type { SyncService } from "./sync-service";
 
 export class AuthService {
   constructor(
     private authPort: AuthPort,
-    private sessionRepo: SessionRepository
+    private sessionRepo: SessionRepository,
+    private userRepo: UserRepository,
+    private syncService: SyncService
   ) {}
 
   async register(
     credentials: RegisterCredentials
-  ): Promise<User | RegistrationError | InputValidationError | DbError> {
-    const session = await this.authPort.register(credentials);
-    if (session instanceof Error) return session;
+  ): Promise<User | RegistrationError | InputValidationError | StorageError> {
+    const result = await this.authPort.register(credentials);
+    if (result instanceof Error) return result;
 
-    const res = await this.sessionRepo.saveSession(session);
-    if (res instanceof Error) return res;
+    const { user, session } = result;
 
-    return session.user;
+    const userRes = await this.userRepo.save(user);
+    if (userRes instanceof Error) return userRes;
+
+    const sessionRes = await this.sessionRepo.saveSession(session);
+    if (sessionRes instanceof Error) return sessionRes;
+
+    if (session.turso) {
+      await this.syncService.connect(session.turso.url, session.turso.token);
+    }
+
+    return user;
   }
 
   async login(
     credentials: AuthCredentials
-  ): Promise<User | AuthError | DbError> {
-    const session = await this.authPort.login(credentials);
-    if (session instanceof Error) return session;
+  ): Promise<User | AuthError | InputValidationError | StorageError> {
+    const result = await this.authPort.login(credentials);
+    if (result instanceof Error) return result;
 
-    const res = await this.sessionRepo.saveSession(session);
-    if (res instanceof Error) return res;
+    const { session, user } = result;
 
-    return session.user;
+    const userRes = await this.userRepo.save(user);
+    if (userRes instanceof Error) return userRes;
+
+    const sessionRes = await this.sessionRepo.saveSession(session);
+    if (sessionRes instanceof Error) return sessionRes;
+
+    if (session.turso) {
+      await this.syncService.connect(session.turso.url, session.turso.token);
+    }
+
+    return user;
   }
 
-  async logout(): Promise<void | DbError> {
+  async logout(): Promise<void | StorageError> {
     return await this.sessionRepo.clearSession();
   }
 
-  async getCurrentUser(): Promise<User | DbError | null> {
+  async getCurrentUser(): Promise<User | StorageError | null> {
     const session = await this.sessionRepo.getSession();
     if (session instanceof Error) return session;
     if (session === null) return null;
 
-    return session.user;
+    const userId = session.userId;
+    const userRes = await this.userRepo.findById(userId);
+    if (userRes instanceof Error) return userRes;
+    if (!userRes) return null;
+
+    return userRes;
   }
 }

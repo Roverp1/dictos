@@ -64,37 +64,38 @@ export const useTheme = () => {
   const [theme, setTheme] = useState<Base16Theme>(GRUVBOX_DARK_HARD);
   const renderer = useRenderer();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const termColors = await renderer.getPalette({ size: 256 });
-        const p = termColors.palette;
-
-        const theme: Base16Theme = {
-          base00: p[0] ?? GRUVBOX_DARK_HARD.base00,
-          base01: p[18] ?? GRUVBOX_DARK_HARD.base01,
-          base02: p[19] ?? GRUVBOX_DARK_HARD.base02,
-          base03: p[8] ?? GRUVBOX_DARK_HARD.base03,
-          base04: p[20] ?? GRUVBOX_DARK_HARD.base04,
-          base05: p[7] ?? GRUVBOX_DARK_HARD.base05,
-          base06: p[21] ?? GRUVBOX_DARK_HARD.base06,
-          base07: p[15] ?? GRUVBOX_DARK_HARD.base07,
-          base08: p[1] ?? GRUVBOX_DARK_HARD.base08,
-          base09: p[16] ?? GRUVBOX_DARK_HARD.base09,
-          base0A: p[3] ?? GRUVBOX_DARK_HARD.base0A,
-          base0B: p[2] ?? GRUVBOX_DARK_HARD.base0B,
-          base0C: p[6] ?? GRUVBOX_DARK_HARD.base0C,
-          base0D: p[4] ?? GRUVBOX_DARK_HARD.base0D,
-          base0E: p[5] ?? GRUVBOX_DARK_HARD.base0E,
-          base0F: p[17] ?? GRUVBOX_DARK_HARD.base0F,
-        };
-
-        setTheme(theme);
-      } catch (err) {
-        console.log("Failed to get terminal palette:", err as Error);
-      }
-    })();
-  }, [renderer]);
+  // doesnt work in all terminals
+  // useEffect(() => {
+  //   (async () => {
+  //     try {
+  //       const termColors = await renderer.getPalette({ size: 256 });
+  //       const p = termColors.palette;
+  //
+  //       const theme: Base16Theme = {
+  //         base00: p[0] ?? GRUVBOX_DARK_HARD.base00,
+  //         base01: p[18] ?? GRUVBOX_DARK_HARD.base01,
+  //         base02: p[19] ?? GRUVBOX_DARK_HARD.base02,
+  //         base03: p[8] ?? GRUVBOX_DARK_HARD.base03,
+  //         base04: p[20] ?? GRUVBOX_DARK_HARD.base04,
+  //         base05: p[7] ?? GRUVBOX_DARK_HARD.base05,
+  //         base06: p[21] ?? GRUVBOX_DARK_HARD.base06,
+  //         base07: p[15] ?? GRUVBOX_DARK_HARD.base07,
+  //         base08: p[1] ?? GRUVBOX_DARK_HARD.base08,
+  //         base09: p[16] ?? GRUVBOX_DARK_HARD.base09,
+  //         base0A: p[3] ?? GRUVBOX_DARK_HARD.base0A,
+  //         base0B: p[2] ?? GRUVBOX_DARK_HARD.base0B,
+  //         base0C: p[6] ?? GRUVBOX_DARK_HARD.base0C,
+  //         base0D: p[4] ?? GRUVBOX_DARK_HARD.base0D,
+  //         base0E: p[5] ?? GRUVBOX_DARK_HARD.base0E,
+  //         base0F: p[17] ?? GRUVBOX_DARK_HARD.base0F,
+  //       };
+  //
+  //       setTheme(theme);
+  //     } catch (err) {
+  //       console.log("Failed to get terminal palette:", err as Error);
+  //     }
+  //   })();
+  // }, [renderer]);
 
   return theme;
 };

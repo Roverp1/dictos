@@ -10,9 +10,15 @@ export class NotFoundError extends errore.createTaggedError({
   message: "$entity with id $id not found",
 }) {}
 
+/** @deprecated use {@link StorageError} instead */
 export class DbError extends errore.createTaggedError({
   name: "DbError",
   message: "Database operation $operation failed. Reason: $reason",
+}) {}
+
+export class StorageError extends errore.createTaggedError({
+  name: "StorageError",
+  message: "Storage operation $operation failed. Reason: $reason",
 }) {}
 
 export class LlmError extends errore.createTaggedError({
@@ -52,3 +58,8 @@ export class InputValidationError extends errore.createTaggedError({
     this.fields = options.fields;
   }
 }
+
+export class OfflineError extends errore.createTaggedError({
+  name: "OfflineError",
+  message: "Device is offline or server is unreachable.",
+}) {}

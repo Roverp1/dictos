@@ -36,5 +36,8 @@
       "@shared/*": ["shared/*"]
     }
   },
-  "references": [{ "path": "../../packages/core" }]
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/adapters" }
+  ]
 }

@@ -12,6 +12,8 @@
 
     // Output settings
     "outDir": "./dist",
-    "noEmit": false
+    "noEmit": false,
+
+    "types": ["bun"]
   }
 }

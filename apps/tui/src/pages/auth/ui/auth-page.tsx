@@ -1,103 +1,123 @@
-import { useState } from "react";
 import { useKeyboard } from "@opentui/react";
-import type { AuthService, User } from "@dictos/core";
+import { toast } from "@opentui-ui/toast/react";
+import { InputValidationError } from "@dictos/core";
 
 import { useTheme } from "@shared/lib/theme";
-import { password } from "bun";
+import { useServices } from "@shared/lib/services";
 
-export interface AuthPageProps {
-  authService: AuthService;
-}
+import { useAuthStore } from "../model/use-auth-store";
 
-export const AuthPage = ({ authService }: AuthPageProps) => {
+export const AuthPage = () => {
   const theme = useTheme();
 
-  // Active Pane State
-  const [activePane, setActivePane] = useState<"login" | "register">("login");
+  const {
+    activePane,
+    loginEmail,
+    loginPassword,
+    registerEmail,
+    registerPassword,
+    registerUsername,
+    setLoginEmail,
+    setLoginPassword,
+    setRegisterEmail,
+    setRegisterPassword,
+    setRegisterUsername,
+    focusedField,
+  } = useAuthStore();
 
-  // Form States
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-
-  const [registerUsername, setRegisterUsername] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [success, setSuccess] = useState<User | null>(null);
-
-  // Focus Management
-  type FocusableField =
-    | "login-email"
-    | "login-password"
-    | "register-username"
-    | "register-email"
-    | "register-password";
-
-  const [focusedField, setFocusedField] =
-    useState<FocusableField>("login-email");
+  const { authService } = useServices();
 
   useKeyboard((key) => {
     if (key.name === "tab") {
-      setFocusedField((prev) => {
-        switch (prev) {
-          case "login-email":
-            return "login-password";
-          case "login-password":
-            setActivePane("register");
-            return "register-username";
-          case "register-username":
-            return "register-email";
-          case "register-email":
-            return "register-password";
-          case "register-password":
-            setActivePane("login");
-            return "login-email";
-          default:
-            return "login-email";
-        }
-      });
+      const { handleTabFocus } = useAuthStore.getState();
+
+      handleTabFocus();
     }
 
     if (key.name === "return") {
-      if (activePane === "login") handleLogin();
-      else if (activePane === "register") handleRegister();
+      setTimeout(() => {
+        const { activePane } = useAuthStore.getState();
+        if (activePane === "login") handleLogin();
+        else if (activePane === "register") handleRegister();
+      }, 0);
     }
   });
 
   const handleLogin = async () => {
+    const { loginEmail, loginPassword, setErrorMessage, setSuccess } =
+      useAuthStore.getState();
+
     setErrorMessage(null);
-    const result = await authService.login({
-      email: loginEmail.trim(),
-      password: loginPassword.trim(),
-    });
+    const performLogin = async () => {
+      const result = await authService.login({
+        email: loginEmail.trim(),
+        password: loginPassword.trim(),
+      });
 
-    if (result instanceof Error) {
-      setErrorMessage(result.message);
-      console.error(result);
-      return;
-    }
+      if (result instanceof InputValidationError) {
+        console.error(result.fields);
+      }
 
-    console.log("result:", result);
-    setSuccess(result);
+      if (result instanceof Error) {
+        console.error(result);
+        throw result;
+      }
+
+      return result;
+    };
+
+    const user = await toast
+      .promise(performLogin(), {
+        loading: "Logging in...",
+        success: "Login successful!",
+        error: (err: any) => err.message || "Auth failed",
+      })
+      ?.unwrap()
+      .catch(() => {});
+
+    console.log("result:", user);
   };
 
   const handleRegister = async () => {
+    const {
+      registerUsername,
+      registerEmail,
+      registerPassword,
+      setErrorMessage,
+      setSuccess,
+    } = useAuthStore.getState();
+
     setErrorMessage(null);
-    const result = await authService.register({
-      username: registerUsername.trim(),
-      email: registerEmail.trim(),
-      password: registerPassword.trim(),
-    });
 
-    if (result instanceof Error) {
-      setErrorMessage(result.message);
-      console.error(result);
-      return;
-    }
+    const performLogin = async () => {
+      const result = await authService.register({
+        username: registerUsername.trim(),
+        email: registerEmail.trim(),
+        password: registerPassword.trim(),
+      });
 
-    console.log("result:", result);
-    setSuccess(result);
+      if (result instanceof InputValidationError) {
+        console.error(result.fields);
+      }
+
+      if (result instanceof Error) {
+        console.error(result);
+        throw result;
+      }
+
+      return result;
+    };
+
+    const user = await toast
+      .promise(performLogin(), {
+        loading: "Registrating...",
+        success: "Registration successful!",
+        error: (err: any) => err.message || "Registration failed",
+      })
+      ?.unwrap()
+      .catch(() => {});
+
+    console.log("result:", user);
   };
 
   return (
@@ -205,3 +225,10 @@ export const AuthPage = ({ authService }: AuthPageProps) => {
     </box>
   );
 };
+
+// // @ts-expect-error opentui type bug
+// onSubmit={handleSubmit}
+// keyBindings={[
+//   { name: "return", action: "submit" },
+//   { name: "s", ctrl: true, action: "submit" },
+// ]}

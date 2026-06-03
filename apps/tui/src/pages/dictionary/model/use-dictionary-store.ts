@@ -2,36 +2,36 @@ import { create } from "zustand";
 import type { SetStateAction } from "react";
 
 import type { FocusState, TreeItem } from "./types";
-import type { Definition, Directory } from "@dictos/core";
+import type { Description, Folder } from "@dictos/core";
 
 type DictionaryStore = {
   inputValue: string;
   focus: FocusState;
   treeItemsToDisplay: TreeItem[];
-  definitionsToDisplay: Definition[];
+  treeItemsOnHoverToDisplay: TreeItem[];
+  descriptionsToDisplay: Description[];
   selectedTreeItemIndex: number;
-  selectedDefinitionIndex: number;
+  selectedDescriptionIndex: number;
   refreshTreeItemTrigger: number;
-  definitionRefreshTrigger: number;
-  pathStack: Directory[];
+  descriptionRefreshTrigger: number;
+  pathStack: Folder[];
 
   setInputValue: (newInputValue: string) => void;
   setFocus: (
     newFocusValue: FocusState | ((prev: FocusState) => FocusState)
   ) => void;
   setTreeItemsToDisplay: (newTreeItems: TreeItem[]) => void;
-  setDefinitionsToDisplay: (newDefinitionsValue: Definition[]) => void;
+  setTreeItemsOnHoverToDisplay: (newTreeItems: TreeItem[]) => void;
+  setDescriptionsToDisplay: (newDescriptionsValue: Description[]) => void;
   setSelectedTreeItemIndex: (
     newTreeItemIndex: number | SetStateAction<number>
   ) => void;
-  setSelectedDefinitionIndex: (
-    newDefinitionIndex: number | SetStateAction<number>
+  setSelectedDescriptionIndex: (
+    newDescriptionIndex: number | SetStateAction<number>
   ) => void;
   setRefreshTreeItemTrigger: () => void;
-  setDefinitionRefreshTrigger: () => void;
-  setPathStack: (
-    newPathStack: Directory[] | SetStateAction<Directory[]>
-  ) => void;
+  setDescriptionRefreshTrigger: () => void;
+  setPathStack: (newPathStack: Folder[] | SetStateAction<Folder[]>) => void;
 };
 
 export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
@@ -41,11 +41,12 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
     action: "idle",
   } as FocusState,
   treeItemsToDisplay: [],
-  definitionsToDisplay: [],
+  treeItemsOnHoverToDisplay: [],
+  descriptionsToDisplay: [],
   selectedTreeItemIndex: 0,
-  selectedDefinitionIndex: 0,
+  selectedDescriptionIndex: 0,
   refreshTreeItemTrigger: 0,
-  definitionRefreshTrigger: 0,
+  descriptionRefreshTrigger: 0,
   pathStack: [],
 
   setInputValue: (newInputValue) => {
@@ -69,9 +70,15 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
     });
   },
 
-  setDefinitionsToDisplay: (newDefinitionsValue) => {
+  setTreeItemsOnHoverToDisplay: (newTreeItems) => {
     set({
-      definitionsToDisplay: newDefinitionsValue,
+      treeItemsOnHoverToDisplay: newTreeItems,
+    });
+  },
+
+  setDescriptionsToDisplay: (newDescriptionsValue) => {
+    set({
+      descriptionsToDisplay: newDescriptionsValue,
     });
   },
 
@@ -84,12 +91,12 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
     }));
   },
 
-  setSelectedDefinitionIndex: (newDefinitionIndex) => {
+  setSelectedDescriptionIndex: (newDescriptionIndex) => {
     set((state) => ({
-      selectedDefinitionIndex:
-        typeof newDefinitionIndex === "function"
-          ? newDefinitionIndex(state.selectedDefinitionIndex)
-          : newDefinitionIndex,
+      selectedDescriptionIndex:
+        typeof newDescriptionIndex === "function"
+          ? newDescriptionIndex(state.selectedDescriptionIndex)
+          : newDescriptionIndex,
     }));
   },
 
@@ -99,9 +106,9 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
     }));
   },
 
-  setDefinitionRefreshTrigger: () => {
+  setDescriptionRefreshTrigger: () => {
     set((state) => ({
-      definitionRefreshTrigger: state.definitionRefreshTrigger + 1,
+      descriptionRefreshTrigger: state.descriptionRefreshTrigger + 1,
     }));
   },
 
@@ -120,15 +127,15 @@ export const useHelperVariables = () => {
     (state) => state.treeItemsToDisplay[state.selectedTreeItemIndex]
   );
 
-  const selectedDefinition = useDictionaryStore(
-    (state) => state.definitionsToDisplay[state.selectedDefinitionIndex]
+  const selectedDescription = useDictionaryStore(
+    (state) => state.descriptionsToDisplay[state.selectedDescriptionIndex]
   );
 
-  const currentDir = useDictionaryStore(
-    (state) => state.pathStack[state.pathStack.length - 1]!
+  const currentFolder = useDictionaryStore(
+    (state) => state.pathStack[state.pathStack.length - 1]
   );
 
   const isAtRoot = useDictionaryStore((state) => state.pathStack.length === 1);
 
-  return { selectedTreeItem, selectedDefinition, currentDir, isAtRoot };
+  return { selectedTreeItem, selectedDescription, currentFolder, isAtRoot };
 };

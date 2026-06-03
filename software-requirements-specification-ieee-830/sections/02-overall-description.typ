@@ -1,48 +1,50 @@
 = Overall Description
 
 == Product Perspective
-Dictos is a local-first application designed to assist users in creation of their personal dictionaries. Most modern dictionary apps are cloud-dependent, Dictos will prioritize local data sovereignty using libSQL and a decoupled local identity model. This ensures that user profiles and captures remain accessible and editable even without an active internet connection.
+Dictos is a local-first application designed to help users create personal dictionaries. While most modern dictionary apps require the cloud, Dictos prioritizes local data sovereignty. It uses libSQL to store data locally and will offer an easy option for cross-device syncing later.
 
-The central synchronization layer is built on Bun and ElysiaJS, utilizing native libSQL replication for personal data and a REST-based Outbox pattern for shared social features. Dictos acts as a bridge between reading sources such as ebooks, articles and notes, and study tools such as Anki.
+Dictos connects reading sources like ebooks, articles, and notes with study tools like Anki. The system lets users capture raw text, edit it manually, generate definitions using Gemini, organize everything in a nested directory structure, and export local data to study-friendly formats.
 
-Future release will introduce cross-device capabilities, and easier ways of collecting captures (such mobile select menu and browser extension), but these features are outside of the scope of Release 1.
+The terminal interface uses React bindings for OpenTUI. The core React logic does not depend on OpenTUI or DOM libraries. This isolation allows the logic to be extracted into a separate package and reused across the terminal application, React Native on mobile, and the web.
+
+Future releases will introduce cross-device capabilities and easier ways to collect captures, like a mobile select menu and a browser extension. These features are outside the scope of Release 1.
 
 == Product Functions
 Dictos provides the following core functions:
 
 - Import raw text from different sources, starting with TXT files and ReadEra backups.
-- Create, edit, move, copy and delete captures in a nested directory tree.
-- Generate definitions for one or many captures using Gemini.
-- Store and display all Definitions for a single Capture
+- Create, edit, move, copy, and delete captures in a nested directory tree.
+- Generate definitions for one or multiple captures using Gemini.
+- Store and display all definitions for a single capture.
 - Manage reusable prompts for LLM requests.
 - Edit data directly in the terminal through a keyboard-driven TUI.
-- EXport local records into Anki decks and JSON formats.
+- Export local records to Anki decks and JSON formats.
 
 == User Characteristics
-First version of Dictos with TUI interface is intened primarly as a baseline for future cross-device capture managment. Non the less TUI interface is intended for users who prefer fast terminal workflows and local data control, and will interest the following users:
+The first version of Dictos uses a TUI interface as a baseline for future cross-device management. The TUI caters to users who prefer fast terminal workflows and local data control. The target audience includes:
 
 - Language learners who want to quickly turn reading notes into study material.
-- Developers who want keyboard-driven tool to store and defining technical terms.
+- Developers who want a keyboard-driven tool to store and define technical terms.
 - Users who want to avoid cloud dependency and keep their data on their own devices.
 
 == Constraints
-Dictos is subject to the following constraints:
+Dictos operates under the following constraints:
 
-- Gemini API access requires an active internet connection and user's API key.
+- Gemini API access requires an active internet connection and a user API key.
 - Core application functions must remain local-first and usable offline.
-- The TUI must work a standard terminal emulators.
-- The application must preserve local data even when external services are unavailable.
+- The TUI must work in standard terminal emulators.
+- The application must preserve local data even when external services fail.
 
 == Assumptions and Dependencies
 The following assumptions and external dependencies apply:
 
 - The user provides a valid Gemini API key.
-- LLM generation requires HTTPS connection to Google servers.
+- LLM generation requires an HTTPS connection to Google servers.
 - Available storage space is limited by the host machine.
 
 == Apportioning of Requirements
-Requirements are split into three release to keep the local core simple before advanced functionality.
+Requirements are split into three releases to keep the local core simple before adding advanced functionality.
 
-1. V1: Terminal application, local libSQL persistence, ReadEra/TXT import, manual capture entry, Gemini integration, and Anki export
+1. V1: Terminal application, local libSQL persistence, ReadEra/TXT import, manual capture entry, Gemini integration, and Anki export.
 2. V2: Central server, user accounts, and cross-device syncing.
-3. V3: Mobile application in React Native with capture on select and dicitonary access.
+3. V3: Mobile application in React Native with capture-on-select and dictionary access.
