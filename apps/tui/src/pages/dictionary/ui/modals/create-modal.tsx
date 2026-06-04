@@ -1,14 +1,13 @@
-import { useDictionaryStore } from "../../model/use-dictionary-store";
-
 import { useTheme } from "@shared/lib/theme";
 
 import type { InputProps } from "@opentui/react";
 
-interface CreateModalProps extends InputProps {}
+interface CreateModalProps extends InputProps {
+  value: string;
+  onChange: (val: string) => void;
+}
 
 export const CreateModal = ({ ...props }: CreateModalProps) => {
-  const { inputValue, setInputValue } = useDictionaryStore();
-
   const theme = useTheme();
 
   return (
@@ -24,11 +23,7 @@ export const CreateModal = ({ ...props }: CreateModalProps) => {
       titleAlignment="left"
       backgroundColor={theme.base00}
     >
-      <input
-        {...props}
-        value={inputValue}
-        onChange={setInputValue}
-      />
+      <input {...props} />
     </box>
   );
 };

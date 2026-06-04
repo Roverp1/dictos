@@ -3,8 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "@opentui-ui/toast";
 
+import { useServices } from "@dictos/react";
+
 import { useTheme } from "@shared/lib/theme";
-import { useServices } from "@shared/lib/services";
 
 export const NavBottomBar = () => {
   const [isBarActive, setIsBarActive] = useState<boolean>(false);

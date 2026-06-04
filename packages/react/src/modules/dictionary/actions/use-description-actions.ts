@@ -45,7 +45,11 @@ export const useDescriptionActions = () => {
     },
 
     requestRename: () => {
-      if (focus.pane === "description" && descriptionsToDisplay.length > 0) {
+      if (
+        focus.pane === "description" &&
+        focus.action === "idle" &&
+        descriptionsToDisplay.length > 0
+      ) {
         setFocus((prev) => ({ ...prev, action: "renameInput" }));
 
         if (!selectedDescription) {
@@ -88,7 +92,11 @@ export const useDescriptionActions = () => {
     },
 
     requestDelete: () => {
-      if (focus.pane === "description" && descriptionsToDisplay.length > 0) {
+      if (
+        focus.pane === "description" &&
+        focus.action === "idle" &&
+        descriptionsToDisplay.length > 0
+      ) {
         setFocus({ pane: "description", action: "deleteConfirm" });
       }
     },

@@ -1,32 +1,44 @@
-import { useDictionary } from "../model/use-dictionary";
+import { useDictionary } from "@dictos/react";
+
 import { CreateModal } from "./modals/create-modal";
 import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 import { FolderTreePane } from "./folder-tree-pane";
 import { DescriptionPane } from "./description-pane";
-import {
-  useDictionaryStore,
-  useHelperVariables,
-} from "../model/use-dictionary-store";
-import { useCreateLogic } from "../model/create";
-import { useDeleteLogic } from "../model/delete";
+
 import { useTheme } from "@shared/lib/theme";
+import { useKeyboard } from "@opentui/react";
 
 export const DictionaryPage = () => {
   const theme = useTheme();
 
-  useDictionary();
+  const { state, selectedTreeItem, selectedDescription, actions } =
+    useDictionary();
 
-  const { focus } = useDictionaryStore();
+  useKeyboard((key) => {
+    if (state.focus.action !== "idle") {
+      if (key.name === "escape") actions.general.cancelAction();
+    }
 
-  const { selectedTreeItem, selectedDescription } = useHelperVariables();
+    if (key.name === "j" || key.name === "down")
+      actions.navigation.moveSelectionDown();
+    if (key.name === "k" || key.name === "up")
+      actions.navigation.moveSelectionUp();
+    if (key.name === "return" || key.name === "l" || key.name === "right")
+      actions.navigation.navigateIn();
+    if (key.name === "backspace" || key.name === "h" || key.name === "left")
+      actions.navigation.navigateOut();
 
-  const { handleCreateTreeItemSubmit } = useCreateLogic();
+    if (state.focus.pane === "tree") {
+      if (key.name === "a") actions.tree.requestCreate();
+      if (key.name === "r") actions.tree.requestRename();
+      if (key.name === "d") actions.tree.requestDelete();
+    } else if (state.focus.pane === "description") {
+      if (key.name === "a") actions.description.requestCreate();
+      if (key.name === "r") actions.description.requestRename();
+      if (key.name === "d") actions.description.requestDelete();
+    }
+  });
 
-  const {
-    handleDeleteTreeItemConfirm,
-    handleDeleteConfirmModalCancel,
-    handleDeleteDescriptionConfirm,
-  } = useDeleteLogic();
   return (
     <box
       height="100%"
@@ -37,33 +49,37 @@ export const DictionaryPage = () => {
 
       <DescriptionPane />
 
-      {focus.pane === "tree" && focus.action === "createInput" && (
+      {state.focus.pane === "tree" && state.focus.action === "createInput" && (
         <CreateModal
+          value={state.inputValue}
+          onChange={actions.general.updateInputValue}
           // @ts-expect-error opentui type collision bug
-          onSubmit={handleCreateTreeItemSubmit}
+          onSubmit={actions.tree.submitCreate}
           focused
         />
       )}
 
-      {focus.pane === "tree" && focus.action === "deleteConfirm" && (
-        <DeleteConfirmModal
-          itemName={
-            selectedTreeItem?.type === "folder"
-              ? `${selectedTreeItem.data.name}/`
-              : selectedTreeItem?.data.text
-          }
-          onConfirm={handleDeleteTreeItemConfirm}
-          onCancel={handleDeleteConfirmModalCancel}
-        />
-      )}
+      {state.focus.pane === "tree" &&
+        state.focus.action === "deleteConfirm" && (
+          <DeleteConfirmModal
+            itemName={
+              selectedTreeItem?.type === "folder"
+                ? `${selectedTreeItem.data.name}/`
+                : selectedTreeItem?.data.text
+            }
+            onConfirm={actions.tree.confirmDelete}
+            onCancel={actions.general.cancelAction}
+          />
+        )}
 
-      {focus.pane === "description" && focus.action === "deleteConfirm" && (
-        <DeleteConfirmModal
-          itemName={selectedDescription?.text}
-          onConfirm={handleDeleteDescriptionConfirm}
-          onCancel={handleDeleteConfirmModalCancel}
-        />
-      )}
+      {state.focus.pane === "description" &&
+        state.focus.action === "deleteConfirm" && (
+          <DeleteConfirmModal
+            itemName={selectedDescription?.text}
+            onConfirm={actions.description.confirmDelete}
+            onCancel={actions.general.cancelAction}
+          />
+        )}
     </box>
   );
 };

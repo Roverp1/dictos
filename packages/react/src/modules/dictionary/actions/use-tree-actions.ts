@@ -62,6 +62,7 @@ export const useTreeActions = () => {
     requestRename: () => {
       if (
         focus.pane === "tree" &&
+        focus.action === "idle" &&
         treeItemsToDisplay.length > 0 &&
         selectedTreeItem
       ) {
@@ -108,7 +109,11 @@ export const useTreeActions = () => {
     },
 
     requestDelete: () => {
-      if (focus.pane === "tree" && treeItemsToDisplay.length > 0) {
+      if (
+        focus.pane === "tree" &&
+        focus.action === "idle" &&
+        treeItemsToDisplay.length > 0
+      ) {
         setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
       }
     },

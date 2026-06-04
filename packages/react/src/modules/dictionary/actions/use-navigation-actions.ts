@@ -26,6 +26,8 @@ export const useNavigateActions = () => {
 
   return {
     navigateIn: () => {
+      if (focus.action !== "idle") return;
+
       if (!selectedTreeItem) {
         logger.error("No item selected during 'navigate in' action");
         return;
@@ -39,6 +41,8 @@ export const useNavigateActions = () => {
     },
 
     navigateOut: () => {
+      if (focus.action !== "idle") return;
+
       if (focus.pane === "description") {
         setFocus({ pane: "tree", action: "idle" });
       } else if (focus.pane === "tree" && !isAtRoot) {
@@ -47,18 +51,39 @@ export const useNavigateActions = () => {
     },
 
     moveSelectionDown: () => {
-      if (focus.action === "idle") {
+      if (focus.action !== "idle") return;
+
+      if (focus.pane === "tree") {
         setSelectedTreeItemIndex((prev) => {
-          const next = prev < state.treeItemsToDisplay.length ? prev + 1 : 0;
+          const next =
+            prev < state.treeItemsToDisplay.length - 1 ? prev + 1 : 0;
+          return next;
+        });
+      } else if (focus.pane === "description") {
+        state.setSelectedDescriptionIndex((prev) => {
+          const length = state.descriptionsToDisplay.length;
+          if (length === 0) return 0;
+          const next =
+            prev < state.descriptionsToDisplay.length - 1 ? prev + 1 : 0;
           return next;
         });
       }
     },
 
     moveSelectionUp: () => {
-      if (focus.action === "idle") {
+      if (focus.action !== "idle") return;
+
+      if (focus.pane === "tree") {
         setSelectedTreeItemIndex((prev) => {
-          const next = prev < state.treeItemsToDisplay.length ? prev + 1 : 0;
+          const next =
+            prev - 1 < 0 ? state.treeItemsToDisplay.length - 1 : prev - 1;
+          return next;
+        });
+      } else if (focus.pane === "description") {
+        state.setSelectedDescriptionIndex((prev) => {
+          const length = state.descriptionsToDisplay.length;
+          if (length === 0) return 0;
+          const next = prev - 1 < 0 ? length - 1 : prev - 1;
           return next;
         });
       }

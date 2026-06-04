@@ -190,6 +190,8 @@ export const useDictionary = () => {
       general: {
         cancelAction: () =>
           state.setFocus((prev) => ({ ...prev, action: "idle" })),
+
+        updateInputValue: (val: string) => state.setInputValue(val),
       },
     },
   };

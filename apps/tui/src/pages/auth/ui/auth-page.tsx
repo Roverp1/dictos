@@ -1,9 +1,10 @@
 import { useKeyboard } from "@opentui/react";
 import { toast } from "@opentui-ui/toast/react";
+
 import { InputValidationError } from "@dictos/core";
+import { useServices } from "@dictos/react";
 
 import { useTheme } from "@shared/lib/theme";
-import { useServices } from "@shared/lib/services";
 
 import { useAuthStore } from "../model/use-auth-store";
 
