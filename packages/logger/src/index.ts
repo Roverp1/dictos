@@ -5,4 +5,5 @@ export interface Logger {
   info: (message: string, context?: Context) => void;
   warn: (message: string, context?: Context) => void;
   error: (message: string, error?: Error | unknown, context?: Context) => void;
+  fatal: (message: string, error?: Error | unknown, context?: Context) => void;
 }

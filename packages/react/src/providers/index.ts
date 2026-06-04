@@ -1,1 +1,4 @@
-export { DictosProvider, useServices } from "./dictos-provider";
+export {
+  DictosProvider,
+  useDependencies as useServices,
+} from "./dictos-provider";
