@@ -6,7 +6,8 @@
     "baseUrl": ".",
     "paths": {
       "@db/*": ["db/*"],
-      "@http/*": ["http/*"]
+      "@http/*": ["http/*"],
+      "@fs/*": ["fs/*"]
     }
   },
   "references": [{ "path": "../core" }, { "path": "../../apps/server/" }],
