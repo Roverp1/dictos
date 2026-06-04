@@ -23,8 +23,7 @@ import {
   SyncService,
   type AuthSession,
 } from "@dictos/core";
-
-import { useServicesStore } from "@shared/lib/services";
+import { DictosProvider } from "@dictos/react";
 
 import { App } from "./app";
 import path from "path";
@@ -92,14 +91,6 @@ export const bootstrap = async () => {
     })();
   }
 
-  useServicesStore.getState().initServices({
-    entryService,
-    folderService,
-    descriptionService,
-    authService,
-    syncService,
-  });
-
   const renderer = await createCliRenderer({
     consoleOptions: {
       position: ConsolePosition.BOTTOM,
@@ -108,8 +99,19 @@ export const bootstrap = async () => {
   });
 
   createRoot(renderer).render(
-    <MemoryRouter initialEntries={["/dictionary"]}>
-      <App />
-    </MemoryRouter>
+    <DictosProvider
+      dependencies={{
+        entryService,
+        folderService,
+        descriptionService,
+        authService,
+        syncService,
+        logger,
+      }}
+    >
+      <MemoryRouter initialEntries={["/dictionary"]}>
+        <App />
+      </MemoryRouter>
+    </DictosProvider>
   );
 };
