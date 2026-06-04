@@ -1,4 +1,4 @@
-import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
+import { useDictionaryStore, useHelperVariables } from "@entities/dictionary";
 import { useServices } from "@shared/lib/services";
 
 export const useRenameLogic = () => {

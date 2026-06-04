@@ -1,5 +1,6 @@
 import type { Folder } from "@dictos/core";
-import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
+
+import { useDictionaryStore, useHelperVariables } from "@entities/dictionary";
 
 export const useNavigateLogic = () => {
   const { focus, setFocus, setPathStack, setSelectedTreeItemIndex } =

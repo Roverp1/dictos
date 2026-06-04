@@ -1,8 +1,7 @@
-import { useDictionaryStore } from "../../model/use-dictionary-store";
-
-import { useTheme } from "@shared/lib/theme";
-
 import type { InputProps } from "@opentui/react";
+
+import { useDictionaryStore } from "@entities/dictionary";
+import { useTheme } from "@shared/lib/theme";
 
 interface CreateModalProps extends InputProps {}
 

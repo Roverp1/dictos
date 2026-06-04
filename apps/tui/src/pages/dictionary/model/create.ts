@@ -1,6 +1,6 @@
 import { useServices } from "@shared/lib/services";
 
-import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
+import { useDictionaryStore, useHelperVariables } from "@entities/dictionary";
 
 export const useCreateLogic = () => {
   const {

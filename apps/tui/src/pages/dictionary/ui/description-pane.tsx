@@ -1,11 +1,8 @@
 import { useTheme } from "@shared/lib/theme";
+import { useDictionaryStore, useHelperVariables } from "@entities/dictionary";
 
 import { InteractiveList } from "./interactive-list";
 import { SubmitTextarea } from "./submit-textarea";
-import {
-  useDictionaryStore,
-  useHelperVariables,
-} from "../model/use-dictionary-store";
 import { useRenameLogic } from "../model/rename";
 import { useCreateLogic } from "../model/create";
 

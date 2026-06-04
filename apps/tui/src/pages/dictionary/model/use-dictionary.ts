@@ -1,14 +1,15 @@
 import { useEffect } from "react";
 import { useKeyboard } from "@opentui/react";
 
-import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
+import { useDictionaryStore, useHelperVariables } from "@entities/dictionary";
 import { useServices } from "@shared/lib/services";
+
 import { useRenameLogic } from "./rename";
 import { useCreateLogic } from "./create";
 import { useDeleteLogic } from "./delete";
 import { useNavigateLogic } from "./navigate";
 
-import type { TreeItem } from "./types";
+import type { TreeItem } from "@entities/dictionary";
 
 export const useDictionary = () => {
   // store

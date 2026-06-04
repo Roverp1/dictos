@@ -1,30 +1,19 @@
 import { useServices } from "@shared/lib/services";
-import { useDictionaryStore, useHelperVariables } from "./use-dictionary-store";
+import { useDictionaryStore, useHelperVariables } from "@entities/dictionary";
 
 export const useDeleteLogic = () => {
   const {
-    descriptionRefreshTrigger,
     descriptionsToDisplay,
     focus,
-    inputValue,
-    refreshTreeItemTrigger,
-    selectedDescriptionIndex,
-    selectedTreeItemIndex,
     setDescriptionRefreshTrigger,
-    setDescriptionsToDisplay,
     setFocus,
-    setInputValue,
     setRefreshTreeItemTrigger,
-    setSelectedDescriptionIndex,
-    setSelectedTreeItemIndex,
-    setTreeItemsToDisplay,
     treeItemsToDisplay,
   } = useDictionaryStore();
 
   const { entryService, descriptionService, folderService } = useServices();
 
-  const { currentFolder, selectedDescription, selectedTreeItem } =
-    useHelperVariables();
+  const { selectedDescription, selectedTreeItem } = useHelperVariables();
 
   const handleDeleteTreeItemConfirm = async () => {
     if (selectedTreeItem!.type === "entry" && focus.pane === "tree") {

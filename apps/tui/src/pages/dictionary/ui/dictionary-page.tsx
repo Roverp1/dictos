@@ -1,15 +1,13 @@
+import { useDictionaryStore, useHelperVariables } from "@entities/dictionary";
+import { useTheme } from "@shared/lib/theme";
+
 import { useDictionary } from "../model/use-dictionary";
 import { CreateModal } from "./modals/create-modal";
 import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 import { FolderTreePane } from "./folder-tree-pane";
 import { DescriptionPane } from "./description-pane";
-import {
-  useDictionaryStore,
-  useHelperVariables,
-} from "../model/use-dictionary-store";
 import { useCreateLogic } from "../model/create";
 import { useDeleteLogic } from "../model/delete";
-import { useTheme } from "@shared/lib/theme";
 
 export const DictionaryPage = () => {
   const theme = useTheme();

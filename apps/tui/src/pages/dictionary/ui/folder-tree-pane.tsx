@@ -1,10 +1,7 @@
 import { useTheme } from "@shared/lib/theme";
+import { useDictionaryStore } from "@entities/dictionary";
+
 import { InteractiveList } from "./interactive-list";
-
-import type { Folder } from "@dictos/core";
-
-import { useDictionaryStore } from "../model/use-dictionary-store";
-
 import { useRenameLogic } from "../model/rename";
 
 export const FolderTreePane = () => {

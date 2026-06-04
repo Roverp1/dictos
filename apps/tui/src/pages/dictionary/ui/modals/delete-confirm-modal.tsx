@@ -2,7 +2,7 @@ import { useKeyboard } from "@opentui/react";
 
 import { useTheme } from "@shared/lib/theme";
 
-import { useDictionaryStore } from "../../model/use-dictionary-store";
+import { useDictionaryStore } from "@entities/dictionary";
 
 interface DeleteConfirmModalProps {
   itemName?: string;

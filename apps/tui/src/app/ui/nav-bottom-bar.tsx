@@ -1,10 +1,12 @@
 import { useKeyboard } from "@opentui/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { toast } from "@opentui-ui/toast";
+// import { toast } from "@opentui-ui/toast";
 
 import { useTheme } from "@shared/lib/theme";
-import { useServices } from "@shared/lib/services";
+// import { useServices } from "@shared/lib/services";
+
+import { useHandleSync } from "@features/synchronise";
 
 export const NavBottomBar = () => {
   const [isBarActive, setIsBarActive] = useState<boolean>(false);
@@ -14,32 +16,34 @@ export const NavBottomBar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { syncService } = useServices();
+  const { handleSync } = useHandleSync();
 
-  const handleSync = async () => {
-    const performSync = async () => {
-      const result = await syncService.sync();
+  // const { syncService } = useServices();
 
-      if (result instanceof Error) {
-        console.error(result);
-        throw result;
-      }
+  // const handleSync = async () => {
+  //   const performSync = async () => {
+  //     const result = await syncService.sync();
 
-      return result;
-    };
+  //     if (result instanceof Error) {
+  //       console.error(result);
+  //       throw result;
+  //     }
 
-    const user = await toast
-      .promise(performSync(), {
-        loading: "Synchronizing...",
-        success: "Synchorization successful!",
-        error: (err: any) =>
-          err.reason || err.message || "Synchronization failed",
-      })
-      ?.unwrap()
-      .catch(() => {});
+  //     return result;
+  //   };
 
-    console.log("Sync is successful:", user);
-  };
+  //   const user = await toast
+  //     .promise(performSync(), {
+  //       loading: "Synchronizing...",
+  //       success: "Synchorization successful!",
+  //       error: (err: any) =>
+  //         err.reason || err.message || "Synchronization failed",
+  //     })
+  //     ?.unwrap()
+  //     .catch(() => {});
+
+  //   console.log("Sync is successful:", user);
+  // };
 
   useKeyboard((key) => {
     if (isBarActive === true && key.name === "escape") {
@@ -102,7 +106,7 @@ export const NavBottomBar = () => {
         paddingX={2}
         paddingY={1}
         backgroundColor={theme.base02}
-        // onMouseDown={() => yourFunction()}
+        onMouseDown={() => handleSync()}
       >
         <text>synchronise</text>
       </box>
