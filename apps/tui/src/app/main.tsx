@@ -35,8 +35,7 @@ export const bootstrap = async () => {
     process.exit(1);
   }
 
-  const timestamp = Date.now();
-  const logFilePath = path.join(dataDir, `dictos-debug-${timestamp}.log`);
+  const logFilePath = path.join(dataDir, `dictos-debug.log`);
   const logger = new PinoLoggerAdapter(logFilePath);
 
   const dbClient = await BunTursoClient.create(path.join(dataDir, "dictos.db"));
