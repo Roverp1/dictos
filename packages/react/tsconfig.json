@@ -3,14 +3,9 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": ".",
-    "baseUrl": ".",
-    "paths": {
-      "@db/*": ["db/*"],
-      "@http/*": ["http/*"],
-      "@fs/*": ["fs/*"]
-    }
+    "jsx": "react-jsx"
   },
-  "references": [{ "path": "../core" }, { "path": "../../apps/server/" }],
+  "references": [{ "path": "../core" }],
   "include": ["**/*"],
   "exclude": [
     "node_modules",

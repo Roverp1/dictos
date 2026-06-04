@@ -7,55 +7,21 @@ import type { FocusState } from "../model/types";
 interface InteractiveListProps<T> extends Omit<ScrollBoxProps, "children"> {
   items: T[];
   id: string;
-  focused: boolean;
-  focus: FocusState;
-
   selectedIndex: number;
-  onIndexChange: React.Dispatch<React.SetStateAction<number>>;
   ListFooterComponent?: ReactNode;
-
   renderItem: (item: T, index: number, isSelected: boolean) => ReactNode;
 }
 
 export const InteractiveList = <T,>({
   items,
-  focused,
-  focus,
   id,
-
   selectedIndex,
-  onIndexChange,
   ListFooterComponent,
 
   renderItem,
   ...props
 }: InteractiveListProps<T>) => {
   const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
-
-  useKeyboard((key) => {
-    if (
-      !focused ||
-      items.length === 0 ||
-      focus.action === "renameInput" ||
-      focus.action === "createInput"
-    )
-      return;
-
-    if (key.name === "j" || key.name === "down") {
-      onIndexChange((prev) => {
-        const next = prev + 1 >= items.length ? 0 : prev + 1;
-
-        return next;
-      });
-    }
-
-    if (key.name === "k" || key.name === "up") {
-      onIndexChange((prev) => {
-        const next = prev - 1 < 0 ? items.length - 1 : prev - 1;
-        return next;
-      });
-    }
-  });
 
   useEffect(() => {
     if (!scrollBoxRef.current) return;
@@ -65,7 +31,7 @@ export const InteractiveList = <T,>({
     } else if (items.length > 0) {
       scrollBoxRef.current.scrollChildIntoView(`${id}-item-${selectedIndex}`);
     }
-  }, [selectedIndex, ListFooterComponent]);
+  }, [selectedIndex, ListFooterComponent, id, items.length]);
 
   return (
     <scrollbox

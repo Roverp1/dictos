@@ -28,6 +28,10 @@ _Avoid_: Activity Aggregate, Stat, Metric
 The action of transforming a selection of Folders, Entries, and Descriptions into an external file format (e.g., Anki, JSON).
 _Avoid_: Flashcard, Deck, Sync (when referring to file output)
 
+**Dictionary**:
+The total collection of a user's Folders, Entries, and Descriptions. In the UI, this refers to the primary view/page used to browse and manage this data.
+_Avoid_: Library, Collection, Explorer, Browser
+
 **Sync**:
 The automated, bidirectional replication of private local data across a single user's devices (powered by libSQL/Turso).
 _Avoid_: Publish, Upload, Social Sync

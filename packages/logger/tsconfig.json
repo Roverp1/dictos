@@ -2,15 +2,8 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": ".",
-    "baseUrl": ".",
-    "paths": {
-      "@db/*": ["db/*"],
-      "@http/*": ["http/*"],
-      "@fs/*": ["fs/*"]
-    }
+    "rootDir": "."
   },
-  "references": [{ "path": "../core" }, { "path": "../../apps/server/" }],
   "include": ["**/*"],
   "exclude": [
     "node_modules",

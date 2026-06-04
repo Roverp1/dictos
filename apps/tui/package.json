@@ -13,8 +13,9 @@
     "typescript": "^6"
   },
   "dependencies": {
-    "@dictos/adapters": "workspace: *",
     "@dictos/core": "workspace:*",
+    "@dictos/adapters": "workspace: *",
+    "@dictos/react": "workspace:*",
     "@opentui-ui/toast": "^0.0.5",
     "@opentui/core": "^0.1.103",
     "@opentui/react": "^0.1.103",

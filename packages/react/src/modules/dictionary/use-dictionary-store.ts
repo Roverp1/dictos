@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import type { SetStateAction } from "react";
 
 import type { FocusState, TreeItem } from "./types";
 import type { Description, Folder } from "@dictos/core";
@@ -24,17 +23,19 @@ type DictionaryStore = {
   setTreeItemsOnHoverToDisplay: (newTreeItems: TreeItem[]) => void;
   setDescriptionsToDisplay: (newDescriptionsValue: Description[]) => void;
   setSelectedTreeItemIndex: (
-    newTreeItemIndex: number | SetStateAction<number>
+    newTreeItemIndex: number | ((prev: number) => number)
   ) => void;
   setSelectedDescriptionIndex: (
-    newDescriptionIndex: number | SetStateAction<number>
+    newDescriptionIndex: number | ((prev: number) => number)
   ) => void;
   setRefreshTreeItemTrigger: () => void;
   setDescriptionRefreshTrigger: () => void;
-  setPathStack: (newPathStack: Folder[] | SetStateAction<Folder[]>) => void;
+  setPathStack: (
+    newPathStack: Folder[] | ((prev: Folder[]) => Folder[])
+  ) => void;
 };
 
-export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
+export const useDictionaryStore = create<DictionaryStore>((set) => ({
   inputValue: "",
   focus: {
     pane: "tree",
@@ -121,21 +122,3 @@ export const useDictionaryStore = create<DictionaryStore>((set, get) => ({
     }));
   },
 }));
-
-export const useHelperVariables = () => {
-  const selectedTreeItem = useDictionaryStore(
-    (state) => state.treeItemsToDisplay[state.selectedTreeItemIndex]
-  );
-
-  const selectedDescription = useDictionaryStore(
-    (state) => state.descriptionsToDisplay[state.selectedDescriptionIndex]
-  );
-
-  const currentFolder = useDictionaryStore(
-    (state) => state.pathStack[state.pathStack.length - 1]
-  );
-
-  const isAtRoot = useDictionaryStore((state) => state.pathStack.length === 1);
-
-  return { selectedTreeItem, selectedDescription, currentFolder, isAtRoot };
-};
