@@ -23,13 +23,16 @@ interface DictosDependencies {
 const DependenciesContext = createContext<DictosDependencies | null>(null);
 
 interface DictosProviderProps {
-  services: DictosDependencies;
+  dependencies: DictosDependencies;
   children: ReactNode;
 }
 
-export const DictosProvider = ({ services, children }: DictosProviderProps) => {
+export const DictosProvider = ({
+  dependencies,
+  children,
+}: DictosProviderProps) => {
   return (
-    <DependenciesContext.Provider value={services}>
+    <DependenciesContext.Provider value={dependencies}>
       {children}
     </DependenciesContext.Provider>
   );
