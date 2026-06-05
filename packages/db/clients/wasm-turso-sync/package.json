@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@dictos/wasm-turso-sync",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0"
+  },
+  "dependencies": {
+    "@dictos/core": "workspace:*",
+    "@dictos/db-core": "workspace:*",
+    "@dictos/errore": "workspace:*",
+    "@dictos/logger": "workspace:*",
+    "@tursodatabase/sync-wasm": "^0.6.1",
+    "drizzle-orm": "^0.45.2"
+  }
+}
