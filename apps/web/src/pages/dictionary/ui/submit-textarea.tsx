@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useDictionary } from "@dictos/react";
 import { useTheme } from "../../../shared/lib/theme";
 
 interface SubmitTextareaProps {
@@ -14,6 +15,7 @@ export const SubmitTextarea = ({
 }: SubmitTextareaProps) => {
   const theme = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { actions } = useDictionary();
 
   useEffect(() => {
     if (focused && textareaRef.current) {
@@ -26,6 +28,12 @@ export const SubmitTextarea = ({
       e.preventDefault();
       onSave(textareaRef.current?.value || "");
       if (textareaRef.current) textareaRef.current.value = "";
+      return;
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      actions.general.cancelAction();
     }
   };
 

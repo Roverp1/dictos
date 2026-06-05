@@ -44,7 +44,7 @@ export const DeleteConfirmModal = ({
           border: `2px solid ${theme.base0D}`,
           display: "flex",
           flexDirection: "column",
-          width: "350px",
+          width: "500px", // Increased width
           backgroundColor: theme.base00,
           boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
         }}
@@ -52,22 +52,24 @@ export const DeleteConfirmModal = ({
         <div
           style={{
             flexGrow: 1,
-            padding: "2rem",
+            padding: "3rem 2rem", // Increased padding
             textAlign: "center",
             color: theme.base05,
           }}
         >
-          <div style={{ marginBottom: "1rem", fontWeight: "bold" }}>
+          <div style={{ marginBottom: "1.5rem", fontWeight: "bold", fontSize: "1.25rem" }}>
             Delete "{itemName}"?
           </div>
-          <div>Are you sure you want to delete this item?</div>
+          <div style={{ color: theme.base04 }}>
+            Are you sure you want to delete this item?
+          </div>
         </div>
 
         <div
           style={{
             display: "flex",
             borderTop: `1px solid ${theme.base0D}`,
-            height: "3rem",
+            height: "4rem", // Taller buttons
           }}
         >
           <button
@@ -77,6 +79,8 @@ export const DeleteConfirmModal = ({
               borderRight: `1px solid ${theme.base0D}`,
               color: theme.base0B,
               fontWeight: "bold",
+              fontSize: "1rem",
+              backgroundColor: theme.base01, // Added background
             }}
           >
             [Y]es
@@ -88,6 +92,8 @@ export const DeleteConfirmModal = ({
               flex: 1,
               color: theme.base08,
               fontWeight: "bold",
+              fontSize: "1rem",
+              backgroundColor: theme.base01, // Added background
             }}
           >
             [N]o
