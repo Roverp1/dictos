@@ -14,6 +14,7 @@
   "scripts": {
     "typecheck": "bun turbo typecheck",
     "dev:tui": "bun --cwd apps/tui/ dev",
+    "dev:web": "bun --cwd apps/web dev",
     "dev:server": "bun --cwd apps/server/ dev"
   },
   "devDependencies": {
