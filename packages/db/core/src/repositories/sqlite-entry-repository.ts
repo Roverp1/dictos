@@ -1,4 +1,4 @@
-import { randomUUIDv5 } from "bun";
+import { v5 as uuidv5 } from "uuid";
 
 import {
   type Entry,
@@ -22,7 +22,7 @@ export class SqliteEntryRepository implements EntryRepository {
 
   async save(entry: NewEntry): Promise<Entry | DbError> {
     const entryIdString = `${entry.text}:${entry.folderId}`;
-    const entryId = randomUUIDv5(entryIdString, ENTRY_NAMESPACE);
+    const entryId = uuidv5(entryIdString, ENTRY_NAMESPACE);
 
     const savedEntry = await this.db.transaction(async (tx) => {
       const result = await tx
@@ -62,7 +62,7 @@ export class SqliteEntryRepository implements EntryRepository {
 
       const today = new Date().toISOString().split("T")[0]!;
       const deterministicString = `${today}:${this.deviceId}`;
-      const activityId = randomUUIDv5(deterministicString, ACTIVITY_NAMESPACE);
+      const activityId = uuidv5(deterministicString, ACTIVITY_NAMESPACE);
 
       const activityRes = await tx
         .insert(schema.activitiesTable)

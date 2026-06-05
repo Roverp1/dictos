@@ -1,5 +1,5 @@
 import { eq, isNull } from "drizzle-orm";
-import { randomUUIDv5 } from "bun";
+import { v5 as uuidv5 } from "uuid";
 
 import {
   DbError,
@@ -17,7 +17,7 @@ export class SqliteFolderRepository implements FolderRepository {
   constructor(private db: SqliteTursoDrizzleProxy) {}
 
   async save(folder: NewFolder): Promise<Folder | DbError> {
-    const id = randomUUIDv5(
+    const id = uuidv5(
       `${folder.parentId || "root"}:${folder.name}`,
       FOLDER_NAMESPACE
     );
