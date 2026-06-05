@@ -134,6 +134,20 @@
         "typescript": "^6.0.0",
       },
     },
+    "packages/local-storage": {
+      "name": "@dictos/local-storage",
+      "version": "0.0.0",
+      "dependencies": {
+        "@dictos/core": "workspace:*",
+        "@dictos/errore": "workspace:*",
+        "@dictos/logger": "workspace:*",
+        "uuid": "^14.0.0",
+      },
+      "devDependencies": {
+        "@types/uuid": "^11.0.0",
+        "typescript": "^6.0.0",
+      },
+    },
     "packages/logger": {
       "name": "@dictos/logger",
       "version": "0.0.0",
@@ -186,6 +200,8 @@
     "@dictos/errore": ["@dictos/errore@workspace:packages/errore"],
 
     "@dictos/fs-storage": ["@dictos/fs-storage@workspace:packages/fs-storage"],
+
+    "@dictos/local-storage": ["@dictos/local-storage@workspace:packages/local-storage"],
 
     "@dictos/logger": ["@dictos/logger@workspace:packages/logger"],
 
