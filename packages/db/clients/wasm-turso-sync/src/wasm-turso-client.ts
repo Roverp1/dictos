@@ -1,4 +1,4 @@
-import { connect, type Database } from "@tursodatabase/sync-wasm";
+import { connect, type Database } from "@tursodatabase/sync-wasm/vite";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 
 import { type SyncPort, type SyncResult, SyncError } from "@dictos/core";
