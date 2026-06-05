@@ -5,6 +5,7 @@ import { toast } from "@opentui-ui/toast";
 
 import { useTheme } from "@shared/lib/theme";
 import { useServices } from "@shared/lib/services";
+import { useDictionaryStore } from "@pages/dictionary/model/use-dictionary-store";
 
 export const NavBottomBar = () => {
   const [isBarActive, setIsBarActive] = useState<boolean>(false);
@@ -16,8 +17,13 @@ export const NavBottomBar = () => {
 
   const { syncService } = useServices();
 
+  const { setRefreshTreeItemTrigger, setDescriptionRefreshTrigger } =
+    useDictionaryStore();
+
   const handleSync = async () => {
-    const performSync = async () => {
+    const toastId = toast.loading("Synchronizing...");
+
+    try {
       const result = await syncService.sync();
 
       if (result instanceof Error) {
@@ -25,20 +31,19 @@ export const NavBottomBar = () => {
         throw result;
       }
 
-      return result;
-    };
+      console.log("Sync is successful:", result);
 
-    const user = await toast
-      .promise(performSync(), {
-        loading: "Synchronizing...",
-        success: "Synchorization successful!",
-        error: (err: any) =>
-          err.reason || err.message || "Synchronization failed",
-      })
-      ?.unwrap()
-      .catch(() => {});
+      setRefreshTreeItemTrigger();
+      setDescriptionRefreshTrigger();
 
-    console.log("Sync is successful:", user);
+      toast.success("Synchorization successful!", { id: toastId });
+    } catch (err: any) {
+      console.error("Sync failed:", err);
+
+      toast.error(err.reason || err.message || "Synchronization failed", {
+        id: toastId,
+      });
+    }
   };
 
   useKeyboard((key) => {

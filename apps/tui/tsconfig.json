@@ -33,7 +33,9 @@
     "paths": {
       "@app/*": ["app/*"],
       "@pages/*": ["pages/*"],
-      "@shared/*": ["shared/*"]
+      "@shared/*": ["shared/*"],
+      "@features/*": ["features/*"],
+      "@entities/*": ["entities/*"]
     }
   },
   "references": [
