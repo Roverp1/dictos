@@ -1,5 +1,5 @@
-import type { Folder, NewFolder } from "@models/folder";
-import type { DbError } from "errors";
+import type { Folder, NewFolder } from "../../models/folder";
+import type { DbError } from "../../errors";
 
 export interface FolderRepository {
   save(folder: NewFolder): Promise<Folder | DbError>;
@@ -13,4 +13,3 @@ export interface FolderRepository {
   ): Promise<Folder | DbError>;
   delete(id: string): Promise<Folder | DbError>;
 }
-

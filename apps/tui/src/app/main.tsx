@@ -3,18 +3,19 @@ import { createRoot } from "@opentui/react";
 import { MemoryRouter } from "react-router-dom";
 
 import {
-  BunTursoClient,
   SqliteEntryRepository,
   SqliteDescriptionRepository,
   SqliteFolderRepository,
   SqliteUserRepository,
+} from "../../../../packages/db/core/src";
+import { BunTursoClient } from "@dictos/bun-turso-sync";
+import {
   FsSessionRepository,
-  CentralApiAdapter,
   FsLocalStateRepository,
   getDictosDataDir,
-  HttpConnectivityAdapter,
-  PinoLoggerAdapter,
-} from "@dictos/adapters";
+} from "@dictos/fs-storage";
+import { CentralApiAdapter, HttpConnectivityAdapter } from "@dictos/eden-http";
+import { PinoLoggerAdapter } from "@dictos/pino-logger";
 import {
   AuthService,
   EntryService,

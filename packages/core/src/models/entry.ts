@@ -1,4 +1,4 @@
-import { ValidationError } from "errors";
+import { ValidationError } from "../errors";
 
 export interface Entry {
   id: string;
@@ -14,4 +14,3 @@ export function validateNewEntry(data: NewEntry): void | ValidationError {
   if (!data.text || data.text.trim() === "")
     return new ValidationError({ reason: "Entry cannot be empty." });
 }
-

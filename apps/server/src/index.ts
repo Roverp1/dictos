@@ -2,9 +2,9 @@ import { Elysia, status } from "elysia";
 import cors from "@elysia/cors";
 import openapi from "@elysia/openapi";
 
-import { AuthService } from "modules/auth/auth.service";
-import { createCentralDatabase } from "db/db";
-import { authPlugin } from "modules/auth/auth.plugin";
+import { AuthService } from "./modules/auth/auth.service";
+import { createCentralDatabase } from "./db/db";
+import { authPlugin } from "./modules/auth/auth.plugin";
 
 const bootstrap = async () => {
   const db = await createCentralDatabase();

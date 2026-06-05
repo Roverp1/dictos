@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@dictos/eden-http",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0",
+    "elysia": "^1.4.28"
+  },
+  "dependencies": {
+    "@dictos/core": "workspace:*",
+    "@dictos/errore": "workspace:*",
+    "@dictos/logger": "workspace:*",
+    "@dictos/server": "workspace:*",
+    "@elysia/eden": "^1.4.10"
+  }
+}

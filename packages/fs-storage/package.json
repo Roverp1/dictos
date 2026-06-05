@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@dictos/fs-storage",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^6.0.0"
+  },
+  "dependencies": {
+    "@dictos/core": "workspace:*",
+    "@dictos/errore": "workspace:*",
+    "@dictos/logger": "workspace:*"
+  }
+}

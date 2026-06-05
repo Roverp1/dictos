@@ -2,8 +2,8 @@ import { eq } from "drizzle-orm";
 import * as errore from "errore";
 import { DbError } from "@dictos/core";
 
-import type { CentralDatabase } from "db/db";
-import * as schema from "db/schema";
+import type { CentralDatabase } from "../../db/db";
+import * as schema from "../../db/schema";
 import { TursoPlatformService } from "./turso-platform.service";
 
 export class UserExistsErorr extends errore.createTaggedError({

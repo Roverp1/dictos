@@ -2,7 +2,7 @@ import { Elysia, status } from "elysia";
 import jwt from "@elysia/jwt";
 import * as errore from "errore";
 
-import { errorsPlugin, type ErrorResponse } from "plugins/errors.plugin";
+import { errorsPlugin, type ErrorResponse } from "../../plugins/errors.plugin";
 
 import {
   AuthService,

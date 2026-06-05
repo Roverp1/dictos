@@ -1,6 +1,10 @@
-import { validateNewFolder, type Folder, type NewFolder } from "@models/folder";
-import type { FolderRepository } from "@ports/outbound";
-import { DbError, ValidationError } from "errors";
+import {
+  validateNewFolder,
+  type Folder,
+  type NewFolder,
+} from "../models/folder";
+import type { FolderRepository } from "../ports/outbound";
+import { DbError, ValidationError } from "../errors";
 
 export interface FolderNode extends Folder {
   children: FolderNode[];

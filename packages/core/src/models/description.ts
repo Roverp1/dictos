@@ -1,4 +1,4 @@
-import { ValidationError } from "errors";
+import { ValidationError } from "../errors";
 
 export interface Description {
   id: string;
@@ -19,4 +19,3 @@ export function validateNewDescription(
   if (!data.text || data.text.trim() === "")
     return new ValidationError({ reason: "Description text cannot be empty." });
 }
-

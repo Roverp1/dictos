@@ -4,6 +4,7 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "packageManager": "bun@1.3.3",
   "workspaces": [
     "packages/*",
     "packages/db/*",
@@ -11,11 +12,13 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:tui": "bun run --watch apps/tui/src/index.tsx",
-    "dev:server": "cd apps/server/ && bun run dev"
+    "typecheck": "bun turbo typecheck",
+    "dev:tui": "bun --cwd apps/tui/ dev",
+    "dev:server": "bun --cwd apps/server/ dev"
   },
   "devDependencies": {
     "@socketsecurity/bun-security-scanner": "^1.1.2",
-    "prettier": "^3.8.3"
+    "prettier": "^3.8.3",
+    "turbo": "^2.9.14"
   }
 }

@@ -2,9 +2,9 @@ import {
   validateNewDescription,
   type Description,
   type NewDescription,
-} from "@models/description";
-import type { DescriptionRepository } from "@ports/outbound";
-import type { DbError, ValidationError } from "errors";
+} from "../models/description";
+import type { DescriptionRepository } from "../ports/outbound";
+import type { DbError, ValidationError } from "../errors";
 
 export class DescriptionService {
   constructor(private repo: DescriptionRepository) {}
@@ -36,4 +36,3 @@ export class DescriptionService {
     return await this.repo.delete(id);
   }
 }
-

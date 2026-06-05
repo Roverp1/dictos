@@ -1,9 +1,11 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@dictos/tui",
   "module": "src/index.tsx",
   "type": "module",
   "private": true,
   "scripts": {
+    "typecheck": "tsc --noEmit",
     "dev": "bun run --watch src/index.tsx"
   },
   "devDependencies": {
@@ -14,7 +16,11 @@
   },
   "dependencies": {
     "@dictos/core": "workspace:*",
-    "@dictos/adapters": "workspace: *",
+    "@dictos/db-core": "workspace:*",
+    "@dictos/bun-turso-sync": "workspace:*",
+    "@dictos/fs-storage": "workspace:*",
+    "@dictos/eden-http": "workspace:*",
+    "@dictos/pino-logger": "workspace:*",
     "@dictos/react": "workspace:*",
     "@opentui-ui/toast": "^0.0.5",
     "@opentui/core": "^0.1.103",

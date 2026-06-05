@@ -1,4 +1,4 @@
-import { ValidationError } from "errors";
+import { ValidationError } from "../errors";
 
 export interface Instruction {
   id: string;
@@ -24,4 +24,3 @@ export function validateNewInstruction(
       reason: "Instruction name cannot be empty string if provided.",
     });
 }
-

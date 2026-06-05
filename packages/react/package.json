@@ -1,9 +1,13 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@dictos/react",
   "version": "0.0.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@dictos/core": "workspace:*",

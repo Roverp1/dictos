@@ -2,12 +2,12 @@ import type {
   AuthCredentials,
   AuthResult,
   RegisterCredentials,
-} from "@models/user";
+} from "../../models/user";
 import type {
   AuthError,
   InputValidationError,
   RegistrationError,
-} from "errors";
+} from "../../errors";
 
 export interface AuthPort {
   login(

@@ -1,7 +1,11 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "@dictos/core",
   "version": "0.0.0",
   "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "exports": {
     ".": "./src/index.ts"
   },

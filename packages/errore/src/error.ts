@@ -268,7 +268,7 @@ export function matchError<E extends Error, R>(
     }
   }
   // Fall through to Error handler for plain Error or unknown tagged errors
-  return h['Error'](err)
+  return h['Error']!(err)
 }
 
 /**
