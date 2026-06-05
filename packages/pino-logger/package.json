@@ -9,13 +9,15 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "devDependencies": {
-    "typescript": "^6.0.0"
-  },
   "dependencies": {
     "@dictos/core": "workspace:*",
     "@dictos/errore": "workspace:*",
-    "@dictos/logger": "workspace:*",
-    "pino": "^10.3.1"
+    "@dictos/logger": "workspace:*"
+  },
+  "peerDependencies": {
+    "pino": "^10.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0"
   }
 }

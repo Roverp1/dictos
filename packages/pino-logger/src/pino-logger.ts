@@ -3,11 +3,7 @@ import type { Logger, Context } from "@dictos/logger";
 import pino from "pino";
 
 export class PinoLoggerAdapter implements Logger {
-  private logger: pino.Logger;
-
-  constructor(logFilePath: string) {
-    this.logger = pino(pino.destination(logFilePath));
-  }
+  constructor(private logger: pino.Logger) {}
 
   debug(message: string, context?: Context): void {
     if (context) this.logger.debug(context, message);

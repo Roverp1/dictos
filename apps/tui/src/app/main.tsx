@@ -1,6 +1,7 @@
 import { ConsolePosition, createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { MemoryRouter } from "react-router-dom";
+import pino from "pino";
 
 import {
   SqliteEntryRepository,
@@ -37,7 +38,8 @@ export const bootstrap = async () => {
   }
 
   const logFilePath = path.join(dataDir, `dictos-debug.log`);
-  const logger = new PinoLoggerAdapter(logFilePath);
+  const pinoLogger = pino(pino.destination(logFilePath));
+  const logger = new PinoLoggerAdapter(pinoLogger);
 
   const dbClient = await BunTursoClient.create(path.join(dataDir, "dictos.db"));
   const db = dbClient.db;

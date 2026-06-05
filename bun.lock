@@ -46,14 +46,13 @@
         "@opentui/core": "^0.1.103",
         "@opentui/react": "^0.1.103",
         "@types/react": "^19.2.14",
+        "pino": "^10.3.1",
         "react": "^19.2.4",
         "react-router-dom": "^7.15.1",
         "zustand": "^5.0.13",
       },
       "devDependencies": {
         "@types/bun": "latest",
-      },
-      "peerDependencies": {
         "typescript": "^6",
       },
     },
@@ -148,10 +147,12 @@
         "@dictos/core": "workspace:*",
         "@dictos/errore": "workspace:*",
         "@dictos/logger": "workspace:*",
-        "pino": "^10.3.1",
       },
       "devDependencies": {
         "typescript": "^6.0.0",
+      },
+      "peerDependencies": {
+        "pino": "^10.0.0",
       },
     },
     "packages/react": {
