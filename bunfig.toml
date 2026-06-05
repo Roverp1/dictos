@@ -1,0 +1,5 @@
+[install]
+minimumReleaseAge = 1209600
+
+[install.security]
+scanner = "@socketsecurity/bun-security-scanner"

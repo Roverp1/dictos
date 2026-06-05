@@ -1,10 +1,13 @@
 {
+  "$schema": "https://json.schemastore.org/package.json",
   "name": "dictos",
   "module": "index.ts",
   "type": "module",
   "private": true,
   "workspaces": [
     "packages/*",
+    "packages/db/*",
+    "packages/db/clients/*",
     "apps/*"
   ],
   "scripts": {
@@ -12,6 +15,7 @@
     "dev:server": "cd apps/server/ && bun run dev"
   },
   "devDependencies": {
+    "@socketsecurity/bun-security-scanner": "^1.1.2",
     "prettier": "^3.8.3"
   }
 }
