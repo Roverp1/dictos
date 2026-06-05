@@ -48,7 +48,7 @@ export const bootstrap = async () => {
 
   const centralApiAdapter = new CentralApiAdapter("http://localhost:1488/");
   const httpConnectivityAdapter = new HttpConnectivityAdapter(
-    "https://turso.tech/"
+    "https://api.github.com"
   );
 
   const entryService = new EntryService(entryRepo);

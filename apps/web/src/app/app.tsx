@@ -1,6 +1,6 @@
 import { Route, Routes, Navigate } from "react-router-dom";
 import { AppLayout } from "./layout/app-layout";
-import { DictionaryPage } from "../pages/dictionary";
+import { appRoutes } from "./routes/route";
 
 export const App = () => {
   return (
@@ -15,10 +15,7 @@ export const App = () => {
             />
           }
         />
-        <Route
-          path="/dictionary"
-          element={<DictionaryPage />}
-        />
+        {appRoutes}
       </Route>
     </Routes>
   );
