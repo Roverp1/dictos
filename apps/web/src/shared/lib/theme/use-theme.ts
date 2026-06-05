@@ -1,9 +1,3 @@
-import {
-  CliRenderer,
-  CliRenderEvents,
-  type TerminalColors,
-} from "@opentui/core";
-import { useRenderer } from "@opentui/react";
 import { useEffect, useState } from "react";
 
 interface Base16Theme {
@@ -62,7 +56,7 @@ const GRUVBOX_DARK_HARD: Base16Theme = {
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<Base16Theme>(GRUVBOX_DARK_HARD);
-  const renderer = useRenderer();
+  // const renderer = useRenderer();
 
   // doesnt work in all terminals
   // useEffect(() => {

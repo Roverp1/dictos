@@ -1,44 +1,61 @@
-import { useTheme } from "@shared/lib/theme";
-
+import { useDictionary } from "@dictos/react";
+import { useTheme } from "../../../shared/lib/theme";
 import { InteractiveList } from "./interactive-list";
 import { SubmitTextarea } from "./submit-textarea";
-import { useDictionary } from "@dictos/react";
 
 export const DescriptionPane = () => {
   const theme = useTheme();
-
   const { state, selectedTreeItem, actions } = useDictionary();
 
-  if (!selectedTreeItem) return;
+  if (!selectedTreeItem) {
+    return (
+      <div
+        id="description-pane"
+        style={{
+          width: "50%",
+          height: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          borderLeft: `1px solid ${theme.base04}`,
+          color: theme.base03,
+        }}
+      >
+        Select an item to view details
+      </div>
+    );
+  }
 
   return (
-    <box
+    <div
       id="description-pane"
-      width="50%"
-      height="100%"
-      flexDirection="column"
-      gap={1}
-      border={["left"]}
-      borderColor={
-        state.focus.pane === "description" ? theme.base0D : theme.base04
-      }
+      style={{
+        width: "50%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem",
+        padding: "1rem",
+        borderLeft: `1px solid ${state.focus.pane === "description" ? theme.base0D : theme.base04}`,
+      }}
     >
-      <text
-        fg={state.focus.pane === "description" ? theme.base0E : theme.base03}
+      <div
+        style={{
+          color: state.focus.pane === "description" ? theme.base0E : theme.base03,
+          fontWeight: "bold",
+          fontSize: "1.2rem",
+        }}
       >
         {selectedTreeItem?.type === "entry"
-          ? `${selectedTreeItem.data.text}`
-          : `${selectedTreeItem.label}`}
-      </text>
+          ? selectedTreeItem.data.text
+          : selectedTreeItem.label}
+      </div>
 
-      {/* if hovered on word */}
       {selectedTreeItem.type === "entry" ? (
         <InteractiveList
           id="description-list"
-          contentOptions={{ gap: 1 }}
           flexGrow={1}
           items={state.descriptionsToDisplay}
-          focused={state.focus.pane === "description"}
           selectedIndex={state.selectedDescriptionIndex}
           renderItem={(item, i, isSelected) => {
             const isRenaming =
@@ -47,56 +64,67 @@ export const DescriptionPane = () => {
 
             if (isSelected && isRenaming) {
               return (
-                <box
-                  border
-                  borderColor={theme.base0D}
+                <div
+                  style={{
+                    border: `1px solid ${theme.base0D}`,
+                    marginBottom: "0.5rem",
+                  }}
                 >
                   <SubmitTextarea
                     focused={true}
                     onSave={actions.description.submitRename}
                     initialValue={state.inputValue}
                   />
-                </box>
+                </div>
               );
             }
 
             return (
-              <box
-                border
-                borderColor={isSelected ? theme.base0D : theme.base03}
+              <div
+                style={{
+                  border: `1px solid ${isSelected ? theme.base0D : theme.base03}`,
+                  padding: "0.5rem",
+                  marginBottom: "0.5rem",
+                  color: theme.base05,
+                  backgroundColor: isSelected ? theme.base02 : "transparent",
+                }}
               >
-                <text fg={theme.base05}>{item.text}</text>
-              </box>
+                {item.text}
+              </div>
             );
           }}
           ListFooterComponent={
             state.focus.pane === "description" &&
             state.focus.action === "createInput" ? (
-              <box
-                border
-                borderColor={theme.base0B}
+              <div
+                style={{
+                  border: `1px solid ${theme.base0B}`,
+                  width: "100%",
+                }}
               >
                 <SubmitTextarea
                   focused={true}
                   onSave={actions.description.submitCreate}
                 />
-              </box>
+              </div>
             ) : null
           }
         />
       ) : (
-        // if hovered on folder
-        <box>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {state.treeItemsOnHoverToDisplay.map((item, i) => (
-            <text
-              fg={theme.base05}
+            <div
               key={i}
+              style={{
+                color: theme.base05,
+                padding: "0.25rem 0.5rem",
+              }}
             >
-              {item.label}
-            </text>
+              {item.type === "folder" ? `📁 ${item.label}` : `📄 ${item.label}`}
+            </div>
           ))}
-        </box>
+        </div>
       )}
-    </box>
+    </div>
   );
 };

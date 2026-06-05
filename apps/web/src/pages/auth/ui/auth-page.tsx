@@ -1,12 +1,9 @@
-import { useKeyboard } from "@opentui/react";
-import { toast } from "@opentui-ui/toast/react";
-
+import { toast } from "sonner";
 import { InputValidationError } from "@dictos/core";
 import { useServices } from "@dictos/react";
-
-import { useTheme } from "@shared/lib/theme";
-
+import { useTheme } from "../../../shared/lib/theme";
 import { useAuthStore } from "../model/use-auth-store";
+import { useEffect } from "react";
 
 export const AuthPage = () => {
   const theme = useTheme();
@@ -23,32 +20,14 @@ export const AuthPage = () => {
     setRegisterEmail,
     setRegisterPassword,
     setRegisterUsername,
-    focusedField,
   } = useAuthStore();
 
   const { authService } = useServices();
 
-  useKeyboard((key) => {
-    if (key.name === "tab") {
-      const { handleTabFocus } = useAuthStore.getState();
+  const handleLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const { loginEmail, loginPassword } = useAuthStore.getState();
 
-      handleTabFocus();
-    }
-
-    if (key.name === "return") {
-      setTimeout(() => {
-        const { activePane } = useAuthStore.getState();
-        if (activePane === "login") handleLogin();
-        else if (activePane === "register") handleRegister();
-      }, 0);
-    }
-  });
-
-  const handleLogin = async () => {
-    const { loginEmail, loginPassword, setErrorMessage, setSuccess } =
-      useAuthStore.getState();
-
-    setErrorMessage(null);
     const performLogin = async () => {
       const result = await authService.login({
         email: loginEmail.trim(),
@@ -57,40 +36,32 @@ export const AuthPage = () => {
 
       if (result instanceof InputValidationError) {
         console.error(result.fields);
+        throw new Error("Validation failed");
       }
 
       if (result instanceof Error) {
-        console.error(result);
         throw result;
       }
 
       return result;
     };
 
-    const user = await toast
-      .promise(performLogin(), {
-        loading: "Logging in...",
-        success: "Login successful!",
-        error: (err: any) => err.message || "Auth failed",
-      })
-      ?.unwrap()
-      .catch(() => {});
-
-    console.log("result:", user);
+    toast.promise(performLogin(), {
+      loading: "Logging in...",
+      success: "Login successful!",
+      error: (err: any) => err.message || "Auth failed",
+    });
   };
 
-  const handleRegister = async () => {
+  const handleRegister = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     const {
       registerUsername,
       registerEmail,
       registerPassword,
-      setErrorMessage,
-      setSuccess,
     } = useAuthStore.getState();
 
-    setErrorMessage(null);
-
-    const performLogin = async () => {
+    const performRegister = async () => {
       const result = await authService.register({
         username: registerUsername.trim(),
         email: registerEmail.trim(),
@@ -99,137 +70,150 @@ export const AuthPage = () => {
 
       if (result instanceof InputValidationError) {
         console.error(result.fields);
+        throw new Error("Validation failed");
       }
 
       if (result instanceof Error) {
-        console.error(result);
         throw result;
       }
 
       return result;
     };
 
-    const user = await toast
-      .promise(performLogin(), {
-        loading: "Registrating...",
-        success: "Registration successful!",
-        error: (err: any) => err.message || "Registration failed",
-      })
-      ?.unwrap()
-      .catch(() => {});
+    toast.promise(performRegister(), {
+      loading: "Registering...",
+      success: "Registration successful!",
+      error: (err: any) => err.message || "Registration failed",
+    });
+  };
 
-    console.log("result:", user);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && !["TEXTAREA"].includes((e.target as HTMLElement).tagName)) {
+        if (activePane === "login") handleLogin();
+        else if (activePane === "register") handleRegister();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activePane]);
+
+  const paneStyle = (isActive: boolean) => ({
+    display: "flex",
+    flexDirection: "column" as const,
+    width: "50%",
+    padding: "2rem",
+    gap: "1.5rem",
+    borderRight: isActive && activePane === "login" ? `2px solid ${theme.base0D}` : `1px solid ${theme.base04}`,
+    borderLeft: isActive && activePane === "register" ? `2px solid ${theme.base0D}` : "none",
+    backgroundColor: isActive ? theme.base01 : theme.base00,
+    transition: "all 0.2s ease",
+  });
+
+  const inputGroupStyle = {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "0.5rem",
+  };
+
+  const labelStyle = {
+    color: theme.base04,
+    fontSize: "0.8rem",
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.05em",
+  };
+
+  const inputStyle = {
+    backgroundColor: theme.base00,
+    color: theme.base05,
+    border: `1px solid ${theme.base03}`,
+    padding: "0.75rem",
+    outline: "none",
+    fontFamily: "inherit",
   };
 
   return (
-    <box
-      height="100%"
-      flexDirection="row"
-    >
+    <div style={{ display: "flex", height: "100%", backgroundColor: theme.base00 }}>
       {/* Login Pane */}
-      <box
-        flexDirection="column"
-        border={["right"]}
-        borderColor={activePane === "login" ? theme.base0D : theme.base04}
-        width="50%"
-        paddingX={2}
-        gap={1}
-      >
-        <box marginBottom={1}>
-          <text fg={activePane === "login" ? theme.base0D : theme.base05}>
-            Login
-          </text>
-        </box>
+      <div style={paneStyle(activePane === "login")}>
+        <h2 style={{ color: activePane === "login" ? theme.base0D : theme.base05, margin: 0 }}>
+          Login
+        </h2>
 
-        <box flexDirection="column">
-          <text fg={theme.base04}>Email</text>
+        <div style={inputGroupStyle}>
+          <label style={labelStyle}>Email</label>
           <input
+            type="email"
             value={loginEmail}
-            onChange={setLoginEmail}
-            focused={focusedField === "login-email"}
+            onChange={(e) => setLoginEmail(e.target.value)}
+            style={inputStyle}
             placeholder="Enter email..."
           />
-        </box>
+        </div>
 
-        <box flexDirection="column">
-          <text fg={theme.base04}>Password</text>
+        <div style={inputGroupStyle}>
+          <label style={labelStyle}>Password</label>
           <input
+            type="password"
             value={loginPassword}
-            onChange={setLoginPassword}
-            focused={focusedField === "login-password"}
+            onChange={(e) => setLoginPassword(e.target.value)}
+            style={inputStyle}
             placeholder="Enter password..."
           />
-        </box>
+        </div>
 
-        <box marginTop={2}>
-          <text fg={theme.base03}>
-            {activePane === "login"
-              ? "Press Tab to switch fields. Press Enter to submit."
-              : ""}
-          </text>
-        </box>
-      </box>
+        {activePane === "login" && (
+          <div style={{ color: theme.base03, fontSize: "0.8rem", marginTop: "auto" }}>
+            Press Enter to submit.
+          </div>
+        )}
+      </div>
 
       {/* Registration Pane */}
-      <box
-        flexDirection="column"
-        width="50%"
-        paddingX={2}
-        gap={1}
-        border={["left"]}
-        borderColor={activePane === "register" ? theme.base0D : theme.base04}
-      >
-        <box marginBottom={1}>
-          <text fg={activePane === "register" ? theme.base0D : theme.base05}>
-            Register
-          </text>
-        </box>
+      <div style={paneStyle(activePane === "register")}>
+        <h2 style={{ color: activePane === "register" ? theme.base0D : theme.base05, margin: 0 }}>
+          Register
+        </h2>
 
-        <box flexDirection="column">
-          <text fg={theme.base04}>Username</text>
+        <div style={inputGroupStyle}>
+          <label style={labelStyle}>Username</label>
           <input
+            type="text"
             value={registerUsername}
-            onChange={setRegisterUsername}
-            focused={focusedField === "register-username"}
+            onChange={(e) => setRegisterUsername(e.target.value)}
+            style={inputStyle}
             placeholder="Enter username..."
           />
-        </box>
+        </div>
 
-        <box flexDirection="column">
-          <text fg={theme.base04}>Email</text>
+        <div style={inputGroupStyle}>
+          <label style={labelStyle}>Email</label>
           <input
+            type="email"
             value={registerEmail}
-            onChange={setRegisterEmail}
-            focused={focusedField === "register-email"}
+            onChange={(e) => setRegisterEmail(e.target.value)}
+            style={inputStyle}
             placeholder="Enter email..."
           />
-        </box>
+        </div>
 
-        <box flexDirection="column">
-          <text fg={theme.base04}>Password</text>
+        <div style={inputGroupStyle}>
+          <label style={labelStyle}>Password</label>
           <input
+            type="password"
             value={registerPassword}
-            onChange={setRegisterPassword}
-            focused={focusedField === "register-password"}
+            onChange={(e) => setRegisterPassword(e.target.value)}
+            style={inputStyle}
             placeholder="Enter password..."
           />
-        </box>
+        </div>
 
-        <box marginTop={2}>
-          <text fg={theme.base03}>
-            {activePane === "register"
-              ? "Press Tab to switch fields. Press Enter to submit."
-              : ""}
-          </text>
-        </box>
-      </box>
-    </box>
+        {activePane === "register" && (
+          <div style={{ color: theme.base03, fontSize: "0.8rem", marginTop: "auto" }}>
+            Press Enter to submit.
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
-
-// // @ts-expect-error opentui type bug
-// onSubmit={handleSubmit}
-// keyBindings={[
-//   { name: "return", action: "submit" },
-//   { name: "s", ctrl: true, action: "submit" },
-// ]}

@@ -1,13 +1,14 @@
-import type { ScrollBoxRenderable } from "@opentui/core";
-import { useKeyboard, type ScrollBoxProps } from "@opentui/react";
-import { useRef, type ReactNode, useEffect } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useRef } from "react";
 
-interface InteractiveListProps<T> extends Omit<ScrollBoxProps, "children"> {
+interface InteractiveListProps<T> {
   items: T[];
   id: string;
   selectedIndex: number;
   ListFooterComponent?: ReactNode;
   renderItem: (item: T, index: number, isSelected: boolean) => ReactNode;
+  flexGrow?: number;
+  style?: React.CSSProperties;
 }
 
 export const InteractiveList = <T,>({
@@ -15,46 +16,55 @@ export const InteractiveList = <T,>({
   id,
   selectedIndex,
   ListFooterComponent,
-
   renderItem,
-  ...props
+  flexGrow,
+  style,
 }: InteractiveListProps<T>) => {
-  const scrollBoxRef = useRef<ScrollBoxRenderable>(null);
+  const scrollBoxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!scrollBoxRef.current) return;
 
     if (ListFooterComponent) {
-      scrollBoxRef.current.scrollTo(scrollBoxRef.current.scrollHeight);
+      scrollBoxRef.current.scrollTop = scrollBoxRef.current.scrollHeight;
     } else if (items.length > 0) {
-      scrollBoxRef.current.scrollChildIntoView(`${id}-item-${selectedIndex}`);
+      const selectedElement = document.getElementById(`${id}-item-${selectedIndex}`);
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ block: "nearest" });
+      }
     }
   }, [selectedIndex, ListFooterComponent, id, items.length]);
 
   return (
-    <scrollbox
-      stickyScroll={ListFooterComponent !== null}
-      stickyStart="bottom"
+    <div
       ref={scrollBoxRef}
-      focused
-      {...props}
+      style={{
+        flexGrow,
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+        ...style,
+      }}
     >
       {items.map((item, i) => {
         const isSelected = selectedIndex === i;
 
         return (
-          <box
+          <div
             key={i}
             id={`${id}-item-${i}`}
+            style={{ display: "flex", flexDirection: "column" }}
           >
             {renderItem(item, i, isSelected)}
-          </box>
+          </div>
         );
       })}
 
       {ListFooterComponent && (
-        <box id="ListFooterComponent">{ListFooterComponent}</box>
+        <div id="ListFooterComponent" style={{ display: "flex", width: "100%" }}>
+          {ListFooterComponent}
+        </div>
       )}
-    </scrollbox>
+    </div>
   );
 };

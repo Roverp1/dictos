@@ -1,6 +1,5 @@
-import { useKeyboard } from "@opentui/react";
-
-import { useTheme } from "@shared/lib/theme";
+import { useEffect } from "react";
+import { useTheme } from "../../../../shared/lib/theme";
 
 interface DeleteConfirmModalProps {
   itemName?: string;
@@ -15,75 +14,86 @@ export const DeleteConfirmModal = ({
 }: DeleteConfirmModalProps) => {
   const theme = useTheme();
 
-  if (!itemName) onCancel();
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === "y") onConfirm();
+      if (e.key.toLowerCase() === "n" || e.key === "Escape") onCancel();
+    };
 
-  useKeyboard((key) => {
-    if (key.name === "y") onConfirm();
-    if (key.name === "n") onCancel();
-  });
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onConfirm, onCancel]);
 
   return (
-    <box
-      position="absolute"
-      top={0}
-      left={0}
-      width="100%"
-      height="100%"
-      justifyContent="center"
-      alignItems="center"
+    <div
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0,0,0,0.5)",
+        zIndex: 3000,
+      }}
     >
-      <box
-        border
-        borderColor={theme.base0D}
-        titleAlignment="center"
-        flexDirection="column"
-        justifyContent="space-between"
-        width="35%"
-        height={15}
-        backgroundColor={theme.base00}
+      <div
+        style={{
+          border: `2px solid ${theme.base0D}`,
+          display: "flex",
+          flexDirection: "column",
+          width: "350px",
+          backgroundColor: theme.base00,
+          boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+        }}
       >
-        <box
-          flexGrow={1}
-          justifyContent="center"
-          alignItems="center"
+        <div
+          style={{
+            flexGrow: 1,
+            padding: "2rem",
+            textAlign: "center",
+            color: theme.base05,
+          }}
         >
-          <text fg={theme.base05}>
-            Are you sure you want to delete this item?
-          </text>
-        </box>
+          <div style={{ marginBottom: "1rem", fontWeight: "bold" }}>
+            Delete "{itemName}"?
+          </div>
+          <div>Are you sure you want to delete this item?</div>
+        </div>
 
-        <box
-          border={["top"]}
-          borderColor={theme.base0D}
-          flexDirection="row"
-          justifyContent="space-around"
+        <div
+          style={{
+            display: "flex",
+            borderTop: `1px solid ${theme.base0D}`,
+            height: "3rem",
+          }}
         >
-          <box
-            border={["right"]}
-            borderColor={theme.base0D}
-            width="50%"
-            alignItems="center"
+          <button
+            onClick={onConfirm}
+            style={{
+              flex: 1,
+              borderRight: `1px solid ${theme.base0D}`,
+              color: theme.base0B,
+              fontWeight: "bold",
+            }}
           >
-            <text fg={theme.base05}>[Y]es</text>
-          </box>
+            [Y]es
+          </button>
 
-          <box
-            width="50%"
-            alignItems="center"
+          <button
+            onClick={onCancel}
+            style={{
+              flex: 1,
+              color: theme.base08,
+              fontWeight: "bold",
+            }}
           >
-            <text fg={theme.base05}>[N]o</text>
-          </box>
-        </box>
-      </box>
-
-      <box
-        position="absolute"
-        width="35%"
-        height={15}
-        alignItems="center"
-      >
-        <text fg={theme.base05}>Delete"${itemName}"?</text>
-      </box>
-    </box>
+            [N]o
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };

@@ -1,12 +1,25 @@
-import { Route, Routes } from "react-router-dom";
-
-import { appRoutes } from "./routes/route";
+import { Route, Routes, Navigate } from "react-router-dom";
 import { AppLayout } from "./layout/app-layout";
+import { DictionaryPage } from "../pages/dictionary";
 
 export const App = () => {
   return (
     <Routes>
-      <Route element={<AppLayout />}>{appRoutes}</Route>
+      <Route element={<AppLayout />}>
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to="/dictionary"
+              replace
+            />
+          }
+        />
+        <Route
+          path="/dictionary"
+          element={<DictionaryPage />}
+        />
+      </Route>
     </Routes>
   );
 };

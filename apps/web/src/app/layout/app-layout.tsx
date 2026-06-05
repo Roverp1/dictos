@@ -1,33 +1,45 @@
 import { Outlet } from "react-router-dom";
 import { Toaster } from "sonner";
-
 import { NavBottomBar } from "../ui/nav-bottom-bar";
-import { useTheme } from "@shared/lib/theme";
+import { useTheme } from "../../shared/lib/theme";
 
 export const AppLayout = () => {
   const theme = useTheme();
 
   return (
     <div
-      width="100%"
-      height="100%"
-      backgroundColor={theme.base00}
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: theme.base00,
+        color: theme.base05,
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
     >
-      <Toaster
+      <Toaster 
         position="top-right"
-        stackingMode="stack"
         toastOptions={{
-          success: { style: { borderColor: theme.base0B } },
-          error: { style: { borderColor: theme.base08 } },
+          style: {
+            background: theme.base01,
+            color: theme.base05,
+            border: `1px solid ${theme.base02}`,
+          },
         }}
       />
 
-      <box
-        width="100%"
-        height="100%"
+      <main
+        style={{
+          flex: 1,
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
+        }}
       >
         <Outlet />
-      </box>
+      </main>
 
       <NavBottomBar />
     </div>

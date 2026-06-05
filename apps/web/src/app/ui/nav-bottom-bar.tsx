@@ -1,112 +1,76 @@
-import { useKeyboard } from "@opentui/react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { toast } from "@opentui-ui/toast";
-
+import { toast } from "sonner";
 import { useServices } from "@dictos/react";
-
-import { useTheme } from "@shared/lib/theme";
+import { useTheme } from "../../shared/lib/theme";
 
 export const NavBottomBar = () => {
-  const [isBarActive, setIsBarActive] = useState<boolean>(false);
-
+  const [isHovered, setIsHovered] = useState(false);
   const theme = useTheme();
-
   const location = useLocation();
   const navigate = useNavigate();
-
   const { syncService } = useServices();
 
   const handleSync = async () => {
-    const performSync = async () => {
-      const result = await syncService.sync();
-
-      if (result instanceof Error) {
-        console.error(result);
-        throw result;
-      }
-
-      return result;
-    };
-
-    const user = await toast
-      .promise(performSync(), {
-        loading: "Synchronizing...",
-        success: "Synchorization successful!",
-        error: (err: any) =>
-          err.reason || err.message || "Synchronization failed",
-      })
-      ?.unwrap()
-      .catch(() => {});
-
-    console.log("Sync is successful:", user);
+    toast.promise(syncService.sync(), {
+      loading: "Synchronizing...",
+      success: "Synchronization successful!",
+      error: (err: any) => err.reason || err.message || "Synchronization failed",
+    });
   };
 
-  useKeyboard((key) => {
-    if (isBarActive === true && key.name === "escape") {
-      setIsBarActive(false);
-    }
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "1") navigate("/auth");
+      if (e.key === "2") navigate("/dictionary");
+      if (e.key === "3") handleSync();
+    };
 
-    // if (key.name === "1") {
-    //   navigate("/auth");
-    //   setIsBarActive(false);
-    // }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [navigate, syncService]);
 
-    if (key.name === "1") {
-      navigate("/dictionary");
-      setIsBarActive(false);
-    }
-
-    if (key.name === "3") {
-      handleSync();
-    }
+  const navItemStyle = (path: string) => ({
+    padding: "0.5rem 1.5rem",
+    cursor: "pointer",
+    backgroundColor: location.pathname === path ? theme.base0D : theme.base02,
+    color: theme.base07,
+    border: "none",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    transition: "background-color 0.2s",
   });
 
   return (
-    <box
-      position="absolute"
-      width="80%"
-      height={5}
-      bottom={2}
-      left="10%"
-      paddingX={1}
-      backgroundColor={theme.base00}
-      borderColor={isBarActive ? theme.base0D : theme.base04}
-      flexDirection="row"
-      onMouseOver={() => setIsBarActive(true)}
-      onMouseOut={() => setIsBarActive(false)}
-      borderStyle="double"
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{
+        position: "absolute",
+        bottom: "1.5rem",
+        left: "50%",
+        transform: "translateX(-50%)",
+        width: "fit-content",
+        padding: "0.5rem",
+        backgroundColor: theme.base01,
+        border: `2px solid ${isHovered ? theme.base0D : theme.base04}`,
+        display: "flex",
+        gap: "0.5rem",
+        zIndex: 1000,
+      }}
     >
-      {/* <box */}
-      {/*   paddingX={2} */}
-      {/*   paddingY={1} */}
-      {/*   backgroundColor={ */}
-      {/*     location.pathname === "/auth" ? theme.base0D : theme.base02 */}
-      {/*   } */}
-      {/*   onMouseDown={() => navigate("/auth")} */}
-      {/* > */}
-      {/*   <text>auth</text> */}
-      {/* </box> */}
-
-      <box
-        paddingX={2}
-        paddingY={1}
-        backgroundColor={
-          location.pathname === "/dictionary" ? theme.base0D : theme.base02
-        }
-        onMouseDown={() => navigate("/dictionary")}
+      <div style={navItemStyle("/auth")} onClick={() => navigate("/auth")}>
+        [1] auth
+      </div>
+      <div style={navItemStyle("/dictionary")} onClick={() => navigate("/dictionary")}>
+        [2] dictionary
+      </div>
+      <div 
+        style={{ ...navItemStyle(""), backgroundColor: theme.base02 }} 
+        onClick={handleSync}
       >
-        <text>dictionary</text>
-      </box>
-
-      <box
-        paddingX={2}
-        paddingY={1}
-        backgroundColor={theme.base02}
-        // onMouseDown={() => yourFunction()}
-      >
-        <text>synchronise</text>
-      </box>
-    </box>
+        [3] synchronise
+      </div>
+    </div>
   );
 };
