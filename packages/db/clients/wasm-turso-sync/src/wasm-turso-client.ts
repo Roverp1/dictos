@@ -90,12 +90,32 @@ export class WasmTursoClient implements SyncPort {
       logger
     );
 
-    logger.info(`[TursoWasm] Applying migrations...`, {
-      amountOfMigrations: migrationString.length,
-    });
+    const tableCheck: boolean = (
+      (await client.prepare(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='activities'"
+      )) as any
+    ).get();
 
-    for (const query of migrationString) {
-      await client.exec(query);
+    if (!tableCheck) {
+      logger.info(
+        `[TursoWasm] Fresh database detected. Applying migrations...`,
+        {
+          amountOfMigrations: migrationString.length,
+        }
+      );
+
+      const queries = migrationString
+        .split("--> statement-breakpoint")
+        .map((q) => q.trim())
+        .filter((q) => q.length > 0);
+
+      for (const query of queries) {
+        await client.exec(query);
+      }
+    } else {
+      logger.debug(
+        "[TursoWasm] Database already initialized. Skipping migrations."
+      );
     }
 
     const folderRepo = new SqliteFolderRepository(db);

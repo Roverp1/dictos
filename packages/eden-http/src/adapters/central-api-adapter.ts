@@ -8,7 +8,7 @@ import {
   type RegisterCredentials,
 } from "@dictos/core";
 import { treaty } from "@elysia/eden";
-import { type App } from "@dictos/server";
+import type { App } from "@dictos/server";
 
 export class CentralApiAdapter implements AuthPort {
   private client: ReturnType<typeof treaty<App>>;
