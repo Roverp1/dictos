@@ -1,9 +1,5 @@
 {
-  // This is based on https://bun.com/docs/typescript#suggested-compileroptions
   "$schema": "https://www.schemastore.org/tsconfig",
-  "display": "Bun",
-  "docs": "https://bun.com/docs/typescript",
-
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ESNext"],
@@ -11,7 +7,7 @@
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
-    "allowJs": true,
+    "allowJs": false,
 
     // Bundler mode
     "moduleResolution": "bundler",
