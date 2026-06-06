@@ -90,11 +90,10 @@ export class WasmTursoClient implements SyncPort {
       logger
     );
 
-    const tableCheck: boolean = (
-      (await client.prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='activities'"
-      )) as any
-    ).get();
+    const stmt = await client.prepare(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name='activities'"
+    );
+    const tableCheck = await stmt.get();
 
     if (!tableCheck) {
       logger.info(

@@ -20,6 +20,7 @@ export const AuthPage = () => {
     setRegisterEmail,
     setRegisterPassword,
     setRegisterUsername,
+    setActivePane,
   } = useAuthStore();
 
   const { authService } = useServices();
@@ -36,7 +37,8 @@ export const AuthPage = () => {
 
       if (result instanceof InputValidationError) {
         console.error(result.fields);
-        throw new Error("Validation failed");
+        const messages = result.fields.map(f => `${f.path}: ${f.message}`).join(', ');
+        throw new Error(`Validation failed: ${messages}`);
       }
 
       if (result instanceof Error) {
@@ -70,7 +72,8 @@ export const AuthPage = () => {
 
       if (result instanceof InputValidationError) {
         console.error(result.fields);
-        throw new Error("Validation failed");
+        const messages = result.fields.map(f => `${f.path}: ${f.message}`).join(', ');
+        throw new Error(`Validation failed: ${messages}`);
       }
 
       if (result instanceof Error) {
@@ -135,7 +138,7 @@ export const AuthPage = () => {
   return (
     <div style={{ display: "flex", height: "100%", backgroundColor: theme.base00 }}>
       {/* Login Pane */}
-      <div style={paneStyle(activePane === "login")}>
+      <div style={paneStyle(activePane === "login")} onClick={() => setActivePane("login")}>
         <h2 style={{ color: activePane === "login" ? theme.base0D : theme.base05, margin: 0 }}>
           Login
         </h2>
@@ -170,7 +173,7 @@ export const AuthPage = () => {
       </div>
 
       {/* Registration Pane */}
-      <div style={paneStyle(activePane === "register")}>
+      <div style={paneStyle(activePane === "register")} onClick={() => setActivePane("register")}>
         <h2 style={{ color: activePane === "register" ? theme.base0D : theme.base05, margin: 0 }}>
           Register
         </h2>
