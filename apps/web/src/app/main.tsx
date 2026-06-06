@@ -48,7 +48,7 @@ export const bootstrap = async () => {
 
   const centralApiAdapter = new CentralApiAdapter("http://localhost:1488/");
   const httpConnectivityAdapter = new HttpConnectivityAdapter(
-    "https://api.github.com"
+    "https://jsonplaceholder.typicode.com/todos/1"
   );
 
   const entryService = new EntryService(entryRepo);
