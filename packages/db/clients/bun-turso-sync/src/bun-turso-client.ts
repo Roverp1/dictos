@@ -5,6 +5,7 @@ import { isNull } from "drizzle-orm";
 import path from "path";
 
 import { type SyncPort, type SyncResult, SyncError } from "@dictos/core";
+import type { Logger } from "@dictos/logger";
 
 import { schema } from "../../../core/src";
 import { randomUUIDv5 } from "bun";
@@ -28,7 +29,8 @@ export class BunTursoClient implements SyncPort {
     client: Database,
     db: ReturnType<typeof drizzle<typeof schema>>,
     localDbPath: string,
-    credentials: SyncCredentials
+    credentials: SyncCredentials,
+    private logger: Logger
   ) {
     this.client = client;
     this.db = db;
@@ -36,7 +38,10 @@ export class BunTursoClient implements SyncPort {
     this.credentials = credentials;
   }
 
-  public static async create(localDbPath: string): Promise<BunTursoClient> {
+  public static async create(
+    localDbPath: string,
+    logger: Logger
+  ): Promise<BunTursoClient> {
     const credentials: SyncCredentials = { url: null, token: "" };
 
     const client = await connect({
@@ -76,7 +81,7 @@ export class BunTursoClient implements SyncPort {
       { schema, casing: "snake_case" }
     );
 
-    instance = new BunTursoClient(client, db, localDbPath, credentials);
+    instance = new BunTursoClient(client, db, localDbPath, credentials, logger);
 
     await migrate(
       db,
@@ -115,6 +120,10 @@ export class BunTursoClient implements SyncPort {
         reason: "Not connected to an account",
       });
     }
+
+    this.logger.info("[Turso] Sync started", {
+      remoteUrl: this.credentials.url,
+    });
 
     const beforeStats = await this.client
       .stats()
