@@ -5,8 +5,11 @@ import openapi from "@elysia/openapi";
 import { AuthService } from "./modules/auth/auth.service";
 import { createCentralDatabase } from "./db/db";
 import { authPlugin } from "./modules/auth/auth.plugin";
+import { healthPlugin } from "./modules/health/health.plugin";
 
 const bootstrap = async () => {
+  const startTime = Date.now();
+
   const db = await createCentralDatabase();
 
   const authService = new AuthService(db);
@@ -18,6 +21,7 @@ const bootstrap = async () => {
       return status(200, { message: "Hello" });
     })
     .use(authPlugin(authService))
+    .use(healthPlugin(db, startTime))
     .listen(process.env.PORT || 1488);
 
   console.log(
