@@ -10,12 +10,12 @@ export class PinoLoggerAdapter implements Logger {
     else this.logger.debug(message);
   }
   info(message: string, context?: Context): void {
-    if (context) this.logger.debug(context, message);
-    else this.logger.debug(message);
+    if (context) this.logger.info(context, message);
+    else this.logger.info(message);
   }
   warn(message: string, context?: Context): void {
-    if (context) this.logger.debug(context, message);
-    else this.logger.debug(message);
+    if (context) this.logger.warn(context, message);
+    else this.logger.warn(message);
   }
   error(message: string, error?: Error | unknown, context?: Context): void {
     this.logger.error({ err: error, ...context }, message);
