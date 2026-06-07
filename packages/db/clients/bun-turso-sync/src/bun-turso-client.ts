@@ -6,9 +6,7 @@ import path from "path";
 
 import { type SyncPort, type SyncResult, SyncError } from "@dictos/core";
 import type { Logger } from "@dictos/logger";
-
-import { schema } from "../../../core/src";
-import { randomUUIDv5 } from "bun";
+import { schema, SqliteFolderRepository } from "@dictos/db-core";
 
 export type SqliteTursoDrizzleProxy = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -93,7 +91,8 @@ export class BunTursoClient implements SyncPort {
       { migrationsFolder: path.resolve(__dirname, "../../../core/migrations/") }
     );
 
-    await BunTursoClient.seedDbOnInit(db);
+    const folderRepo = new SqliteFolderRepository(db);
+    await folderRepo.save({ name: "/", parentId: null, privacy: "private" });
 
     return instance;
   }
@@ -183,33 +182,5 @@ export class BunTursoClient implements SyncPort {
         cause: err,
       });
     }
-  }
-
-  private static async seedDbOnInit(
-    // swap to this.db?
-    db: ReturnType<typeof drizzle<typeof schema>>
-  ) {
-    const [rootDir] = await db
-      .select()
-      .from(schema.foldersTable)
-      .where(isNull(schema.foldersTable.parentId));
-
-    if (rootDir !== undefined) return;
-
-    const id = randomUUIDv5(`${"root"}:${"root"}`, FOLDER_NAMESPACE);
-
-    // inject FolderRepository to use it to seed the db?
-    await db
-      .insert(schema.foldersTable)
-      .values({
-        id,
-        name: "/",
-        parentId: null,
-        privacy: "private",
-      })
-      .catch((e) => {
-        console.error("Failed to seed root directory:", e);
-        throw new Error("Could not seed root directory", { cause: e });
-      });
   }
 }

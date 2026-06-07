@@ -96,12 +96,10 @@ export class WasmTursoClient implements SyncPort {
     const tableCheck = await stmt.get();
 
     if (!tableCheck) {
-      logger.info(
-        `[TursoWasm] Fresh database detected. Applying migrations...`,
-        {
-          amountOfMigrations: migrationString.length,
-        }
-      );
+      logger.info(`Fresh database detected. Applying migrations...`, {
+        adapter: "WasmTursoClient",
+        migrationCount: migrationString.length,
+      });
 
       const queries = migrationString
         .split("--> statement-breakpoint")
@@ -126,8 +124,14 @@ export class WasmTursoClient implements SyncPort {
   }
 
   async connectRemote(url: string, token: string): Promise<void | SyncError> {
+    this.logger.info("Connecting to remote database", {
+      adapter: "WasmTursoClient",
+      url,
+    });
+
     this.credentials.url = url;
     this.credentials.token = token;
+    this.sync();
   }
 
   async sync(): Promise<SyncResult | SyncError> {
