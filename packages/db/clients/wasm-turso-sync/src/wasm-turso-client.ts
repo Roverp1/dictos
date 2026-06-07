@@ -43,7 +43,10 @@ export class WasmTursoClient implements SyncPort {
   ): Promise<WasmTursoClient> {
     const credentials: SyncCredentials = { url: null, token: "" };
 
-    logger.info(`[TursoWasm] Initializing database`, { dbPath: localDbPath });
+    logger.debug(`Initializing database`, {
+      adapter: "WasmTursoClient",
+      dbPath: localDbPath,
+    });
 
     const client = await connect({
       path: localDbPath,
@@ -74,7 +77,11 @@ export class WasmTursoClient implements SyncPort {
           const rows = (await stmt.all(...params)) as Record<string, any>[];
           return { rows: rows.map((row) => Object.values(row)) };
         } catch (err) {
-          logger.error("[TursoWasm] Proxy query failed", err, { sql, params });
+          logger.error("Proxy query failed", err, {
+            sql,
+            params,
+            adapter: "WasmTursoClient",
+          });
           throw err;
         }
       },
@@ -110,28 +117,35 @@ export class WasmTursoClient implements SyncPort {
         await client.exec(query);
       }
     } else {
-      logger.debug(
-        "[TursoWasm] Database already initialized. Skipping migrations."
-      );
+      logger.debug("Database already initialized. Skipping migrations.");
     }
 
     const folderRepo = new SqliteFolderRepository(db);
     await folderRepo.save({ name: "/", parentId: null, privacy: "private" });
 
-    logger.info("[TursoWasm] Database ready.");
+    logger.info("Local database is ready.", { adapter: "WasmTursoClient" });
 
     return instance;
   }
 
   async connectRemote(url: string, token: string): Promise<void | SyncError> {
-    this.logger.info("Connecting to remote database", {
+    this.logger.debug("Connecting to remote database...", {
       adapter: "WasmTursoClient",
       url,
     });
 
     this.credentials.url = url;
     this.credentials.token = token;
-    this.sync();
+    const syncRes = await this.sync();
+    if (syncRes instanceof Error) return syncRes;
+
+    this.logger.info(
+      "Connected to a remote database and finished sync successfully.",
+      {
+        adapter: "WasmTursoClient",
+        url,
+      }
+    );
   }
 
   async sync(): Promise<SyncResult | SyncError> {
@@ -141,70 +155,52 @@ export class WasmTursoClient implements SyncPort {
       });
     }
 
-    this.logger.info("[TursoWasm] Sync started", {
+    this.logger.debug("Sync started...", {
       remoteUrl: this.credentials.url,
     });
 
-    const beforeStats = await this.client
-      .stats()
-      .catch(
-        (e) => new SyncError({ reason: "Failed to fetch stats", cause: e })
-      );
-    if (beforeStats instanceof Error) return beforeStats;
+    let syncResult: SyncResult;
 
-    const pushRes = await this.client
-      .push()
-      .catch((e) => new SyncError({ reason: "Push failed", cause: e }));
-    if (pushRes instanceof Error) return pushRes;
+    try {
+      const beforeStats = await this.client.stats();
+      await this.client.push();
+      const pullRes = await this.client.pull();
+      const afterStats = await this.client.stats();
 
-    const pullRes = await this.client
-      .pull()
-      .catch((e) => new SyncError({ reason: "Pull failed", cause: e }));
-    if (pullRes instanceof Error) return pullRes;
+      syncResult = {
+        pulledRemoteChanges: pullRes,
+        pushedLocalChanges: beforeStats.cdcOperations > 0,
+        stats: {
+          bytesSent: afterStats.networkSentBytes - beforeStats.networkSentBytes,
+          bytesReceived:
+            afterStats.networkReceivedBytes - beforeStats.networkReceivedBytes,
+          operationsSynced: beforeStats.cdcOperations,
+        },
+      };
+    } catch (err) {
+      this.logger.error("Sync failed.", err, {
+        adapter: "WasmTursoClient",
+      });
+      return new SyncError({ reason: "Exception", cause: err });
+    }
 
-    const afterStats = await this.client
-      .stats()
-      .catch(
-        (e) => new SyncError({ reason: "Failed to fetch stats", cause: e })
-      );
-    if (afterStats instanceof Error) return afterStats;
-
-    this.logger.info("[TursoWasm] Sync completed", {
-      bytesReceived:
-        afterStats.networkReceivedBytes - beforeStats.networkReceivedBytes,
-      bytesSent: afterStats.networkSentBytes - beforeStats.networkSentBytes,
+    this.logger.debug("Sync completed", {
+      adapter: "WasmTursoClient",
+      syncResult,
     });
 
     this.client.checkpoint().catch((e) =>
-      this.logger.warn("[TursoWasm] Failed to checkpoint WAL after sync:", {
+      this.logger.warn("Failed to checkpoint WAL after sync:", {
+        adapter: "WasmTursoClient",
         cause: e,
       })
     );
-
-    const syncResult: SyncResult = {
-      pulledRemoteChanges: pullRes,
-      pushedLocalChanges: beforeStats.cdcOperations > 0,
-      stats: {
-        bytesSent: afterStats.networkSentBytes - beforeStats.networkSentBytes,
-        bytesReceived:
-          afterStats.networkReceivedBytes - beforeStats.networkReceivedBytes,
-        operationsSynced: beforeStats.cdcOperations,
-      },
-    } as const;
 
     return syncResult;
   }
 
   async disconnectRemote(): Promise<void | SyncError> {
-    try {
-      this.credentials.url = null;
-      this.credentials.token = "";
-      // remove try catch ?
-    } catch (err) {
-      return new SyncError({
-        reason: "Failed to disconnect remote database",
-        cause: err,
-      });
-    }
+    this.credentials.url = null;
+    this.credentials.token = "";
   }
 }
