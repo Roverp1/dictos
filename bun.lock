@@ -95,18 +95,7 @@
         "vite-plugin-pwa": "^1.3.0",
       },
     },
-    "packages/core": {
-      "name": "@dictos/core",
-      "version": "0.0.0",
-      "dependencies": {
-        "errore": "^0.14.1",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "typescript": "^6.0.0",
-      },
-    },
-    "packages/db/clients/bun-turso-sync": {
+    "packages/bun-turso-sync": {
       "name": "@dictos/bun-turso-sync",
       "version": "0.0.0",
       "dependencies": {
@@ -122,22 +111,18 @@
         "typescript": "^6.0.0",
       },
     },
-    "packages/db/clients/wasm-turso-sync": {
-      "name": "@dictos/wasm-turso-sync",
+    "packages/core": {
+      "name": "@dictos/core",
       "version": "0.0.0",
       "dependencies": {
-        "@dictos/core": "workspace:*",
-        "@dictos/db-core": "workspace:*",
-        "@dictos/errore": "workspace:*",
-        "@dictos/logger": "workspace:*",
-        "@tursodatabase/sync-wasm": "^0.6.1",
-        "drizzle-orm": "^0.45.2",
+        "errore": "^0.14.1",
       },
       "devDependencies": {
+        "@types/bun": "latest",
         "typescript": "^6.0.0",
       },
     },
-    "packages/db/core": {
+    "packages/db-core": {
       "name": "@dictos/db-core",
       "version": "0.0.0",
       "dependencies": {
@@ -240,6 +225,21 @@
         "react": "^19.0.0",
         "react-router": "^7.0.0",
         "zustand": "^5.0.0",
+      },
+    },
+    "packages/wasm-turso-sync": {
+      "name": "@dictos/wasm-turso-sync",
+      "version": "0.0.0",
+      "dependencies": {
+        "@dictos/core": "workspace:*",
+        "@dictos/db-core": "workspace:*",
+        "@dictos/errore": "workspace:*",
+        "@dictos/logger": "workspace:*",
+        "@tursodatabase/sync-wasm": "^0.6.1",
+        "drizzle-orm": "^0.45.2",
+      },
+      "devDependencies": {
+        "typescript": "^6.0.0",
       },
     },
   },
@@ -428,11 +428,11 @@
 
     "@babel/types": ["@babel/types@7.29.7", "", { "dependencies": { "@babel/helper-string-parser": "^7.29.7", "@babel/helper-validator-identifier": "^7.29.7" } }, "sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA=="],
 
-    "@dictos/bun-turso-sync": ["@dictos/bun-turso-sync@workspace:packages/db/clients/bun-turso-sync"],
+    "@dictos/bun-turso-sync": ["@dictos/bun-turso-sync@workspace:packages/bun-turso-sync"],
 
     "@dictos/core": ["@dictos/core@workspace:packages/core"],
 
-    "@dictos/db-core": ["@dictos/db-core@workspace:packages/db/core"],
+    "@dictos/db-core": ["@dictos/db-core@workspace:packages/db-core"],
 
     "@dictos/eden-http": ["@dictos/eden-http@workspace:packages/eden-http"],
 
@@ -452,7 +452,7 @@
 
     "@dictos/tui": ["@dictos/tui@workspace:apps/tui"],
 
-    "@dictos/wasm-turso-sync": ["@dictos/wasm-turso-sync@workspace:packages/db/clients/wasm-turso-sync"],
+    "@dictos/wasm-turso-sync": ["@dictos/wasm-turso-sync@workspace:packages/wasm-turso-sync"],
 
     "@dictos/web": ["@dictos/web@workspace:apps/web"],
 

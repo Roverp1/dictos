@@ -8,7 +8,7 @@ import {
   SqliteDescriptionRepository,
   SqliteFolderRepository,
   SqliteUserRepository,
-} from "../../../../packages/db/core/src";
+} from "@dictos/db-core";
 import { BunTursoClient } from "@dictos/bun-turso-sync";
 import {
   FsSessionRepository,
@@ -48,12 +48,6 @@ export const bootstrap = async () => {
     },
   });
 
-  const dataDir = await getDictosDataDir();
-  if (dataDir instanceof Error) {
-    console.error("Fatal: Cannot create app directory:", dataDir);
-    process.exit(1);
-  }
-
   const pinoStream = {
     write(msg: string) {
       try {
@@ -79,6 +73,12 @@ export const bootstrap = async () => {
 
   const pinoLogger = pino({ level: "debug" }, pinoStream);
   const logger = new PinoLoggerAdapter(pinoLogger);
+
+  const dataDir = await getDictosDataDir();
+  if (dataDir instanceof Error) {
+    logger.error("Fatal: Cannot create app directory:", dataDir);
+    process.exit(1);
+  }
 
   const dbClient = await BunTursoClient.create(
     path.join(dataDir, "dictos.db"),

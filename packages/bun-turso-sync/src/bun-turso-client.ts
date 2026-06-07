@@ -4,7 +4,12 @@ import { migrate } from "drizzle-orm/sqlite-proxy/migrator";
 import { isNull } from "drizzle-orm";
 import path from "path";
 
-import { type SyncPort, type SyncResult, SyncError } from "@dictos/core";
+import {
+  type SyncPort,
+  type SyncResult,
+  SyncError,
+  DbError,
+} from "@dictos/core";
 import type { Logger } from "@dictos/logger";
 import { schema, SqliteFolderRepository } from "@dictos/db-core";
 
@@ -81,15 +86,31 @@ export class BunTursoClient implements SyncPort {
 
     instance = new BunTursoClient(client, db, localDbPath, credentials, logger);
 
-    await migrate(
+    const migrationsFolder = path.resolve(
+      __dirname,
+      "../../db-core/migrations/"
+    );
+
+    const res = await migrate(
       db,
       async (queries) => {
         for (const query of queries) {
           await client.exec(query);
         }
       },
-      { migrationsFolder: path.resolve(__dirname, "../../../core/migrations/") }
+      { migrationsFolder }
+    ).catch(
+      (e) =>
+        new DbError({ operation: "migration", reason: "Exception", cause: e })
     );
+
+    if (res instanceof Error) {
+      logger.fatal("Dabase migration failed during startup", res, {
+        adapter: "BunTursoClient",
+        resolvedPath: migrationsFolder,
+      });
+      throw res;
+    }
 
     const folderRepo = new SqliteFolderRepository(db);
     await folderRepo.save({ name: "/", parentId: null, privacy: "private" });

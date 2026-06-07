@@ -8,7 +8,7 @@ import {
   SqliteDescriptionRepository,
   SqliteFolderRepository,
   SqliteUserRepository,
-} from "../../../../packages/db/core/src";
+} from "@dictos/db-core";
 import { WasmTursoClient } from "@dictos/wasm-turso-sync";
 import {
   LocalStorageLocalStateRepository,
