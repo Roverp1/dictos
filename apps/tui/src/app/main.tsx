@@ -71,14 +71,22 @@ export const bootstrap = async () => {
     },
   } as pino.DestinationStream;
 
-  const pinoLogger = pino({ level: "debug" }, pinoStream);
-  const logger = new PinoLoggerAdapter(pinoLogger);
-
   const dataDir = await getDictosDataDir();
   if (dataDir instanceof Error) {
-    logger.error("Fatal: Cannot create app directory:", dataDir);
+    console.error("Fatal: Cannot create app directory:", dataDir);
     process.exit(1);
   }
+
+  const logFilePath = path.join(dataDir, "dictos.log");
+  const fileStream = pino.destination({ dest: logFilePath, append: false });
+
+  const multiStream = pino.multistream([
+    { stream: pinoStream },
+    { stream: fileStream },
+  ]);
+
+  const pinoLogger = pino({ level: "debug" }, multiStream);
+  const logger = new PinoLoggerAdapter(pinoLogger);
 
   const dbClient = await BunTursoClient.create(
     path.join(dataDir, "dictos.db"),
