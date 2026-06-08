@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@dictos/pino-logger",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dictos/core": "workspace:*",
+    "@dictos/errore": "workspace:*",
+    "@dictos/logger": "workspace:*"
+  },
+  "peerDependencies": {
+    "pino": "^10.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0"
+  }
+}

@@ -1,4 +1,4 @@
-import type { DbError } from "errors";
+import type { DbError } from "../../errors";
 
 export interface OutboxEntry {
   id: string;

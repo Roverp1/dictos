@@ -191,7 +191,7 @@ const compileMessageInterpolator = (
   while ((match = regex.exec(template)) !== null) {
     staticParts.push(template.slice(lastIndex, match.index))
 
-    const varName = match[1]
+    const varName = match[1]!
     placeholders.push(varName)
 
     if (!seenVariables.has(varName)) {

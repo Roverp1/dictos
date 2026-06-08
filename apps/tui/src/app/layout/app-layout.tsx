@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Toaster } from "@opentui-ui/toast/react";
 
-import { NavBottomBar } from "@app/ui/nav-bottom-bar";
+import { NavBottomBar } from "../ui/nav-bottom-bar";
 import { useTheme } from "@shared/lib/theme";
 
 export const AppLayout = () => {

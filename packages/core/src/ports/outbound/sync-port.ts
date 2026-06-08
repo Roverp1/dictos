@@ -1,4 +1,4 @@
-import { SyncError } from "errors";
+import { SyncError } from "../../errors";
 
 export interface SyncResult {
   /** will be true after push */

@@ -1,4 +1,4 @@
-import type { LlmError } from "errors";
+import type { LlmError } from "../../errors";
 
 export interface LlmPort {
   generateDefinition(

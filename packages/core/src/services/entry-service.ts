@@ -1,6 +1,6 @@
-import { validateNewEntry, type Entry, type NewEntry } from "@models/entry";
-import type { EntryRepository } from "@ports/outbound/entry-repository";
-import type { DbError, ValidationError } from "errors";
+import { validateNewEntry, type Entry, type NewEntry } from "../models/entry";
+import type { EntryRepository } from "../ports/outbound/entry-repository";
+import type { DbError, ValidationError } from "../errors";
 
 export class EntryService {
   constructor(private repo: EntryRepository) {}
@@ -35,4 +35,3 @@ export class EntryService {
     return await this.repo.delete(id);
   }
 }
-

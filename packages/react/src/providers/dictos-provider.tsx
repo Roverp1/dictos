@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 import { createContext, useContext, type ReactNode } from "react";
 
 import type {

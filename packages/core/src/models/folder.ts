@@ -1,4 +1,4 @@
-import { ValidationError } from "errors";
+import { ValidationError } from "../errors";
 
 export interface Folder {
   id: string;
@@ -31,4 +31,3 @@ export function validateNewFolder(data: NewFolder): void | ValidationError {
       reason: `Invalid privacy setting. Must be one of: ${VALID_PRIVACY.join(",")}.`,
     });
 }
-

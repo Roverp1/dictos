@@ -1,5 +1,5 @@
-import type { Entry, NewEntry } from "@models/entry";
-import type { DbError } from "errors";
+import type { Entry, NewEntry } from "../../models/entry";
+import type { DbError } from "../../errors";
 
 export interface EntryRepository {
   save(entry: NewEntry): Promise<Entry | DbError>;
@@ -11,4 +11,3 @@ export interface EntryRepository {
   ): Promise<Entry | DbError>;
   delete(id: string): Promise<Entry | DbError>;
 }
-

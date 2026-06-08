@@ -1,13 +1,17 @@
-import type { AuthCredentials, RegisterCredentials, User } from "@models/user";
-import type { UserRepository } from "@ports/outbound";
-import type { AuthPort } from "@ports/outbound/auth-port";
-import type { SessionRepository } from "@ports/outbound/session-repository";
+import type {
+  AuthCredentials,
+  RegisterCredentials,
+  User,
+} from "../models/user";
+import type { UserRepository } from "../ports/outbound";
+import type { AuthPort } from "../ports/outbound/auth-port";
+import type { SessionRepository } from "../ports/outbound/session-repository";
 import type {
   AuthError,
   StorageError,
   InputValidationError,
   RegistrationError,
-} from "errors";
+} from "../errors";
 import type { SyncService } from "./sync-service";
 
 export class AuthService {

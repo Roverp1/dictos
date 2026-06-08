@@ -1,5 +1,5 @@
-import type { User } from "@models/user";
-import type { StorageError } from "errors";
+import type { User } from "../../models/user";
+import type { StorageError } from "../../errors";
 
 export interface UserRepository {
   save(user: User): Promise<User | StorageError>;

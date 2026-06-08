@@ -1,4 +1,4 @@
-import type { StorageError } from "errors";
+import type { StorageError } from "../../errors";
 
 export interface LocalState {
   deviceId: string;

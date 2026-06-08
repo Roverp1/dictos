@@ -1,5 +1,5 @@
-import type { NewInstruction, Instruction } from "@models/instruction";
-import type { DbError } from "errors";
+import type { NewInstruction, Instruction } from "../../models/instruction";
+import type { DbError } from "../../errors";
 
 export interface InstructionRepository {
   save(instruction: NewInstruction): Promise<Instruction | DbError>;
@@ -11,4 +11,3 @@ export interface InstructionRepository {
   ): Promise<Instruction | DbError>;
   delete(id: string): Promise<Instruction | DbError>;
 }
-

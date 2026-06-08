@@ -1,20 +1,22 @@
 import { ConsolePosition, createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { MemoryRouter } from "react-router-dom";
+import pino from "pino";
 
 import {
-  BunTursoClient,
   SqliteEntryRepository,
   SqliteDescriptionRepository,
   SqliteFolderRepository,
   SqliteUserRepository,
+} from "@dictos/db-core";
+import { BunTursoClient } from "@dictos/bun-turso-sync";
+import {
   FsSessionRepository,
-  CentralApiAdapter,
   FsLocalStateRepository,
   getDictosDataDir,
-  HttpConnectivityAdapter,
-  PinoLoggerAdapter,
-} from "@dictos/adapters";
+} from "@dictos/fs-storage";
+import { CentralApiAdapter, HttpConnectivityAdapter } from "@dictos/eden-http";
+import { PinoLoggerAdapter } from "@dictos/pino-logger";
 import {
   AuthService,
   EntryService,
@@ -28,17 +30,68 @@ import { DictosProvider } from "@dictos/react";
 import { App } from "./app";
 import path from "path";
 
+interface PinoLogFormat extends Record<string, unknown> {
+  level: number;
+  time: number;
+  msg?: string;
+  pid?: number;
+  hostname?: string;
+  v?: number;
+  err?: unknown;
+}
+
 export const bootstrap = async () => {
+  const renderer = await createCliRenderer({
+    consoleOptions: {
+      position: ConsolePosition.BOTTOM,
+      sizePercent: 40,
+    },
+  });
+
+  const pinoStream = {
+    write(msg: string) {
+      try {
+        const obj = JSON.parse(msg) as PinoLogFormat;
+
+        const { level, time, pid, hostname, msg: logMsg, v, ...context } = obj;
+
+        const text = logMsg || msg;
+        const hasContext = Object.keys(context).length > 0;
+
+        const args = hasContext ? [text, context] : [text];
+
+        if (obj.level >= 60) console.error(...args);
+        else if (obj.level >= 50) console.error(...args);
+        else if (obj.level >= 40) console.warn(...args);
+        else if (obj.level >= 30) console.info(...args);
+        else if (obj.level >= 20) console.debug(...args);
+      } catch {
+        console.log(msg.trim());
+      }
+    },
+  } as pino.DestinationStream;
+
   const dataDir = await getDictosDataDir();
   if (dataDir instanceof Error) {
     console.error("Fatal: Cannot create app directory:", dataDir);
     process.exit(1);
   }
 
-  const logFilePath = path.join(dataDir, `dictos-debug.log`);
-  const logger = new PinoLoggerAdapter(logFilePath);
+  const logFilePath = path.join(dataDir, "dictos.log");
+  const fileStream = pino.destination({ dest: logFilePath, append: false });
 
-  const dbClient = await BunTursoClient.create(path.join(dataDir, "dictos.db"));
+  const multiStream = pino.multistream([
+    { stream: pinoStream },
+    { stream: fileStream },
+  ]);
+
+  const pinoLogger = pino({ level: "debug" }, multiStream);
+  const logger = new PinoLoggerAdapter(pinoLogger);
+
+  const dbClient = await BunTursoClient.create(
+    path.join(dataDir, "dictos.db"),
+    logger
+  );
   const db = dbClient.db;
 
   const localStateRepo = new FsLocalStateRepository(dataDir);
@@ -85,17 +138,12 @@ export const bootstrap = async () => {
         if (!(result instanceof Error) && result.pulledRemoteChanges) {
         } // refresh ui or smth
       } catch (e) {
-        console.error("Background sync failed on startup:", e);
+        logger.error("Background sync failed on startup:", e);
       }
     })();
   }
 
-  const renderer = await createCliRenderer({
-    consoleOptions: {
-      position: ConsolePosition.BOTTOM,
-      sizePercent: 40,
-    },
-  });
+  logger.info("Dictos TUI Bootstrapped Successfully.");
 
   createRoot(renderer).render(
     <DictosProvider

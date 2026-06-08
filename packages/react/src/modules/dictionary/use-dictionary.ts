@@ -27,6 +27,7 @@ export const useDictionary = () => {
   // effects
   useEffect(() => {
     const onMount = async () => {
+      if (state.pathStack.length > 0) return;
       const rootFolder = await folderService.getRootFolder();
       if (rootFolder instanceof Error) {
         logger.error("Failed to get root folder:", rootFolder);

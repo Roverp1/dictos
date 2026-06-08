@@ -1,6 +1,6 @@
-import type { SyncPort, SyncResult } from "@ports/outbound";
-import type { ConnectivityPort } from "@ports/outbound/connectivity-port";
-import { OfflineError, type SyncError } from "errors";
+import type { SyncPort, SyncResult } from "../ports/outbound";
+import type { ConnectivityPort } from "../ports/outbound/connectivity-port";
+import { OfflineError, type SyncError } from "../errors";
 
 export class SyncService {
   constructor(
