@@ -4,10 +4,12 @@ This is a **Bun + Turborepo** monorepo building a local-first application with c
 
 ## Architecture & Code Constraints
 
+> **CRITICAL**: For any large features, structural changes, or if you are unsure about the domain, you MUST read `docs/system-overview.md` and `CONTEXT.md` before proceeding.
+
 - **Hexagonal Architecture**: Core domain logic lives in `packages/core`. It **MUST NOT** depend on external libraries, React, UI frameworks, or database drivers. Use Dependency Injection (ports/adapters).
-- **Headless UI**: `@dictos/react` acts as a headless controller for React state and actions, injected with domain services and infrastructure via `DictosProvider`. It is shared across TUI and Web clients.
-- **Error Handling**: Follow "errors as values" using the `errore` package (return `ReturnType | ErrorType` unions). **Do not use `throw` or `try/catch`** unless dealing with unrecoverable crashes or invariant violations. Always activate `errore` skill
-- **Strict Terminology**: Refer to `CONTEXT.md` for strict domain vocabulary. Use "Entry", "Description", "Folder", "Sync", and "Mirroring" exactly as defined. Do not invent synonyms (e.g., avoid "Word", "Definition", "Directory").
+- **Headless UI**: `@dictos/react` acts as a headless controller for React state and actions. It is shared across TUI and Web clients.
+- **Error Handling**: Follow "errors as values" using the `errore` package (return `ReturnType | ErrorType` unions). **Do not use `throw` or `try/catch`** unless dealing with unrecoverable crashes. Always activate `errore` skill.
+- **Strict Terminology**: Refer to `CONTEXT.md` for strict domain vocabulary (e.g., "Entry", "Description", "Folder"). Do not invent synonyms.
 
 ## Important Commands
 
