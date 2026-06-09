@@ -18,7 +18,7 @@ Translate the agreed-upon feature idea into a structured, human-readable specifi
 
 ## Execution Steps
 
-1. **Generate Feature Name**: Create a concise short name (2-4 words) for the feature (e.g., `add-user-auth`). Create a directory `specs/00X-[short-name]/` (incrementing X based on existing folders in `specs/`).
+1. **Generate Feature Name**: Create a concise short name (2-4 words) for the feature (e.g., `add-user-auth`). Create a directory `specs/00X-[short-name]/` (incrementing X based on existing folders in `specs/` and `specs/.archive`).
 
 2. **Template Instantiation**: Copy the template from `.docify/templates/specification/spec-template.md` to `specs/00X-[short-name]/spec.md` using shell commands (e.g., `cp`).
 
