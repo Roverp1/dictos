@@ -9,6 +9,8 @@ import {
 } from "@dictos/db-core";
 import type { Logger } from "@dictos/logger";
 
+import { migrateViteWasm } from "./migrator";
+
 export type SqliteTursoDrizzleProxy = ReturnType<typeof drizzle<typeof schema>>;
 
 interface SyncCredentials {
@@ -43,8 +45,7 @@ export class WasmTursoClient implements SyncPort {
   ): Promise<WasmTursoClient> {
     const credentials: SyncCredentials = { url: null, token: "" };
 
-    logger.debug(`Initializing database`, {
-      adapter: "WasmTursoClient",
+    logger.debug("Initializing database", {
       dbPath: localDbPath,
     });
 
@@ -80,7 +81,6 @@ export class WasmTursoClient implements SyncPort {
           logger.error("Proxy query failed", err, {
             sql,
             params,
-            adapter: "WasmTursoClient",
           });
           throw err;
         }
@@ -97,40 +97,35 @@ export class WasmTursoClient implements SyncPort {
       logger
     );
 
-    const stmt = await client.prepare(
-      "SELECT name FROM sqlite_master WHERE type='table' AND name='activities'"
+    logger.debug("Checking for pending database migrations...");
+
+    const migrationRes = await migrateViteWasm(
+      db,
+      async (queries) => {
+        for (const query of queries) {
+          await client.exec(query);
+        }
+      },
+      logger
     );
-    const tableCheck = await stmt.get();
 
-    if (!tableCheck) {
-      logger.info(`Fresh database detected. Applying migrations...`, {
-        adapter: "WasmTursoClient",
-        migrationCount: migrationString.length,
-      });
-
-      const queries = migrationString
-        .split("--> statement-breakpoint")
-        .map((q) => q.trim())
-        .filter((q) => q.length > 0);
-
-      for (const query of queries) {
-        await client.exec(query);
-      }
-    } else {
-      logger.debug("Database already initialized. Skipping migrations.");
+    if (migrationRes instanceof Error) {
+      logger.fatal("Database migration failed during startup", migrationRes);
+      throw migrationRes;
     }
+
+    logger.debug("Database migrations applied successfully");
 
     const folderRepo = new SqliteFolderRepository(db);
     await folderRepo.save({ name: "/", parentId: null, privacy: "private" });
 
-    logger.info("Local database is ready.", { adapter: "WasmTursoClient" });
+    logger.info("Local database is ready");
 
     return instance;
   }
 
   async connectRemote(url: string, token: string): Promise<void | SyncError> {
     this.logger.debug("Connecting to remote database...", {
-      adapter: "WasmTursoClient",
       url,
     });
 
@@ -142,7 +137,6 @@ export class WasmTursoClient implements SyncPort {
     this.logger.info(
       "Connected to a remote database and finished sync successfully.",
       {
-        adapter: "WasmTursoClient",
         url,
       }
     );
@@ -178,21 +172,17 @@ export class WasmTursoClient implements SyncPort {
         },
       };
     } catch (err) {
-      this.logger.error("Sync failed.", err, {
-        adapter: "WasmTursoClient",
-      });
+      this.logger.error("Sync failed.", err);
       return new SyncError({ reason: "Exception", cause: err });
     }
 
     this.logger.debug("Sync completed", {
-      adapter: "WasmTursoClient",
       syncResult,
     });
 
     this.client.checkpoint().catch((e) =>
       this.logger.warn("Failed to checkpoint WAL after sync:", {
-        adapter: "WasmTursoClient",
-        cause: e,
+        err: e,
       })
     );
 
@@ -202,5 +192,6 @@ export class WasmTursoClient implements SyncPort {
   async disconnectRemote(): Promise<void | SyncError> {
     this.credentials.url = null;
     this.credentials.token = "";
+    this.logger.info("Disconnected from remote database");
   }
 }
