@@ -72,10 +72,13 @@ export class WasmTursoClient implements SyncPort {
           const rows = (await stmt.all(...params)) as Record<string, any>[];
           return { rows: rows.map((row) => Object.values(row)) };
         } catch (err) {
-          logger.error("Proxy query failed", err, {
+          logger.warn("Proxy query failed", {
+            err,
             sql,
             params,
           });
+          // drizzle expects us to throw here
+          // so we could handle it during the specific db call
           throw err;
         }
       },
@@ -175,7 +178,7 @@ export class WasmTursoClient implements SyncPort {
     });
 
     this.client.checkpoint().catch((e) =>
-      this.logger.warn("Failed to checkpoint WAL after sync:", {
+      this.logger.warn("Failed to checkpoint WAL after sync", {
         err: e,
       })
     );
