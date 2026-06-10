@@ -2,11 +2,7 @@ import { connect, type Database } from "@tursodatabase/sync-wasm/vite";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 
 import { type SyncPort, type SyncResult, SyncError } from "@dictos/core";
-import {
-  schema,
-  SqliteFolderRepository,
-  migrationString,
-} from "@dictos/db-core";
+import { schema, SqliteFolderRepository } from "@dictos/db-core";
 import type { Logger } from "@dictos/logger";
 
 import { migrateViteWasm } from "./migrator";
@@ -17,8 +13,6 @@ interface SyncCredentials {
   url: string | null;
   token: string;
 }
-
-const FOLDER_NAMESPACE = "dedc30c7-43ae-4ca3-9779-703ab44bc508";
 
 export class WasmTursoClient implements SyncPort {
   private client: Database;
@@ -137,7 +131,7 @@ export class WasmTursoClient implements SyncPort {
     this.logger.info(
       "Connected to a remote database and finished sync successfully.",
       {
-        url,
+        remoteUrl: url,
       }
     );
   }
@@ -149,7 +143,7 @@ export class WasmTursoClient implements SyncPort {
       });
     }
 
-    this.logger.debug("Sync started...", {
+    this.logger.trace("Sync started...", {
       remoteUrl: this.credentials.url,
     });
 

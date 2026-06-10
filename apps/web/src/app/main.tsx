@@ -36,7 +36,7 @@ export const bootstrap = async () => {
     browser: {
       write: (logObj) => pinoPrettifyBrowser(logObj as PinoLogFormat),
     },
-    level: "debug",
+    level: "trace",
   });
   const logger = new PinoLoggerAdapter(pinoLogger);
 

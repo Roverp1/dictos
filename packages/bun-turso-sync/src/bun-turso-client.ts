@@ -1,7 +1,6 @@
 import { connect, type Database } from "@tursodatabase/sync";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { migrate } from "drizzle-orm/sqlite-proxy/migrator";
-import { isNull } from "drizzle-orm";
 import path from "path";
 
 import {
@@ -19,8 +18,6 @@ interface SyncCredentials {
   url: string | null;
   token: string;
 }
-
-const FOLDER_NAMESPACE = "dedc30c7-43ae-4ca3-9779-703ab44bc508";
 
 export class BunTursoClient implements SyncPort {
   private client: Database;

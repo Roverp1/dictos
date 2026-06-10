@@ -10,7 +10,7 @@ const LEVEL_NAMES = {
 } as const;
 
 const LEVEL_METHODS = {
-  10: "trace",
+  10: "debug",
   20: "debug",
   30: "info",
   40: "warn",
