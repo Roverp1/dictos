@@ -15,7 +15,11 @@ import {
   LocalStorageSessionRepository,
 } from "@dictos/local-storage";
 import { CentralApiAdapter, HttpConnectivityAdapter } from "@dictos/eden-http";
-import { PinoLoggerAdapter } from "@dictos/pino-logger";
+import {
+  PinoLoggerAdapter,
+  pinoPrettifyBrowser,
+  type PinoLogFormat,
+} from "@dictos/pino-logger";
 import {
   AuthService,
   EntryService,
@@ -28,10 +32,18 @@ import { DictosProvider } from "@dictos/react";
 import { App } from "./app";
 
 export const bootstrap = async () => {
-  const pinoLogger = pino({ browser: { asObject: true }, level: "debug" });
+  const pinoLogger = pino({
+    browser: {
+      write: (logObj) => pinoPrettifyBrowser(logObj as PinoLogFormat),
+    },
+    level: "debug",
+  });
   const logger = new PinoLoggerAdapter(pinoLogger);
 
-  const dbClient = await WasmTursoClient.create("dictos.db", logger);
+  const dbClient = await WasmTursoClient.create(
+    "dictos.db",
+    logger.child({ adapter: "WasmTursoClient" })
+  );
   const db = dbClient.db;
 
   const localStateRepo = new LocalStorageLocalStateRepository(logger);
