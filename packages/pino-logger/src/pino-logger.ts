@@ -5,6 +5,14 @@ import pino from "pino";
 export class PinoLoggerAdapter implements Logger {
   constructor(private logger: pino.Logger) {}
 
+  child(context: Context): Logger {
+    return new PinoLoggerAdapter(this.logger.child(context));
+  }
+
+  trace(message: string, context?: Context): void {
+    if (context) this.logger.trace(context, message);
+    else this.logger.trace(message);
+  }
   debug(message: string, context?: Context): void {
     if (context) this.logger.debug(context, message);
     else this.logger.debug(message);
