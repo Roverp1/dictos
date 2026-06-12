@@ -13,7 +13,7 @@ in {
     TURSO_SYNC_URL = "http://localhost:8080";
   };
 
-  packages = with pkgs; [bun turso turso-cli secretspec];
+  packages = with pkgs; [bun turso turso-cli secretspec gh];
 
   processes = {
     turso-sync.exec = "tursodb ${serverDataDir}/sync-server.db --sync-server 0.0.0.0:8080";
