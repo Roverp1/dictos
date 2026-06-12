@@ -1,14 +1,16 @@
-# Technical Plan: Improve Adapters and Reliability
+# Technical Plan: Improve Adapters, Reliability, and Infrastructure
 
 **Parent Spec**: [spec.md](./spec.md) | **Status**: Draft
 
 ## 1. Architectural Strategy
 
-We will replace the ad-hoc migration logic in `WasmTursoClient` with a robust, Drizzle-compatible migrator that works in a Vite environment. This avoids the need for a filesystem by leveraging Vite's `import.meta.glob` to statically analyze and bundle SQL migration files and the Drizzle journal at build time. This strategy keeps the migration logic consistent across platforms while respecting the technical constraints of the browser.
+We will replace the ad-hoc migration logic in `WasmTursoClient` with a robust, Drizzle-compatible migrator that works in a Vite environment. This avoids the need for a filesystem by leveraging Vite's `import.meta.glob` to statically analyze and bundle SQL migration files and the Drizzle journal at build time. 
 
-To improve observability, we will systematically replace all `console` calls in `@dictos/bun-turso-sync` and `@dictos/wasm-turso-sync` with the `@dictos/logger` interface. We will adopt a "trace-first" approach, ensuring that every significant step of the database lifecycle (connection, migration application, sync start/end) emits a structured log entry with relevant context (e.g., CDC operation counts, network bytes).
+To improve observability, we will systematically replace all `console` calls in `@dictos/bun-turso-sync` and `@dictos/wasm-turso-sync` with the `@dictos/logger` interface. We will adopt a "trace-first" approach, ensuring every significant step of the database lifecycle emits a structured log entry.
 
-For reliability, we will introduce integration tests using `bun test`. These tests will focus on the `SyncPort` implementations. By instantiating two clients representing different "devices" and having them sync against a common remote (or a local simulation), we can programmatically verify that data flows correctly and that conflict resolution (last-write-wins) behaves as expected.
+For infrastructure, we will migrate from raw Nix flakes to `devenv.sh`. This provides declarative dependencies and native process orchestration (`devenv up`). To achieve 100% offline local development without cloud costs, we will use `devenv` to spin up `tursodb --sync-server` and mock the Turso Platform API within the central server (`NODE_ENV === "development"`). We will use SecretSpec for secure runtime injection of secrets, while providing a seamless onboarding experience via `devenv`'s `enterShell` hook.
+
+*(Integration tests for `SyncPort` have been postponed to a subsequent specification).*
 
 ## 2. Data Model & State Changes
 

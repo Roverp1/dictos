@@ -1,9 +1,11 @@
-# Tasks: Improve Adapters and Reliability
+# Tasks: Improve Adapters, Reliability, and Infrastructure
 
 **Format:** `[ID] [P?] [@DevName?] Description`
 
 - `[P]`: Task can be done in parallel with other `[P]` tasks in the same phase.
 - `[@DevName]`: Optional assignment for cross-developer collaboration.
+
+*(Note: Integration Testing tasks have been postponed to a subsequent specification to expedite the merge of the adapter and infrastructure improvements).*
 
 ## Phase 1: Foundation & Migrator Logic
 
@@ -24,11 +26,11 @@
 - [x] T009: Replace all `console` calls in `WasmTursoClient` with `this.logger`.
 - [x] T010: Add structured logging to `WasmTursoClient.sync` (using Turso stats).
 
-## Phase 4: Integration Testing
+## Phase 4: Integration Testing (Postponed)
 
-- [ ] T011: Setup `packages/bun-turso-sync/tests/` with `bun test` configuration.
-- [ ] T012: Implement `sync.test.ts` verifying bidirectional sync between two local instances.
-- [ ] T013: Implement a test case for concurrent migration application to verify `__drizzle_migrations` stability.
+- [ ] ~T011: Setup `packages/bun-turso-sync/tests/` with `bun test` configuration.~ (Postponed)
+- [ ] ~T012: Implement `sync.test.ts` verifying bidirectional sync between two local instances.~ (Postponed)
+- [ ] ~T013: Implement a test case for concurrent migration application to verify `__drizzle_migrations` stability.~ (Postponed)
 
 ## Phase 5: Developer Environment Infrastructure (Devenv)
 
