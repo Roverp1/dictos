@@ -84,5 +84,7 @@ in {
       echo ""
     '';
 
+  languages.typescript.enable = true;
+
   dotenv.disableHint = true;
 }

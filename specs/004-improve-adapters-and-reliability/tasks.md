@@ -38,6 +38,11 @@
 - [x] T017: Configure `devenv.nix` process manager (`devenv up`) to orchestrate `dev:server` and `dev:web`.
 - [x] T018: Create `secretspec.toml` to declaratively require `TURSO_AUTH_TOKEN`.
 - [x] T019: Validate the environment (verify tool versions and test `devenv up`).
+- [x] T020: Implement the "Lazy Init" pattern in `devenv.nix` `enterShell` hook to guide new users through `secretspec config init` non-blockingly.
+- [x] T021: Add the `tursodb --sync-server 0.0.0.0:8080` process to `devenv.nix` to enable offline local development without Turso Cloud.
+- [x] T022: Configure Vite proxy in `apps/web/vite.config.ts` to intercept `/v1`, `/v2`, `/pull-updates`, and `/push-updates` to resolve browser CORS errors against the local sync server.
+- [x] T023: Mock the Turso Platform API in `apps/server/src/modules/auth/turso-platform.service.ts` to return `TURSO_SYNC_URL` when `NODE_ENV === "development"`.
+- [x] T024: Add an interceptor in `packages/wasm-turso-sync/src/wasm-turso-client.ts` to cleanly rewrite the port `8080` URL to the Vite proxy `5173` only when `import.meta.env.DEV` is true.
 
 ## Phase 6: Absorb into Documentation
 
