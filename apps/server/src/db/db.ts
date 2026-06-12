@@ -7,7 +7,7 @@ import * as schema from "./schema";
 
 export const createCentralDatabase = async () => {
   const client = createClient({
-    url: process.env.TURSO_DATABASE_URL || "file:central.db",
+    url: process.env.TURSO_DATABASE_URL || "file:.data/central-server.db",
     authToken: process.env.TURSO_AUTH_TOKEN || undefined,
   });
 

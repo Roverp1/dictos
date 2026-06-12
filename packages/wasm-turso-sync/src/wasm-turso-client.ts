@@ -122,6 +122,16 @@ export class WasmTursoClient implements SyncPort {
   }
 
   async connectRemote(url: string, token: string): Promise<void | SyncError> {
+    if (import.meta.env.DEV && url.includes("localhost:8080")) {
+      /* @todo replace with env var? */
+      const proxyUrl = "http://localhost:5173";
+      this.logger.info(
+        "Dev environment detected, re-routing sync to a vite proxy",
+        { oldUrl: url, proxyUrl }
+      );
+      url = proxyUrl;
+    }
+
     this.logger.debug("Connecting to remote database...", {
       url,
     });

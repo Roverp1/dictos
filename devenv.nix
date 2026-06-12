@@ -8,13 +8,15 @@
   env = {
     NODE_ENV = "development";
     LOG_LEVEL = "trace";
+    TURSO_SYNC_URL = "http://localhost:8080";
   };
 
   packages = with pkgs; [bun turso turso-cli secretspec];
 
   processes = {
+    turso-sync.exec = "tursodb apps/server/.data/sync-server.db --sync-server 0.0.0.0:8080";
     server.exec = "secretspec run -- bun run dev:server";
-    web.exec = "bun run dev:web";
+    web.exec = "secretspec run -- bun run dev:web";
   };
 
   enterShell =
@@ -64,5 +66,6 @@
       echo "Run 'bun run dev:tui' to start the Terminal UI."
     '';
 
+  difftastic.enable = true;
   dotenv.disableHint = true;
 }
