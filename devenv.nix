@@ -4,7 +4,9 @@
   config,
   inputs,
   ...
-}: {
+}: let
+  serverDataDir = "apps/server/.data";
+in {
   env = {
     NODE_ENV = "development";
     LOG_LEVEL = "trace";
@@ -14,9 +16,23 @@
   packages = with pkgs; [bun turso turso-cli secretspec];
 
   processes = {
-    turso-sync.exec = "tursodb apps/server/.data/sync-server.db --sync-server 0.0.0.0:8080";
+    turso-sync.exec = "tursodb ${serverDataDir}/sync-server.db --sync-server 0.0.0.0:8080";
     server.exec = "secretspec run -- bun run dev:server";
     web.exec = "secretspec run -- bun run dev:web";
+  };
+
+  tasks = {
+    "dictos:init-dirs" = {
+      exec =
+        # bash
+        ''
+          if [ ! -d "${serverDataDir}" ]; then
+            mkdir -p "${serverDataDir}"
+            echo '{"devenv":{"messages":["Created \u001b[34mapps/server/.data\u001b[0m directory for server related data"]}}' > "$DEVENV_TASK_OUTPUT_FILE"
+          fi
+        '';
+      before = ["devenv:enterShell"];
+    };
   };
 
   enterShell =
@@ -64,8 +80,9 @@
 
       echo "Run 'devenv up' to start the Server and Web UI."
       echo "Run 'bun run dev:tui' to start the Terminal UI."
+
+      echo ""
     '';
 
-  difftastic.enable = true;
   dotenv.disableHint = true;
 }
