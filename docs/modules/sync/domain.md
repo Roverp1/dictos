@@ -27,6 +27,8 @@ Responsible for the bidirectional replication of private local data across a sin
 
 ## Key Decisions & Trade-offs
 
+- **Offline Local Sync Development**: Local development (`devenv up`) runs a fully offline `tursodb --sync-server` process. The Central Server mocks the Turso Platform API when `NODE_ENV === "development"`, and the web client uses a Vite proxy interceptor to bypass browser CORS checks, allowing full push/pull testing without cloud credentials or costs.
+- **Vite-Native WASM Migrator**: Web clients apply database schema changes locally via a custom engine that leverages Vite's `import.meta.glob` to bundle Drizzle SQL migrations into the build, circumventing the browser's lack of a filesystem.
 - **Deterministic UUIDv5 for Entities**: To prevent split-brain conflicts during offline sync, `folders` and `entries` use deterministic UUIDv5s based on their parent and text. Identical entities created offline on multiple devices merge flawlessly without SQLite constraint violations.
 - **Device-Isolated Activity Counters**: To track activity without unique constraint crashes during sync, the `activities` table drops the `UNIQUE(date)` constraint. It uses a UUIDv5 based on `date:deviceId`, allowing multiple isolated rows per date that the UI simply sums together (a basic CRDT pattern).
 - **Thin Session Pattern**: Because Turso syncs the entire SQLite file, storing JWTs inside the database would cause devices to log each other out upon sync. Device state is strictly segregated to the local file system.

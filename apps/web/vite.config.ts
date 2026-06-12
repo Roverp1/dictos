@@ -18,5 +18,24 @@ export default defineConfig({
       "Cross-Origin-Embedder-Policy": "require-corp",
       "Access-Control-Allow-Origin": "*",
     },
+
+    proxy: {
+      "/v1": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+      "/v2": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+      "/pull-updates": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+      "/push-updates": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
   },
 });

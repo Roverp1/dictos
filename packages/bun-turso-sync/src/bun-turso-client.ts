@@ -1,7 +1,6 @@
 import { connect, type Database } from "@tursodatabase/sync";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 import { migrate } from "drizzle-orm/sqlite-proxy/migrator";
-import { isNull } from "drizzle-orm";
 import path from "path";
 
 import {
@@ -19,8 +18,6 @@ interface SyncCredentials {
   url: string | null;
   token: string;
 }
-
-const FOLDER_NAMESPACE = "dedc30c7-43ae-4ca3-9779-703ab44bc508";
 
 export class BunTursoClient implements SyncPort {
   private client: Database;
@@ -46,6 +43,10 @@ export class BunTursoClient implements SyncPort {
     logger: Logger
   ): Promise<BunTursoClient> {
     const credentials: SyncCredentials = { url: null, token: "" };
+
+    logger.debug("Initializing database", {
+      dbPath: localDbPath,
+    });
 
     const client = await connect({
       path: localDbPath,
@@ -76,7 +77,13 @@ export class BunTursoClient implements SyncPort {
           const rows = (await stmt.all(...params)) as Record<string, any>[];
           return { rows: rows.map((row) => Object.values(row)) };
         } catch (err) {
-          console.error("Turso proxy query error:", err);
+          logger.warn("Proxy query failed", {
+            err,
+            sql,
+            params,
+          });
+          // drizzle expects us to throw here
+          // so we could handle it during the specific db call
           throw err;
         }
       },
@@ -91,7 +98,9 @@ export class BunTursoClient implements SyncPort {
       "../../db-core/migrations/"
     );
 
-    const res = await migrate(
+    logger.debug("Checking for pending database migrations...");
+
+    const migrationRes = await migrate(
       db,
       async (queries) => {
         for (const query of queries) {
@@ -104,34 +113,39 @@ export class BunTursoClient implements SyncPort {
         new DbError({ operation: "migration", reason: "Exception", cause: e })
     );
 
-    if (res instanceof Error) {
-      logger.fatal("Dabase migration failed during startup", res, {
-        adapter: "BunTursoClient",
+    if (migrationRes instanceof Error) {
+      logger.fatal("Dabase migration failed during startup", migrationRes, {
         resolvedPath: migrationsFolder,
       });
-      throw res;
+      throw migrationRes;
     }
+
+    logger.debug("Database migrations applied successfully");
 
     const folderRepo = new SqliteFolderRepository(db);
     await folderRepo.save({ name: "/", parentId: null, privacy: "private" });
+
+    logger.info("Local database is ready");
 
     return instance;
   }
 
   async connectRemote(url: string, token: string): Promise<void | SyncError> {
-    try {
-      this.credentials.url = url;
-      this.credentials.token = token;
+    this.logger.debug("Connecting to remote database...", {
+      url,
+    });
 
-      await this.client.push();
-      await this.client.pull();
-    } catch (err: any) {
-      console.error("[Turso] connectRemote failed:", err.message || err);
-      return new SyncError({
-        reason: "Failed to connect to remote database",
-        cause: err,
-      });
-    }
+    this.credentials.url = url;
+    this.credentials.token = token;
+    const syncRes = await this.sync();
+    if (syncRes instanceof Error) return syncRes;
+
+    this.logger.info(
+      "Connected to a remote database and finished sync successfully.",
+      {
+        remoteUrl: url,
+      }
+    );
   }
 
   async sync(): Promise<SyncResult | SyncError> {
@@ -141,67 +155,49 @@ export class BunTursoClient implements SyncPort {
       });
     }
 
-    this.logger.info("[Turso] Sync started", {
+    this.logger.trace("Sync started...", {
       remoteUrl: this.credentials.url,
     });
 
-    const beforeStats = await this.client
-      .stats()
-      .catch(
-        (e) => new SyncError({ reason: "Failed to fetch stats", cause: e })
-      );
-    if (beforeStats instanceof Error) return beforeStats;
+    let syncResult: SyncResult;
 
-    const pushRes = await this.client
-      .push()
-      .catch((e) => new SyncError({ reason: "Push failed", cause: e }));
-    if (pushRes instanceof Error) return pushRes;
+    try {
+      const beforeStats = await this.client.stats();
+      await this.client.push();
+      const pullRes = await this.client.pull();
+      const afterStats = await this.client.stats();
 
-    const pullRes = await this.client
-      .pull()
-      .catch((e) => new SyncError({ reason: "Pull failed", cause: e }));
-    if (pullRes instanceof Error) return pullRes;
+      syncResult = {
+        pulledRemoteChanges: pullRes,
+        pushedLocalChanges: beforeStats.cdcOperations > 0,
+        stats: {
+          bytesSent: afterStats.networkSentBytes - beforeStats.networkSentBytes,
+          bytesReceived:
+            afterStats.networkReceivedBytes - beforeStats.networkReceivedBytes,
+          operationsSynced: beforeStats.cdcOperations,
+        },
+      };
+    } catch (err) {
+      this.logger.error("Sync failed.", err);
+      return new SyncError({ reason: "Exception", cause: err });
+    }
 
-    const afterStats = await this.client
-      .stats()
-      .catch(
-        (e) => new SyncError({ reason: "Failed to fetch stats", cause: e })
-      );
-    if (afterStats instanceof Error) return afterStats;
+    this.logger.debug("Sync completed", {
+      syncResult,
+    });
 
-    this.client
-      .checkpoint()
-      .catch((e) =>
-        console.error(
-          "[Turso] Non-fatal: Failed to checkpoint WAL after sync:",
-          e
-        )
-      );
-
-    const syncResult: SyncResult = {
-      pulledRemoteChanges: pullRes,
-      pushedLocalChanges: beforeStats.cdcOperations > 0,
-      stats: {
-        bytesSent: afterStats.networkSentBytes - beforeStats.networkSentBytes,
-        bytesReceived:
-          afterStats.networkReceivedBytes - beforeStats.networkReceivedBytes,
-        operationsSynced: beforeStats.cdcOperations,
-      },
-    } as const;
+    this.client.checkpoint().catch((e) =>
+      this.logger.warn("Failed to checkpoint WAL after sync", {
+        err: e,
+      })
+    );
 
     return syncResult;
   }
 
   async disconnectRemote(): Promise<void | SyncError> {
-    try {
-      this.credentials.url = null;
-      this.credentials.token = "";
-      // remove try catch ?
-    } catch (err) {
-      return new SyncError({
-        reason: "Failed to disconnect remote database",
-        cause: err,
-      });
-    }
+    this.credentials.url = null;
+    this.credentials.token = "";
+    this.logger.info("Disconnected from remote database");
   }
 }

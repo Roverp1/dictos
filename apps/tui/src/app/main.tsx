@@ -16,7 +16,7 @@ import {
   getDictosDataDir,
 } from "@dictos/fs-storage";
 import { CentralApiAdapter, HttpConnectivityAdapter } from "@dictos/eden-http";
-import { PinoLoggerAdapter } from "@dictos/pino-logger";
+import { PinoLoggerAdapter, type PinoLogFormat } from "@dictos/pino-logger";
 import {
   AuthService,
   EntryService,
@@ -29,16 +29,6 @@ import { DictosProvider } from "@dictos/react";
 
 import { App } from "./app";
 import path from "path";
-
-interface PinoLogFormat extends Record<string, unknown> {
-  level: number;
-  time: number;
-  msg?: string;
-  pid?: number;
-  hostname?: string;
-  v?: number;
-  err?: unknown;
-}
 
 export const bootstrap = async () => {
   const renderer = await createCliRenderer({

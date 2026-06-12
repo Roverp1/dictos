@@ -16,6 +16,8 @@ The project uses a monorepo structure. It employs Hexagonal Architecture to isol
 - **Interface Adapters**: The `@dictos/react` package acts as a headless controller, exposing state and actions while receiving domain services and infrastructure utilities (like Loggers) via Dependency Injection (`DictosProvider`).
 - **Error Handling**: "Errors as values" using the `errore` package is preferred in almost every case. Return `ReturnType | ErrorType` unions. Only `throw` exceptions for truly exceptional circumstances, some exapmles include but not limited to: unrecoverable system errors, deep stack bubbling (e.g., global middleware catching low-level crashes), or violations of invariants/developer mistakes (e.g., out-of-bounds array access).
 - **Logging**: The core domain is ignorant of logging. The presentation layer (`@dictos/react`) and adapters log execution outcomes using a generic `Logger` interface (`@dictos/logger`), fulfilled by concrete adapters (e.g., Pino) at the application composition root.
+- **Developer Environment**: Declarative and reproducible environments via `devenv.sh`.
+- **Secret Management**: Native `devenv` integration with `SecretSpec` for secure runtime injection. Secrets are never stored in global shell environments or committed.
 - **Frontend/Clients**: OpenTUI with React bindings (for the TUI client). Web and Mobile clients planned for future phases.
 - **Backend**: Bun, ElysiaJS.
 - **Database**: local libSQL (and Turso hosting), Drizzle ORM.
