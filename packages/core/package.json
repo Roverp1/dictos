@@ -12,8 +12,7 @@
     ".": "./src/index.ts"
   },
   "devDependencies": {
-    "typescript": "^6.0.0",
-    "@types/bun": "latest"
+    "typescript": "^6.0.0"
   },
   "dependencies": {
     "errore": "^0.14.1"
