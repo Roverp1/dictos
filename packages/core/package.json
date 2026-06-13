@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/index-test.ts"
   },
   "devDependencies": {
     "typescript": "^6.0.0",

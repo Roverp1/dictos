@@ -4,6 +4,6 @@
   "compilerOptions": {
     "types": ["bun"]
   },
-  "include": ["src/**/*.test.ts"],
+  "include": ["src/**/*.test.ts", "**/*.contract.ts", "src/index-test.ts"],
   "exclude": ["node_modules", "dist"]
 }
