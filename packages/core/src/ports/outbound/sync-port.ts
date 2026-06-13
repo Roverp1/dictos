@@ -22,5 +22,5 @@ export interface SyncPort {
   /**
    * Disconnects the local database from the remote cloud database.
    */
-  disconnectRemote(): Promise<void | SyncError>;
+  disconnectRemote(): Promise<void>;
 }
