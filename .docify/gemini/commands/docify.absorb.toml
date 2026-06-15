@@ -1,6 +1,6 @@
 description = "Absorb a completed feature into the living documentation and archive the specification."
 prompt = """
-@{.docify/commands/absorb.md}
+@{.docify/opencode/commands/absorb.md}
 
 {{args}}
 """

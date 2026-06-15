@@ -72,33 +72,9 @@ Based on your context gathering and the PR template, generate an internal queue 
 - **Missing Verifications**: "Rollback strategy verified", but no migration or rollback scripts are present.
 - **Reviewer Guidance**: Identifying messy boilerplate that the reviewer should ignore (to populate the "How to Review" section).
 
-### 4. The Grilling Loop (Interactive)
+### 4. Pre-Review Grilling (Interactive)
 
-You will now interview the user relentlessly about the changes until reaching a shared understanding.
-
-**Rules for Grilling:**
-
-- **One at a time**: Ask exactly ONE question per turn. Walk down each branch of the decision tree resolving dependencies one-by-one.
-- **Answer User Questions First**: If the user replies to your question with a question of their own, you MUST answer their question first, clarify any confusion, and ensure they are satisfied before moving on to the next Grill Target.
-- **Explore Code**: If a question can be answered by exploring the codebase, explore the codebase instead.
-- **Provide Recommendations**: For every question you ask, provide your recommended answer or technical suggestion based on best practices.
-- **Update Internal State**: As the user answers, keep track of their justifications. You will use these exact justifications to populate the "Why is this change needed?" and "How to Review" sections of the PR template, and to check off (`[x]`) checklist items.
-
-**Format for your question turn:**
-
-```markdown
-### Pre-PR Review: Question [N]
-
-**Observation:** [Explain what you noticed in the code or template, e.g., "The PR template requires a ticket number, but I couldn't infer one from the branch name."]
-
-**Question:** [Ask the specific, targeted question]
-
-**Recommendation:** [Provide a default or suggested path, e.g., "If this is a standalone refactor, we can state 'No ticket - Opportunistic technical debt cleanup'."]
-
-_(Waiting for your answer...)_
-```
-
-_STOP after asking. Wait for the user's reply._
+Activate the `grill-docify` skill in **verification** perspective to grill the user relentlessly on the identified Grill Targets.
 
 ### 5. Final PR Draft & Interactive Review
 

@@ -1,6 +1,6 @@
 description = "Interview the user relentlessly about a feature idea until reaching shared understanding, challenging against existing docs."
 prompt = """
-@{.docify/commands/grill.md}
+@{.docify/opencode/commands/grill.md}
 
 {{args}}
 """

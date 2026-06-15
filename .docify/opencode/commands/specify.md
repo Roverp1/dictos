@@ -22,11 +22,7 @@ Translate the agreed-upon feature idea into a structured, human-readable specifi
 
 2. **Template Instantiation**: Copy the template from `.docify/templates/specification/spec-template.md` to `specs/00X-[short-name]/spec.md` using shell commands (e.g., `cp`).
 
-3. **Micro-Grilling (Just-in-Time Resolution)**: While translating the idea into the spec, if you encounter a missing product detail, an unhandled edge case, or an ambiguity:
-   - **DO NOT guess, hallucinate, or leave placeholders.**
-   - Stop and "grill" the user on that specific decision in the chat.
-   - Propose a strong recommendation based on UX best practices (e.g., "I noticed we didn't discuss what happens if a sync fails halfway. I recommend we queue the failure and retry silently. Do you agree, or do you want to show an error to the user?").
-   - Wait for their answer, refine the decision together, and _then_ write the final agreed-upon outcome into the spec.
+3. **Micro-Grilling**: If you encounter product ambiguities during spec generation, activate the `grill-docify` skill in **technical** perspective to resolve them.
 
 4. **Draft the Spec**: Modify the copied template based on the previous discussion and micro-grilling:
    - **The Problem / Solution**: Write as a clear, human-readable narrative.

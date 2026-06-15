@@ -1,0 +1,10 @@
+description = "Quickly capture a bug, feature, or chore as a GitHub issue through a focused grilling session"
+prompt = """
+@{.docify/opencode/commands/issue.md}
+
+**Gemini CLI Execution Notes:**
+You are running as a Gemini CLI agent. Please ignore the `scripts` YAML frontmatter in the included markdown document. Instead, use your `run_shell_command` tool to autonomously execute the Dependency Check and Repository State Check described in the **Pre-Execution Checks** section before proceeding to the other steps.
+When instructed to write the finalized draft to a temporary file, you MUST use your dedicated file writing/editing tools (like `write_file`) rather than running shell commands with `echo` or `cat`.
+
+{{args}}
+"""
