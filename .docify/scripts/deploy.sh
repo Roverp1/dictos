@@ -2,6 +2,15 @@
 set -euo pipefail
 shopt -s dotglob
 
+NO_OVERWRITE=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --no-overwrite) NO_OVERWRITE=true ;;
+        *) echo "Unknown argument: $arg"; exit 1 ;;
+    esac
+done
+
 PROJECT_ROOT=$(pwd)
 DOCIFY_DIR="$PROJECT_ROOT/.docify"
 
@@ -29,6 +38,10 @@ deploy_symlink_recursive() {
         done
     else
         if [ -e "$dest" ] || [ -L "$dest" ]; then
+            if [ "$NO_OVERWRITE" = true ]; then
+                echo "Skipping (already exists): $dest"
+                return
+            fi
             read -p "Target $dest already exists. Overwrite? (y/n): " confirm
             if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
                 echo "Skipping $dest"
