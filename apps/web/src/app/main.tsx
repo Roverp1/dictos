@@ -30,6 +30,25 @@ import {
 import { DictosProvider } from "@dictos/react";
 
 import { App } from "./app";
+import type { Journal } from "../../../../packages/wasm-turso-sync/src/migrator";
+
+// If changing relative path - you MUST change it on `journalFiles`
+const sqlFiles = import.meta.glob(
+  "../../../../packages/db-core/migrations/*.sql",
+  {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  }
+);
+
+const journalFiles = import.meta.glob(
+  "../../../../packages/db-core/migrations/meta/_journal.json",
+  {
+    import: "default",
+    eager: true,
+  }
+);
 
 export const bootstrap = async () => {
   const pinoLogger = pino({
@@ -40,9 +59,16 @@ export const bootstrap = async () => {
   });
   const logger = new PinoLoggerAdapter(pinoLogger);
 
+  const journalKey = Object.keys(journalFiles).find((k) =>
+    k.endsWith("_journal.json")
+  );
+  if (!journalKey)
+    throw new Error("Can't find _journal.json in provided files");
+
   const dbClient = await WasmTursoClient.create(
     "dictos.db",
-    logger.child({ adapter: "WasmTursoClient" })
+    logger.child({ adapter: "WasmTursoClient" }),
+    { journal: journalFiles[journalKey] as Journal, sqlFiles }
   );
   const db = dbClient.db;
 

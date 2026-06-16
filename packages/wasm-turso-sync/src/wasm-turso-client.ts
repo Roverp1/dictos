@@ -5,7 +5,7 @@ import { type SyncPort, type SyncResult, SyncError } from "@dictos/core";
 import { schema, SqliteFolderRepository } from "@dictos/db-core";
 import type { Logger } from "@dictos/logger";
 
-import { migrateViteWasm } from "./migrator";
+import { migrateWasm, type MigrationPayload } from "./migrator";
 
 export type SqliteTursoDrizzleProxy = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -35,7 +35,8 @@ export class WasmTursoClient implements SyncPort {
 
   public static async create(
     localDbPath: string,
-    logger: Logger
+    logger: Logger,
+    migrationPayload: MigrationPayload
   ): Promise<WasmTursoClient> {
     const credentials: SyncCredentials = { url: null, token: "" };
 
@@ -96,14 +97,15 @@ export class WasmTursoClient implements SyncPort {
 
     logger.debug("Checking for pending database migrations...");
 
-    const migrationRes = await migrateViteWasm(
+    const migrationRes = await migrateWasm(
       db,
       async (queries) => {
         for (const query of queries) {
           await client.exec(query);
         }
       },
-      logger
+      logger,
+      migrationPayload
     );
 
     if (migrationRes instanceof Error) {
