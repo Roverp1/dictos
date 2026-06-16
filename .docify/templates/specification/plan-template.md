@@ -29,10 +29,30 @@
 <!--
   ACTION REQUIRED: Define the exact boundaries (API endpoints, Hexagonal Ports, or Service Methods) needed.
   Defining these upfront allows frontend, core, and backend logic to be implemented in parallel.
+  Use the appropriate format below depending on the type of boundary.
 -->
 
-### `[Interface / Port / Endpoint Name]`
+### `[Port / Service Name]` (Code Interface)
 
-- **Input:** `[Shape or TypeScript Interface]`
-- **Output:** `[Shape or TypeScript Interface]`
-- **Behavior/Errors:** `[What happens under the hood, and what errors it can throw]`
+```typescript
+/**
+ * [Overall description of the interface/port]
+ */
+interface [InterfaceName] {
+  /**
+   * [Description of the method behavior]
+   */
+  [methodName]([paramName]: [Type]): [ReturnType];
+}
+```
+
+### `[HTTP_METHOD] [Endpoint Path]` (API Endpoint)
+
+<!--
+  Use this format for REST/GraphQL endpoints.
+-->
+
+- **Request Body**: `[TS Type or JSON example]`
+- **Response (200)**: `[TS Type or JSON example]`
+- **Errors**:
+  - `[Status Code]`: `[Reason]`

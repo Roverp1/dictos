@@ -10,8 +10,14 @@ export interface MigrationMeta {
   bps: boolean;
 }
 
-interface Journal {
+export interface Journal {
   entries: { idx: number; when: number; tag: string; breakpoints: boolean }[];
+}
+
+export interface MigrationPayload {
+  journal: Journal;
+  /** maps filename to its content */
+  sqlFiles: Record<string, unknown>;
 }
 
 export type ProxyMigrator = (migrationQueries: string[]) => Promise<void>;
@@ -21,51 +27,27 @@ export class MigrationError extends errore.createTaggedError({
   message: "Migration failed: $reason",
 }) {}
 
-// If changing relative path - you MUST change on `journalFiles`
-// and `migrationFolderTo` as well
-const sqlFiles = import.meta.glob("../../db-core/migrations/*.sql", {
-  query: "?raw",
-  import: "default",
-  eager: true,
-});
-
-const journalFiles = import.meta.glob(
-  "../../db-core/migrations/meta/_journal.json",
-  {
-    import: "default",
-    eager: true,
-  }
-);
-
-export const migrateViteWasm = async (
+export const migrateWasm = async (
   db: SqliteTursoDrizzleProxy,
   callback: ProxyMigrator,
-  logger: Logger
+  logger: Logger,
+  migrationData: MigrationPayload
 ): Promise<void | MigrationError> => {
-  const migrationFolderTo = "../../db-core/migrations";
-
   const migrationQueries: MigrationMeta[] = [];
-
-  const journalPath = `${migrationFolderTo}/meta/_journal.json`;
-
-  if (!(journalPath in journalFiles)) {
-    return new MigrationError({
-      reason: `Can't find _journal.json file, under pass ${journalPath}`,
-    });
-  }
-
-  const journal = journalFiles[journalPath] as Journal;
+  const { journal, sqlFiles } = migrationData;
 
   for (const journalEntry of journal.entries) {
-    const migrationPath = `${migrationFolderTo}/${journalEntry.tag}.sql`;
+    const migrationPath = `${journalEntry.tag}.sql`;
 
-    if (!sqlFiles[migrationPath]) {
+    const sqlKey = Object.keys(sqlFiles).find((k) => k.endsWith(migrationPath));
+
+    if (!sqlKey) {
       return new MigrationError({
-        reason: `No file ${migrationPath} found in ${migrationFolderTo} folder`,
+        reason: `No file ${migrationPath} found in provided migration payload`,
       });
     }
 
-    const query = sqlFiles[migrationPath] as string;
+    const query = sqlFiles[sqlKey] as string;
 
     const result = query
       .split("--> statement-breakpoint")

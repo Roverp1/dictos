@@ -2,3 +2,6 @@
 inputs:
   nixpkgs:
     url: github:cachix/devenv-nixpkgs/rolling
+
+# brakes tmux setup, see https://github.com/cachix/devenv/issues/2812
+reload: false

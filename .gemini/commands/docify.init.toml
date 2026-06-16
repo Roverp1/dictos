@@ -1,6 +1,0 @@
-description = "Initialize the project documentation by grilling the user and generating the initial System Overview and CONTEXT.md."
-prompt = """
-@{.docify/commands/init.md}
-
-{{args}}
-"""

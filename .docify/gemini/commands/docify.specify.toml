@@ -1,0 +1,6 @@
+description = "Create the time-bound feature specification (spec.md) based on a finalized idea or grilling session."
+prompt = """
+@{.docify/opencode/commands/specify.md}
+
+{{args}}
+"""

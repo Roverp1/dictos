@@ -1,6 +1,0 @@
-description = "Break the technical plan down into an actionable, phased checklist (tasks.md)."
-prompt = """
-@{.docify/commands/tasks.md}
-
-{{args}}
-"""

@@ -1,0 +1,6 @@
+description = "Retroactively document an existing codebase domain into the living documentation."
+prompt = """
+@{.docify/opencode/commands/document.md}
+
+{{args}}
+"""

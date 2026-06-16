@@ -195,7 +195,7 @@ export class BunTursoClient implements SyncPort {
     return syncResult;
   }
 
-  async disconnectRemote(): Promise<void | SyncError> {
+  async disconnectRemote(): Promise<void> {
     this.credentials.url = null;
     this.credentials.token = "";
     this.logger.info("Disconnected from remote database");

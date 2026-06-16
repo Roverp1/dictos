@@ -13,7 +13,7 @@ in {
     TURSO_SYNC_URL = "http://localhost:8080";
   };
 
-  packages = with pkgs; [bun turso turso-cli secretspec gh gemini-cli];
+  packages = with pkgs; [bun turso turso-cli secretspec gh];
 
   processes = {
     turso-sync.exec = "tursodb ${serverDataDir}/sync-server.db --sync-server 0.0.0.0:8080";
@@ -31,6 +31,12 @@ in {
             echo '{"devenv":{"messages":["Created \u001b[34mapps/server/.data\u001b[0m directory for server related data"]}}' > "$DEVENV_TASK_OUTPUT_FILE"
           fi
         '';
+      before = ["devenv:enterShell"];
+    };
+
+    "dev:deploy-docify" = {
+      exec = "bash .docify/scripts/deploy.sh --no-overwrite";
+      execIfModified = [".docify/**"];
       before = ["devenv:enterShell"];
     };
   };

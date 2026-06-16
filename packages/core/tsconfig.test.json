@@ -1,0 +1,9 @@
+{
+  "$schema": "https://www.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["bun"]
+  },
+  "include": ["src/**/*.test.ts", "**/*.contract.ts", "src/index-test.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,10 +1,14 @@
-.agents/
 /**/*.pdf
-skills-lock.json
 tmp/
 .exports/
 .data/
 .turbo
+
+# agents
+.agents/
+.opencode/
+.gemini/
+skills-lock.json
 
 # dependencies (bun install)
 node_modules
