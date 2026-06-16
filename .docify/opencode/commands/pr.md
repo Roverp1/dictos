@@ -26,7 +26,7 @@ Only after this shared understanding is reached will you draft the final PR desc
 ## Pre-Execution Checks
 
 **1. Dependency Check**:
-Verify that the `gh` CLI is installed and authenticated. If the setup script failed, tell the user to install the GitHub CLI and run `gh auth login`, but proceed with drafting the pr in the `tmp/${00X-pr-title}.md`.
+Verify that the `gh` CLI is installed and authenticated. If the setup script failed, tell the user to install the GitHub CLI and run `gh auth login`, but proceed with drafting the pr in the `tmp/pr-draft.md`.
 
 **2. Repository State Check**:
 
@@ -76,54 +76,51 @@ Based on your context gathering and the PR template, generate an internal queue 
 
 Activate the `grill-docify` skill in **verification** perspective to grill the user relentlessly on the identified Grill Targets.
 
-### 5. Final PR Draft & Interactive Review
+### 5. Write Draft & Interactive Review
 
 Once the user has answered all your concerns and you have no further Grill Targets, synthesize the final PR description.
 
 **Title Rules**:
-
 - Keep it under 70 characters.
 - Use Conventional Commits format if applicable.
 
 **Body Rules**:
-
 - Strictly follow the PR template formatting.
 - Incorporate the user's answers into the "Why" and "How to review" sections.
 - For markdown checklists (`- [ ]`), mark them as complete (`- [x]`) **only** if you have empirical proof (e.g., tests in the diff) OR if the user confirmed them during the Grilling Loop.
 
-Present the final Markdown draft to the user for approval.
+Write the finalized PR body directly to the file: `tmp/pr-draft.md`.
+
+Present the file link and title to the user for review and approval:
 
 ```markdown
-### Final Proposed Pull Request
+### Proposed Pull Request
 
 **Title:** `<Title>`
-
-**Body:**
-`<Body>`
+**Draft File:** [tmp/pr-draft.md](file:///absolute/path/to/project/tmp/pr-draft.md)
 
 ---
 
-Does this look good to you? Reply **"yes"** to create the PR, or provide instructions to refine it.
+Please review the draft directly in the file. You may manually edit it if needed.
+Once ready, reply **"yes"** to create the PR, or provide instructions here to refine it.
 ```
 
 Wait for the user's response. Do NOT proceed to creation without explicit approval.
 
 ### 6. Create Pull Request
 
-Once approved, write the finalized PR body to a temporary file: `tmp/${00X-pr-title}.md`.
-
-Execute the `gh` command to create the PR:
+Once approved, read the content from `tmp/pr-draft.md` (to capture any manual edits), then execute the `gh` command to create the PR:
 
 ```bash
-gh pr create --title "<TITLE>" --body-file tmp/${00X-pr-title}.md
+gh pr create --title "<TITLE>" --body-file tmp/pr-draft.md
 ```
 
 _(Append `--draft` if the user requested a draft PR in the arguments)._
 
-Clean up the temporary file (only if pr was created with `gh`):
+After the PR is successfully created, clean up the draft file:
 
 ```bash
-rm tmp/${00X-pr-title}.md
+rm tmp/pr-draft.md
 ```
 
 ## Post-Execution

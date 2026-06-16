@@ -6,8 +6,11 @@ NO_OVERWRITE=false
 
 for arg in "$@"; do
     case "$arg" in
-        --no-overwrite) NO_OVERWRITE=true ;;
-        *) echo "Unknown argument: $arg"; exit 1 ;;
+    --no-overwrite) NO_OVERWRITE=true ;;
+    *)
+        echo "Unknown argument: $arg"
+        exit 1
+        ;;
     esac
 done
 

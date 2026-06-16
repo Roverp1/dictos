@@ -71,32 +71,28 @@ Read the template from `.docify/templates/issue/issue-template.md`. Fill it in b
 
 **Label**: Infer the correct label (`bug`, `feat`, or `chore`) from the conversation. Apply exactly one.
 
-**Additional context comment** (only if requested): Read the template from `.docify/templates/issue/context-template.md` and fill it in based on the grilling session.
+Write the issue body directly to `tmp/issue-draft.md`.
+
+**Additional context comment** (only if requested): Read the template from `.docify/templates/issue/context-template.md`, fill it in based on the grilling session, and write it directly to `tmp/issue-context.md`.
 
 ### 3. Review
 
-Present the complete draft to the user:
+Present the file links to the user for review and approval:
 
 ```markdown
 ### Proposed Issue
 
 **Title:** `<Title>`
 **Label:** `<label>`
-
-**Body:**
-
-<Body>
+**Draft File:** [tmp/issue-draft.md](file:///absolute/path/to/project/tmp/issue-draft.md)
 ```
 
-If an additional context comment was drafted, present it separately:
-
+If an additional context comment was drafted:
 ```markdown
-### Additional Context Comment
-
-<Comment body>
+**Context Comment Draft File:** [tmp/issue-context.md](file:///absolute/path/to/project/tmp/issue-context.md)
 ```
 
-Ask: "Does this look good? Reply **yes** to create, or provide feedback."
+Ask: "Please review the draft file(s). You can manually edit them if needed. Once ready, reply **yes** to create the issue, or provide feedback here."
 
 Wait for explicit approval. Do NOT create without it.
 
@@ -104,26 +100,28 @@ Wait for explicit approval. Do NOT create without it.
 
 If `gh` is available:
 
-1. Write the issue body to a temporary file `tmp/issue-draft.md`.
-2. Create the issue:
+1. Create the issue using the (potentially edited) file:
 
 ```bash
 gh issue create --title "<TITLE>" --label "<LABEL>" --body-file tmp/issue-draft.md
 ```
 
-3. If additional context comment exists, post it:
+2. If additional context comment file `tmp/issue-context.md` exists, post it using that file:
 
 ```bash
 gh issue comment <ISSUE_NUMBER> --body-file tmp/issue-context.md
 ```
 
-4. Clean up temporary files.
+3. Clean up the draft files:
+
+```bash
+rm tmp/issue-draft.md
+rm -f tmp/issue-context.md
+```
 
 If `gh` is NOT available:
 
-1. Write the issue body to `tmp/issue-draft.md`.
-2. If additional context exists, append it to the same file under a `---` separator.
-3. Tell the user: "Issue draft saved to `tmp/issue-draft.md`. Publish it manually when `gh` is available."
+1. Tell the user: "Issue draft is saved at `tmp/issue-draft.md`. Since `gh` is not available, please publish it manually when available."
 
 ### 5. Report
 

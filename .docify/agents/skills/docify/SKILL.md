@@ -11,15 +11,15 @@ You execute the docify documentation workflows.
 
 Map the user request to the correct markdown command template:
 
-- "init" or "initialize" -> .docify/commands/init.md
-- "grill" or "grill me" -> .docify/commands/grill.md
-- "specify" or "specification" -> .docify/commands/specify.md
-- "plan" or "technical plan" -> .docify/commands/plan.md
-- "tasks" or "generate tasks" -> .docify/commands/tasks.md
-- "document" or "code documentation" -> .docify/commands/document.md
-- "absorb" or "archive" -> .docify/commands/absorb.md
-- "pr" or "create pr" -> .docify/commands/pr.md
-- "issue" or "create issue" -> .docify/commands/issue.md
+- "init" or "initialize" -> .docify/opencode/commands/init.md
+- "grill" or "grill me" -> .docify/opencode/commands/grill.md
+- "specify" or "specification" -> .docify/opencode/commands/specify.md
+- "plan" or "technical plan" -> .docify/opencode/commands/plan.md
+- "tasks" or "generate tasks" -> .docify/opencode/commands/tasks.md
+- "document" or "code documentation" -> .docify/opencode/commands/document.md
+- "absorb" or "archive" -> .docify/opencode/commands/absorb.md
+- "pr" or "create pr" -> .docify/opencode/commands/pr.md
+- "issue" or "create issue" -> .docify/opencode/commands/issue.md
 
 ## Execution Steps
 
