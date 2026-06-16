@@ -24,20 +24,19 @@ const testLogger: Logger = {
 };
 
 let syncServerProcess: Subprocess | null = null;
-const SYNC_PORT = 8080;
-const SERVER_DB_PATH = `${TEST_DIR}/server.db`;
+const SYNC_PORT = 9090;
 
 const bunHarness: SyncContractHarness = {
-  setupRemoteServer: async () => {
+  setupRemoteServer: async (serverDbPath) => {
     syncServerProcess = spawn(
-      ["tursodb", SERVER_DB_PATH, "--sync-server", `0.0.0.0:${SYNC_PORT}`],
+      ["tursodb", serverDbPath, "--sync-server", `0.0.0.0:${SYNC_PORT}`],
       {
         stdout: "ignore",
         stderr: "ignore",
       }
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // await new Promise((resolve) => setTimeout(resolve, 500));
 
     return `http://127.0.0.1:${SYNC_PORT}`;
   },
