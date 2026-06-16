@@ -87,15 +87,15 @@ Tests live exactly next to the file they are testing.
 ### B. "Errors as Values" Assertions
 
 Dictos uses the `errore` package. We do not use `try/catch` in tests unless dealing with catastrophic panics. Instead, assert on the returned union.
+We can `throw` the error, instead of doing `expect(res instanceof Error).toBe(false)`, so that typescript would automatically narrow the type.
 
 ```typescript
 const result = await syncService.sync();
 // Assert failure
-expect(result instanceof Error).toBe(true);
-expect(result._tag).toBe("OfflineError");
+if (result instanceof Error) throw result;
 
 // Assert success
-expect(result instanceof Error).toBe(false);
+if (result instanceof Error) throw result;
 expect(result).toEqual({ synced: true });
 ```
 
@@ -123,13 +123,13 @@ When fixing a bug:
 
 For every function or component, ensure these boundaries are tested if applicable:
 
-| Scenario | Example |
-|----------|---------|
-| Happy path | Valid input produces expected output |
-| Empty input | Empty string, empty array, null, undefined |
-| Boundary values | Min, max, zero, negative |
-| Error paths | Invalid input, network failure, timeout |
-| Concurrency | Rapid repeated calls, out-of-order responses |
+| Scenario        | Example                                      |
+| --------------- | -------------------------------------------- |
+| Happy path      | Valid input produces expected output         |
+| Empty input     | Empty string, empty array, null, undefined   |
+| Boundary values | Min, max, zero, negative                     |
+| Error paths     | Invalid input, network failure, timeout      |
+| Concurrency     | Rapid repeated calls, out-of-order responses |
 
 ## 6. General Test Rules
 
