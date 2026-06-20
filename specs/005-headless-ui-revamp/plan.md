@@ -4,83 +4,194 @@
 
 ## 1. Architectural Strategy
 
-The `@dictos/react` package will transition to a State architecture to manage UI focus and interactions uniformly across desktop and mobile. Previously, visual state (which pane is open) was tightly coupled to input state (where the keyboard is pointing), causing conflicts when adapting to touch interfaces.
+The `@dictos/react` package will transition from a coupled `focus + selected index` model to an explicit interaction state model. The current model treats keyboard focus, opened content, and action targets as the same thing. That works for a keyboard-only TUI, but it breaks down for mouse context menus and mobile tap navigation.
 
-We are adopting a model inspired by the Yazi file manager. We decouple the state into three distinct layers:
+The new model separates the state into four responsibilities:
 
-1. **Cursors (`treeCursor`, `descriptionCursor`)**: Persistent indices tracking keyboard position within specific lists. They never lose their place when the user switches panes.
-2. **Visual Lock (`activeItem`)**: An explicit ID that dictates whether the Description pane is locked open (crucial for mobile sliding views).
-3. **Action Targets (`selectionPool`)**: A collection of IDs used for batch operations.
+1. **Keyboard position**: `treeCursor` and `descriptionCursor` track where keyboard navigation is inside each pane.
+2. **Opened content**: `activeEntryId` tracks the Entry explicitly opened by click, tap, Enter, or `l`.
+3. **Persistent selection**: `selectedTreeItems` tracks Entries/Folders selected for batch actions.
+4. **Temporary context targeting**: `contextMenuTarget` tracks the item that opened the current context menu.
 
-By separating these, a mobile user can tap an entry to set the `activeItem` (sliding up the pane), while desktop users can navigate the `treeCursor` to see live previews. Furthermore, right-click actions simply update the `selectionPool` before firing, ensuring the target of the action is decoupled from the user's primary keyboard cursor.
+The UI remains device-specific. TUI can use Vim keys, Web can use normal click/contextmenu behavior, and Mobile can use tap/back/long-press. The shared store owns the semantic state, not the visual transition.
 
 ## 2. Data Model & State Changes
 
+### Shared Types
+
+```typescript
+type TreeItemReference =
+  | { type: "entry"; id: string }
+  | { type: "folder"; id: string };
+
+type ActivePane = "tree" | "description";
+
+type InteractionAction =
+  | "idle"
+  | "createInput"
+  | "deleteConfirm"
+  | "renameInput";
+```
+
 ### `useDictionaryStore` (Zustand)
 
-We will replace the existing `focus` object and global indices with explicit, decoupled properties.
+Replace the existing `focus` object and selected index names with explicit properties.
 
-- **`activePane`** (`'tree' | 'description'`): Dictates which cursor receives keyboard navigation events.
-- **`treeCursor`** (`number`): The index of the currently highlighted item in `treeItemsToDisplay`. Default: `0`.
-- **`descriptionCursor`** (`number`): The index of the currently highlighted description in `descriptionsToDisplay`. Default: `0`.
-- **`activeItem`** (`string | null`): The ID of the Entry explicitly locked open. When not null, it overrides dynamic tree previews.
-- **`selectionPool`** (`Set<string>`): A collection of item IDs currently selected for batch operations.
+```typescript
+interface DictionaryStore {
+  activePane: ActivePane;
+  interactionAction: InteractionAction;
 
-## 3. Interface Contracts & Boundaries
+  treeCursor: number;
+  descriptionCursor: number;
 
-The headless action hooks will be updated to manage this new state and resolve targets using the fallback pattern.
+  activeEntryId: string | null;
 
-### Target Resolution Logic (Internal)
+  selectedTreeItems: TreeItemReference[];
+  contextMenuTarget: TreeItemReference | null;
 
-When a modification action (Delete, Rename, Move) fires, the store resolves the target as follows:
+  selectedDescriptionIds: string[];
+  descriptionContextMenuTargetId: string | null;
+}
+```
 
-1. If `selectionPool` is not empty, operate on those IDs.
-2. If `selectionPool` is empty, operate on the item pointed to by the cursor of the `activePane`.
+`selectedTreeItems` stores refs instead of full Entry/Folder objects to avoid stale object state after rename, move, delete, or sync. Raw IDs alone are not enough because Entries and Folders can share the same ID shape, so the type is part of the identity.
 
-### `useNavigationActions` (State Mutators)
+Descriptions use separate selection/context state because Description actions live in the Description pane and should not be mixed with Entry/Folder batch actions.
+
+## 3. Modes & Navigation Rules
+
+### Browse Mode
+
+Browse mode is active when `activeEntryId === null`.
+
+- `activePane` is `tree`.
+- `j/k` and Arrow Up/Down move `treeCursor`.
+- Moving `treeCursor` updates the preview pane.
+- Enter, `l`, click, or tap opens an Entry.
+- Navigating into a Folder changes the path stack and resets `treeCursor` to `0`.
+
+### Entry Mode
+
+Entry mode is active when `activeEntryId !== null`.
+
+- `activePane` is `description`.
+- `j/k` and Arrow Up/Down move `descriptionCursor`.
+- Keyboard input does not move `treeCursor` while an Entry is active.
+- `h`, Escape, Backspace, or platform Back clears `activeEntryId` and returns `activePane` to `tree`.
+- Closing the Entry preserves `treeCursor` on the opened Entry.
+
+Opening an Entry from any modality must always move `treeCursor` to that Entry before setting `activeEntryId`.
+
+## 4. Interface Contracts & Boundaries
+
+### `useNavigationActions`
 
 ```typescript
 interface NavigationActions {
-  /** Switches keyboard input focus between panes */
-  setActivePane(pane: "tree" | "description"): void;
+  setActivePane(pane: ActivePane): void;
+  setInteractionAction(action: InteractionAction): void;
 
-  /** Moves the cursor of the active pane up or down */
   moveCursor(direction: "up" | "down"): void;
 
-  /**
-   * Locks the description view to a specific entry.
-   * Also automatically shifts `activePane` to 'description'.
-   */
-  setActiveItem(id: string | null): void;
+  openEntry(entryId: string): void;
+  closeEntry(): void;
 
-  /** Overwrites the selection pool (used for right-click context menus) */
-  setSelection(ids: string[]): void;
-
-  /** Toggles an item in the pool (used for visual multi-select) */
-  toggleSelection(id: string): void;
-
-  /** Clears the selection pool */
-  clearSelection(): void;
+  navigateIn(): void;
+  navigateOut(): void;
 }
 ```
 
-### `useTreeActions` & `useDescriptionActions`
+`openEntry` is used by keyboard, mouse, and touch handlers. It finds the Entry in `treeItemsToDisplay`, moves `treeCursor` to that Entry when present, sets `activeEntryId`, resets or clamps `descriptionCursor`, and switches `activePane` to `description`.
 
-Modification actions will no longer rely on implicit single-item state. They will internally resolve their targets using the `selectionPool` fallback logic described above.
+### Selection Actions
 
 ```typescript
-interface TreeActions {
-  /**
-   * Requests deletion.
-   * Target: selectionPool OR item at treeCursor.
-   */
-  requestDelete(): void;
+interface SelectionActions {
+  setSelectedTreeItems(items: TreeItemReference[]): void;
+  toggleSelectedTreeItem(item: TreeItemReference): void;
+  clearSelectedTreeItems(): void;
 
-  /**
-   * Requests rename.
-   * Target: item at treeCursor (Rename is inherently a single-item action, it ignores selectionPool).
-   */
-  requestRename(): void;
+  setContextMenuTarget(item: TreeItemReference | null): void;
+
+  setSelectedDescriptionIds(ids: string[]): void;
+  toggleSelectedDescriptionId(id: string): void;
+  clearSelectedDescriptionIds(): void;
+
+  setDescriptionContextMenuTargetId(id: string | null): void;
 }
 ```
 
+The visual mechanics for range selection, Vim visual mode, and mobile edit mode can be added later. This phase only needs the state and mutators.
+
+## 5. Action Target Resolution
+
+Do not use one universal fallback rule. Different actions have different native expectations.
+
+### Open Entry
+
+Target source:
+
+1. Explicit clicked/tapped Entry ID.
+2. Entry at `treeCursor`.
+
+### Rename Tree Item
+
+Target source:
+
+1. `contextMenuTarget`.
+2. Item at `treeCursor`.
+
+For now rename ignores multi-selection. Later we will implement batch renames.
+
+### Delete / Move Tree Items
+
+Target source:
+
+1. If `contextMenuTarget` is inside `selectedTreeItems`, target all `selectedTreeItems`.
+2. Else if `contextMenuTarget` exists, target only `contextMenuTarget`.
+3. Else if `selectedTreeItems` is non-empty, target all `selectedTreeItems`.
+4. Else target the item at `treeCursor`.
+
+Right-click and long-press must not mutate `treeCursor`, `activeEntryId`, or `selectedTreeItems` by themselves.
+
+### Create Description
+
+Target source:
+
+1. `activeEntryId`.
+
+Descriptions can only be created while an Entry is active.
+
+### Rename Description
+
+Target source:
+
+1. `descriptionContextMenuTargetId`.
+2. Description at `descriptionCursor`.
+
+Rename ignores multi-selection for now.
+
+### Delete Descriptions
+
+Target source:
+
+1. If `descriptionContextMenuTargetId` is inside `selectedDescriptionIds`, target all `selectedDescriptionIds`.
+2. Else if `descriptionContextMenuTargetId` exists, target only that Description.
+3. Else if `selectedDescriptionIds` is non-empty, target all `selectedDescriptionIds`.
+4. Else target the Description at `descriptionCursor`.
+
+## 6. TUI Integration Notes
+
+- `j/k` keep Vim-style navigation.
+- Enter/`l` opens the Entry under `treeCursor`.
+- `h`, Escape, Backspace, or Left closes the active Entry before navigating up folders.
+- Tree highlighting uses `treeCursor`.
+- Description highlighting uses `descriptionCursor`.
+- TUI can keep panes visible side-by-side, but keyboard mode must still follow browse mode vs entry mode.
+
+## 7. Future Client Notes
+
+- Web should use click-to-open and native `contextmenu` events.
+- Mobile should use tap-to-open, platform Back to close, and long-press/action sheet for context actions.
+- The store must not contain screen-size checks or animation state.

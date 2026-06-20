@@ -44,19 +44,23 @@ _Avoid_: Social Sync, Publishing, Broadcasting
 The section of the interface currently receiving keyboard input.
 
 **Tree Cursor**:
-The Entry or Folder currently highlighted in the main list. It controls what is shown in the preview.
+The Entry or Folder currently highlighted while browsing the Dictionary.
 _Avoid_: Focused Item, Selected Item
 
 **Description Cursor**:
-The specific Description currently highlighted in the description list.
+The Description currently highlighted while viewing an Entry.
 
-**Active Item**:
-The Entry explicitly opened by the user. It locks the description view to this entry, overriding the preview.
-_Avoid_: Open Item, Selected Entry
+**Active Entry**:
+The Entry explicitly opened by the user for viewing or editing its Descriptions.
+_Avoid_: Active Item, Open Item, Selected Entry
 
-**Selection Pool**:
-The group of items explicitly checked/selected by the user for batch actions (like move or delete).
-_Avoid_: Selected Items, Multi-select state
+**Selected Tree Items**:
+Entries and Folders explicitly marked by the user for batch actions.
+_Avoid_: Selection Pool, Selected Items, Multi-select state
+
+**Context Menu Target**:
+The item a context menu action applies to after a right-click or long-press.
+_Avoid_: Selected Item, Active Item, Focused Item
 
 **System Overview**:
 The primary entry point document (`docs/system-overview.md`) for understanding the project's purpose, architecture, tech stack, codebase map, and domain modules.
