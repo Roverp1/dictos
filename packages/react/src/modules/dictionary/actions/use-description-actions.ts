@@ -4,72 +4,83 @@ import { useDictionaryStore } from "../use-dictionary-store";
 export const useDescriptionActions = () => {
   const { descriptionService, logger } = useServices();
   const {
-    focus,
-    treeItemsToDisplay,
-    selectedTreeItemIndex,
-    descriptionsToDisplay,
-    selectedDescriptionIndex,
+    activePane,
+    interactionAction,
+    descriptionCursor,
+    activeEntryDescriptions,
+    activeEntryId,
+
     setInputValue,
-    setFocus,
+    setActivePane,
+    setInteractionAction,
     setDescriptionRefreshTrigger,
   } = useDictionaryStore();
 
-  const selectedTreeItem = treeItemsToDisplay[selectedTreeItemIndex];
-  const selectedDescription = descriptionsToDisplay[selectedDescriptionIndex];
+  const descriptionCursorItem = activeEntryDescriptions[descriptionCursor];
 
   return {
     requestCreate: () => {
       setInputValue("");
-      setFocus({ pane: "description", action: "createInput" });
+      setActivePane("description");
+      setInteractionAction("createInput");
     },
 
     submitCreate: async (val: string) => {
       const trimmed = val.trim();
       if (!trimmed) {
-        setFocus({ pane: "description", action: "idle" });
+        setActivePane("description");
+        setInteractionAction("idle");
         return;
       }
 
-      if (!selectedTreeItem) {
-        logger.error("No entry selected during description creation");
+      if (!activeEntryId) {
+        logger.error("No entry active during description creation");
         return;
       }
 
-      await descriptionService.createDescription({
-        entryId: selectedTreeItem.data.id,
+      const res = await descriptionService.createDescription({
+        entryId: activeEntryId,
         text: trimmed,
       });
 
+      if (res instanceof Error) {
+        logger.error("Failed to crete description", res);
+        return;
+      }
+
       setDescriptionRefreshTrigger();
-      setFocus({ pane: "description", action: "idle" });
+      setActivePane("description");
+      setInteractionAction("idle");
     },
 
     requestRename: () => {
       if (
-        focus.pane === "description" &&
-        focus.action === "idle" &&
-        descriptionsToDisplay.length > 0
+        activePane === "description" &&
+        interactionAction === "idle" &&
+        activeEntryDescriptions.length > 0
       ) {
-        setFocus((prev) => ({ ...prev, action: "renameInput" }));
+        setActivePane("description");
+        setInteractionAction("renameInput");
 
-        if (!selectedDescription) {
+        if (!descriptionCursorItem) {
           logger.error(
             "No description selected during description rename request"
           );
           return;
         }
 
-        setInputValue(selectedDescription.text);
+        setInputValue(descriptionCursorItem.text);
       }
     },
 
     submitRename: async (val: string) => {
       const trimmed = val.trim();
       if (!trimmed) {
-        setFocus({ pane: "description", action: "idle" });
+        setActivePane("description");
+        setInteractionAction("idle");
         return;
       }
-      if (!selectedDescription) {
+      if (!descriptionCursorItem) {
         logger.error(
           "No description selected during description rename submit"
         );
@@ -77,9 +88,9 @@ export const useDescriptionActions = () => {
       }
 
       const res = await descriptionService.updateDescription(
-        selectedDescription.id,
+        descriptionCursorItem.id,
         {
-          entryId: selectedDescription.entryId,
+          entryId: descriptionCursorItem.entryId,
           text: trimmed,
         }
       );
@@ -88,30 +99,41 @@ export const useDescriptionActions = () => {
       }
 
       setDescriptionRefreshTrigger();
-      setFocus({ pane: "description", action: "idle" });
+      setActivePane("description");
+      setInteractionAction("idle");
     },
 
     requestDelete: () => {
       if (
-        focus.pane === "description" &&
-        focus.action === "idle" &&
-        descriptionsToDisplay.length > 0
+        activePane === "description" &&
+        interactionAction === "idle" &&
+        activeEntryDescriptions.length > 0
       ) {
-        setFocus({ pane: "description", action: "deleteConfirm" });
+        setActivePane("description");
+        setInteractionAction("deleteConfirm");
       }
     },
 
     confirmDelete: async () => {
-      if (focus.pane === "description") {
-        if (!selectedDescription) {
+      if (activePane === "description") {
+        if (!descriptionCursorItem) {
           logger.error(
             "No description selected during description delete confirm"
           );
           return;
         }
-        await descriptionService.deleteDescription(selectedDescription.id);
+        const res = await descriptionService.deleteDescription(
+          descriptionCursorItem.id
+        );
+        if (res instanceof Error) {
+          logger.error("Failed to delete description", res);
+          setInteractionAction("idle");
+          return;
+        }
+
         setDescriptionRefreshTrigger();
-        setFocus({ pane: "description", action: "idle" });
+        setActivePane("description");
+        setInteractionAction("idle");
       }
     },
   };

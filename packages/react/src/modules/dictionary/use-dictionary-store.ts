@@ -1,35 +1,66 @@
 import { create } from "zustand";
 
-import type { FocusState, TreeItem } from "./types";
+import type {
+  ActivePane,
+  InteractionAction,
+  PreviewPaneContent,
+  TreeItem,
+  TreeItemReference,
+} from "./types";
 import type { Description, Folder } from "@dictos/core";
 
 type DictionaryStore = {
   inputValue: string;
-  focus: FocusState;
-  treeItemsToDisplay: TreeItem[];
-  treeItemsOnHoverToDisplay: TreeItem[];
-  descriptionsToDisplay: Description[];
-  selectedTreeItemIndex: number;
-  selectedDescriptionIndex: number;
+
+  currentFolderItems: TreeItem[];
+  activeEntryDescriptions: Description[];
+  previewPaneContent: PreviewPaneContent;
+
+  treeCursor: number;
+  descriptionCursor: number;
+
+  activeEntryId: string | null;
+  activePane: ActivePane;
+  interactionAction: InteractionAction;
+
+  selectedTreeItems: TreeItemReference[];
+  contextMenuTarget: TreeItemReference | null;
+  selectedDescriptionIds: string[];
+  descriptionContextMenuTargetId: string | null;
+
   refreshTreeItemTrigger: number;
   descriptionRefreshTrigger: number;
+
   pathStack: Folder[];
 
   setInputValue: (newInputValue: string) => void;
-  setFocus: (
-    newFocusValue: FocusState | ((prev: FocusState) => FocusState)
-  ) => void;
-  setTreeItemsToDisplay: (newTreeItems: TreeItem[]) => void;
-  setTreeItemsOnHoverToDisplay: (newTreeItems: TreeItem[]) => void;
-  setDescriptionsToDisplay: (newDescriptionsValue: Description[]) => void;
-  setSelectedTreeItemIndex: (
+  setActivePane: (newActivePane: ActivePane) => void;
+  setInteractionAction: (newInteractionAction: InteractionAction) => void;
+  setCurrentFolderItems: (newCurrentFolderItems: TreeItem[]) => void;
+  setPreviewPaneContent: (newPreviewPaneContent: PreviewPaneContent) => void;
+  setActiveEntryDescriptions: (newDescriptions: Description[]) => void;
+
+  setTreeCursor: (
     newTreeItemIndex: number | ((prev: number) => number)
   ) => void;
-  setSelectedDescriptionIndex: (
+  setDescriptionCursor: (
     newDescriptionIndex: number | ((prev: number) => number)
   ) => void;
+
+  setActiveEntryId: (newActiveEntryId: string | null) => void;
+
+  setSelectedTreeItems: (newSelectedTreeItems: TreeItemReference[]) => void;
+  setContextMenuTarget: (
+    newContextMenuTarget: TreeItemReference | null
+  ) => void;
+  setSelectedDescriptionIds: (newSelectedDescriptionIds: string[]) => void;
+  setDescriptionContextMenuTargetId: (
+    newDescriptionContextMenuTargetId: string | null
+  ) => void;
+
   setRefreshTreeItemTrigger: () => void;
   setDescriptionRefreshTrigger: () => void;
+
   setPathStack: (
     newPathStack: Folder[] | ((prev: Folder[]) => Folder[])
   ) => void;
@@ -37,17 +68,26 @@ type DictionaryStore = {
 
 export const useDictionaryStore = create<DictionaryStore>((set) => ({
   inputValue: "",
-  focus: {
-    pane: "tree",
-    action: "idle",
-  } as FocusState,
-  treeItemsToDisplay: [],
-  treeItemsOnHoverToDisplay: [],
-  descriptionsToDisplay: [],
-  selectedTreeItemIndex: 0,
-  selectedDescriptionIndex: 0,
+
+  currentFolderItems: [],
+  activeEntryDescriptions: [],
+  previewPaneContent: { kind: "empty" },
+
   refreshTreeItemTrigger: 0,
   descriptionRefreshTrigger: 0,
+
+  treeCursor: 0,
+  descriptionCursor: 0,
+
+  selectedTreeItems: [],
+  contextMenuTarget: null,
+  selectedDescriptionIds: [],
+  descriptionContextMenuTargetId: null,
+
+  activePane: "tree",
+  interactionAction: "idle",
+  activeEntryId: null,
+
   pathStack: [],
 
   setInputValue: (newInputValue) => {
@@ -56,47 +96,46 @@ export const useDictionaryStore = create<DictionaryStore>((set) => ({
     });
   },
 
-  setFocus: (newFocusValue) => {
+  setActivePane: (newActivePane) => {
+    set({ activePane: newActivePane });
+  },
+
+  setInteractionAction: (newInteractionAction) => {
+    set({ interactionAction: newInteractionAction });
+  },
+
+  setCurrentFolderItems: (newTreeItems) => {
+    set({
+      currentFolderItems: newTreeItems,
+    });
+  },
+
+  setPreviewPaneContent: (newTreeItems) => {
+    set({
+      previewPaneContent: newTreeItems,
+    });
+  },
+
+  setActiveEntryDescriptions: (newDescriptions) => {
+    set({
+      activeEntryDescriptions: newDescriptions,
+    });
+  },
+
+  setTreeCursor: (newTreeItemIndex) => {
     set((state) => ({
-      focus:
-        typeof newFocusValue === "function"
-          ? newFocusValue(state.focus)
-          : newFocusValue,
-    }));
-  },
-
-  setTreeItemsToDisplay: (newTreeItems) => {
-    set({
-      treeItemsToDisplay: newTreeItems,
-    });
-  },
-
-  setTreeItemsOnHoverToDisplay: (newTreeItems) => {
-    set({
-      treeItemsOnHoverToDisplay: newTreeItems,
-    });
-  },
-
-  setDescriptionsToDisplay: (newDescriptionsValue) => {
-    set({
-      descriptionsToDisplay: newDescriptionsValue,
-    });
-  },
-
-  setSelectedTreeItemIndex: (newTreeItemIndex) => {
-    set((state) => ({
-      selectedTreeItemIndex:
+      treeCursor:
         typeof newTreeItemIndex === "function"
-          ? newTreeItemIndex(state.selectedTreeItemIndex)
+          ? newTreeItemIndex(state.treeCursor)
           : newTreeItemIndex,
     }));
   },
 
-  setSelectedDescriptionIndex: (newDescriptionIndex) => {
+  setDescriptionCursor: (newDescriptionIndex) => {
     set((state) => ({
-      selectedDescriptionIndex:
+      descriptionCursor:
         typeof newDescriptionIndex === "function"
-          ? newDescriptionIndex(state.selectedDescriptionIndex)
+          ? newDescriptionIndex(state.descriptionCursor)
           : newDescriptionIndex,
     }));
   },
@@ -120,5 +159,25 @@ export const useDictionaryStore = create<DictionaryStore>((set) => ({
           ? newPathStack(state.pathStack)
           : newPathStack,
     }));
+  },
+
+  setActiveEntryId: (newActiveEntryId) => {
+    set({ activeEntryId: newActiveEntryId });
+  },
+
+  setSelectedTreeItems: (newSelectedTreeItems) => {
+    set({ selectedTreeItems: newSelectedTreeItems });
+  },
+
+  setContextMenuTarget: (newContextMenuTarget) => {
+    set({ contextMenuTarget: newContextMenuTarget });
+  },
+
+  setSelectedDescriptionIds: (newSelectedDescriptionIds) => {
+    set({ selectedDescriptionIds: newSelectedDescriptionIds });
+  },
+
+  setDescriptionContextMenuTargetId: (newDescriptionContextMenuTargetId) => {
+    set({ descriptionContextMenuTargetId: newDescriptionContextMenuTargetId });
   },
 }));

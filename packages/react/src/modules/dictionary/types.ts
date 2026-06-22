@@ -1,16 +1,16 @@
-import type { Entry, Folder } from "@dictos/core";
+import type { Description, Entry, Folder } from "@dictos/core";
 
-type TreeFocus = {
-  pane: "tree";
-  action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
-};
+export type ActivePane = "tree" | "description";
 
-type DescriptionFocus = {
-  pane: "description";
-  action: "idle" | "createInput" | "deleteConfirm" | "renameInput";
-};
+export type InteractionAction =
+  | "idle"
+  | "createInput"
+  | "deleteConfirm"
+  | "renameInput";
 
-export type FocusState = TreeFocus | DescriptionFocus;
+export type TreeItemReference =
+  | { type: "entry"; id: string }
+  | { type: "folder"; id: string };
 
 interface FolderTreeItem {
   /** format: "folder-${dbId}" */
@@ -29,3 +29,8 @@ interface EntryTreeItem {
 }
 
 export type TreeItem = FolderTreeItem | EntryTreeItem;
+
+export type PreviewPaneContent =
+  | { kind: "empty" }
+  | { kind: "folder"; folderId: string; items: TreeItem[] }
+  | { kind: "entry"; entryId: string; descriptions: Description[] };

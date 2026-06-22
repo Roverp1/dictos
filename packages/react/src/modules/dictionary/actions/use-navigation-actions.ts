@@ -5,88 +5,119 @@ import { useServices } from "../../../providers";
 
 export const useNavigateActions = () => {
   const { logger } = useServices();
-  const { focus, setFocus, setPathStack, setSelectedTreeItemIndex, ...state } =
-    useDictionaryStore();
+  const {
+    activePane,
+    interactionAction,
+    setActivePane,
+    setActiveEntryId,
+    setDescriptionCursor,
+    setInteractionAction,
+    setPathStack,
+    setTreeCursor,
+    ...state
+  } = useDictionaryStore();
 
   const isAtRoot = state.pathStack.length === 1;
-  const selectedTreeItem =
-    state.treeItemsToDisplay[state.selectedTreeItemIndex];
+  const treeCursorItem = state.currentFolderItems[state.treeCursor];
 
   const navigateInto = (selectedFolder: Folder) => {
     setPathStack((prevStack) => [...prevStack, selectedFolder]);
-    setSelectedTreeItemIndex(0);
+    setTreeCursor(0);
+    setActiveEntryId(null);
+    setActivePane("tree");
   };
 
   const navigateUp = () => {
     if (isAtRoot) return;
 
     setPathStack((prevStack) => prevStack.slice(0, -1));
-    setSelectedTreeItemIndex(0);
+    setTreeCursor(0);
+    setActiveEntryId(null);
+    setActivePane("tree");
+  };
+
+  const openEntry = (entryId: string) => {
+    const nextTreeCursor = state.currentFolderItems.findIndex(
+      (item) => item.type === "entry" && item.data.id === entryId
+    );
+
+    if (nextTreeCursor !== -1) {
+      setTreeCursor(nextTreeCursor);
+    }
+
+    setActiveEntryId(entryId);
+    setActivePane("description");
+    setDescriptionCursor(0);
+  };
+
+  const closeEntry = () => {
+    setActivePane("tree");
+    setActiveEntryId(null);
+    setInteractionAction("idle");
+    setDescriptionCursor(0);
   };
 
   return {
-    navigateIn: () => {
-      if (focus.action !== "idle") return;
+    openEntry,
+    closeEntry,
 
-      if (!selectedTreeItem) {
+    navigateIn: () => {
+      if (interactionAction !== "idle") return;
+      if (activePane !== "tree") return;
+
+      if (!treeCursorItem) {
         logger.error("No item selected during 'navigate in' action");
         return;
       }
 
-      if (focus.pane === "tree" && selectedTreeItem.type === "folder") {
-        navigateInto(selectedTreeItem.data);
-      } else if (focus.pane === "tree" && selectedTreeItem.type === "entry") {
-        setFocus({ pane: "description", action: "idle" });
+      if (treeCursorItem.type === "folder") {
+        navigateInto(treeCursorItem.data);
+        return;
       }
+
+      openEntry(treeCursorItem.data.id);
     },
 
     navigateOut: () => {
-      if (focus.action !== "idle") return;
+      if (interactionAction !== "idle") return;
 
-      if (focus.pane === "description") {
-        setFocus({ pane: "tree", action: "idle" });
-      } else if (focus.pane === "tree" && !isAtRoot) {
+      if (activePane === "description") {
+        closeEntry();
+        return;
+      }
+
+      if (!isAtRoot) {
         navigateUp();
       }
     },
 
-    moveSelectionDown: () => {
-      if (focus.action !== "idle") return;
-
-      if (focus.pane === "tree") {
-        setSelectedTreeItemIndex((prev) => {
-          const next =
-            prev < state.treeItemsToDisplay.length - 1 ? prev + 1 : 0;
-          return next;
-        });
-      } else if (focus.pane === "description") {
-        state.setSelectedDescriptionIndex((prev) => {
-          const length = state.descriptionsToDisplay.length;
+    moveCursor: (direction: "up" | "down") => {
+      if (interactionAction !== "idle") return;
+      if (activePane === "tree") {
+        setTreeCursor((prev) => {
+          const length = state.currentFolderItems.length;
           if (length === 0) return 0;
-          const next =
-            prev < state.descriptionsToDisplay.length - 1 ? prev + 1 : 0;
-          return next;
-        });
-      }
-    },
 
-    moveSelectionUp: () => {
-      if (focus.action !== "idle") return;
+          if (direction === "down") {
+            return prev < length - 1 ? prev + 1 : 0;
+          }
 
-      if (focus.pane === "tree") {
-        setSelectedTreeItemIndex((prev) => {
-          const next =
-            prev - 1 < 0 ? state.treeItemsToDisplay.length - 1 : prev - 1;
-          return next;
+          return prev - 1 < 0 ? length - 1 : prev - 1;
         });
-      } else if (focus.pane === "description") {
-        state.setSelectedDescriptionIndex((prev) => {
-          const length = state.descriptionsToDisplay.length;
-          if (length === 0) return 0;
-          const next = prev - 1 < 0 ? length - 1 : prev - 1;
-          return next;
-        });
+
+        return;
       }
+
+      setDescriptionCursor((prev) => {
+        const length = state.activeEntryDescriptions.length;
+        if (length === 0) return 0;
+
+        if (direction === "down") {
+          return prev < length - 1 ? prev + 1 : 0;
+        }
+
+        return prev - 1 < 0 ? length - 1 : prev - 1;
+      });
     },
   };
 };
