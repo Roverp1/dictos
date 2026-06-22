@@ -7,6 +7,7 @@ import type { TreeItem } from "./types";
 import { useTreeActions } from "./actions/use-tree-actions";
 import { useNavigateActions } from "./actions/use-navigation-actions";
 import { useDescriptionActions } from "./actions/use-description-actions";
+import { useSelectionActions } from "./actions/use-selection-actions";
 
 export const useDictionary = () => {
   const { entryService, descriptionService, folderService, logger } =
@@ -16,28 +17,13 @@ export const useDictionary = () => {
   const navigationActions = useNavigateActions();
   const treeActions = useTreeActions();
   const descriptionActions = useDescriptionActions();
+  const selectionActions = useSelectionActions();
 
   const isAtRoot = state.pathStack.length === 1;
   const currentFolder = state.pathStack[state.pathStack.length - 1];
   const treeCursorItem = state.currentFolderItems[state.treeCursor];
   const descriptionCursorItem =
     state.activeEntryDescriptions[state.descriptionCursor];
-
-  // effects
-  useEffect(() => {
-    const onMount = async () => {
-      if (state.pathStack.length > 0) return;
-      const rootFolder = await folderService.getRootFolder();
-      if (rootFolder instanceof Error) {
-        logger.error("Failed to get root folder:", rootFolder);
-        return;
-      }
-
-      state.setPathStack([rootFolder]);
-    };
-
-    onMount();
-  }, [folderService, logger]);
 
   const loadTreeItemsForFolder = async (folderId: string) => {
     const [foldersResult, entriesResult] = await Promise.all([
@@ -71,13 +57,21 @@ export const useDictionary = () => {
     return items;
   };
 
-  const loadDescriptionsForEntry = async (entryId: string) => {
-    const descriptions =
-      await descriptionService.getDescriptionsForEntry(entryId);
+  // effects
+  useEffect(() => {
+    const onMount = async () => {
+      if (state.pathStack.length > 0) return;
+      const rootFolder = await folderService.getRootFolder();
+      if (rootFolder instanceof Error) {
+        logger.error("Failed to get root folder:", rootFolder);
+        return;
+      }
 
-    if (descriptions instanceof Error) return descriptions;
-    return descriptions;
-  };
+      state.setPathStack([rootFolder]);
+    };
+
+    onMount();
+  }, [folderService, logger]);
 
   // Load Tree Items when Folder changes
   useEffect(() => {
@@ -109,14 +103,27 @@ export const useDictionary = () => {
       return;
     }
 
+    const previewSource = {
+      type: treeCursorItem.type,
+      id: treeCursorItem.data.id,
+    };
+
     const loadPreview = async () => {
       if (treeCursorItem.type === "folder") {
         const items = await loadTreeItemsForFolder(treeCursorItem.data.id);
-
         if (items instanceof Error) {
-          logger.error("Failed to load current folder items.", items);
+          logger.error("Failed to load folder preview.", items);
           return;
         }
+
+        const latestItem =
+          useDictionaryStore.getState().currentFolderItems[state.treeCursor];
+        if (
+          !latestItem ||
+          latestItem.type !== previewSource.type ||
+          latestItem.data.id !== previewSource.id
+        )
+          return;
 
         state.setPreviewPaneContent({
           kind: "folder",
@@ -127,14 +134,22 @@ export const useDictionary = () => {
         return;
       }
 
-      const descriptions = await loadDescriptionsForEntry(
+      const descriptions = await descriptionService.getDescriptionsForEntry(
         treeCursorItem.data.id
       );
-
       if (descriptions instanceof Error) {
         logger.error("Failed to load Entry preview.", descriptions);
         return;
       }
+
+      const latestItem =
+        useDictionaryStore.getState().currentFolderItems[state.treeCursor];
+      if (
+        !latestItem ||
+        latestItem.type !== previewSource.type ||
+        latestItem.data.id !== previewSource.id
+      )
+        return;
 
       state.setPreviewPaneContent({
         kind: "entry",
@@ -173,12 +188,14 @@ export const useDictionary = () => {
     const loadActiveDescriptions = async () => {
       state.setActiveEntryDescriptions([]);
 
-      const descriptions = await loadDescriptionsForEntry(entryId);
+      const descriptions =
+        await descriptionService.getDescriptionsForEntry(entryId);
 
       if (descriptions instanceof Error) {
         logger.error("Failed to load active Entry descriptions.", descriptions);
         return;
       }
+      if (useDictionaryStore.getState().activeEntryId !== entryId) return;
 
       state.setActiveEntryDescriptions(descriptions);
     };
@@ -220,8 +237,13 @@ export const useDictionary = () => {
       tree: treeActions,
       description: descriptionActions,
       navigation: navigationActions,
+      selection: selectionActions,
       general: {
-        cancelAction: () => state.setInteractionAction("idle"),
+        cancelAction: () => {
+          state.setInteractionAction("idle");
+          state.setContextMenuTarget(null);
+          state.setDescriptionContextMenuTargetId(null);
+        },
 
         updateInputValue: (val: string) => state.setInputValue(val),
       },

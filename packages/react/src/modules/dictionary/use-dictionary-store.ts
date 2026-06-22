@@ -23,10 +23,23 @@ type DictionaryStore = {
   activePane: ActivePane;
   interactionAction: InteractionAction;
 
-  selectedTreeItems: TreeItemReference[];
+  /**
+   * Temporary target for a TreeItem context menu.
+   *
+   * Keep through rename/delete confirmation. Clear on close, success, or cancel.
+   * Setting this must not select the item, move cursors, or open an Entry.
+   */
   contextMenuTarget: TreeItemReference | null;
-  selectedDescriptionIds: string[];
+  /**
+   * Temporary target for a Description context menu.
+   *
+   * Keep through rename/delete confirmation. Clear on close, success, or cancel.
+   * Setting this must not select the item, move cursors, or open an Entry.
+   */
   descriptionContextMenuTargetId: string | null;
+
+  selectedTreeItems: TreeItemReference[];
+  selectedDescriptionIds: string[];
 
   refreshTreeItemTrigger: number;
   descriptionRefreshTrigger: number;

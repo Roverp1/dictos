@@ -9,15 +9,38 @@ export const useTreeActions = () => {
     currentFolderItems,
     treeCursor,
     pathStack,
+    contextMenuTarget,
     setInputValue,
     setActivePane,
     setInteractionAction,
     setRefreshTreeItemTrigger,
+    setContextMenuTarget,
   } = useDictionaryStore();
 
   const currentFolder = pathStack[pathStack.length - 1];
   const treeCursorItem = currentFolderItems[treeCursor];
 
+  // helpers
+  const getSingleTreeTarget = () => {
+    if (!contextMenuTarget) return treeCursorItem ?? null;
+
+    return (
+      currentFolderItems.find(
+        (item) =>
+          item.type === contextMenuTarget.type &&
+          item.data.id === contextMenuTarget.id
+      ) ?? null
+    );
+  };
+
+  const finishAction = () => {
+    setRefreshTreeItemTrigger();
+    setContextMenuTarget(null);
+    setActivePane("tree");
+    setInteractionAction("idle");
+  };
+
+  // actions
   return {
     requestCreate: () => {
       setInputValue("");
@@ -59,25 +82,25 @@ export const useTreeActions = () => {
         }
       }
 
-      setRefreshTreeItemTrigger();
-      setActivePane("tree");
-      setInteractionAction("idle");
+      finishAction();
     },
 
     requestRename: () => {
+      const targetItem = getSingleTreeTarget();
+
       if (
         activePane === "tree" &&
         interactionAction === "idle" &&
         currentFolderItems.length > 0 &&
-        treeCursorItem
+        targetItem
       ) {
         setActivePane("tree");
         setInteractionAction("renameInput");
 
-        if (treeCursorItem.type === "folder") {
-          setInputValue(treeCursorItem.data.name);
-        } else if (treeCursorItem.type === "entry") {
-          setInputValue(treeCursorItem.data.text);
+        if (targetItem.type === "folder") {
+          setInputValue(targetItem.data.name);
+        } else if (targetItem.type === "entry") {
+          setInputValue(targetItem.data.text);
         }
       }
     },
@@ -85,15 +108,21 @@ export const useTreeActions = () => {
     submitRename: async (val: string) => {
       if (interactionAction === "renameInput" && activePane === "tree") {
         const trimmed = val.trim();
-        if (!trimmed || !treeCursorItem) {
-          setActivePane("tree");
+        if (!trimmed) {
+          setContextMenuTarget(null);
           setInteractionAction("idle");
           return;
         }
 
-        if (treeCursorItem.type === "folder") {
+        const targetItem = getSingleTreeTarget();
+        if (!targetItem) {
+          logger.error("No targetItem found during tree rename submit");
+          return;
+        }
+
+        if (targetItem.type === "folder") {
           const res = await folderService.renameFolder(
-            treeCursorItem.data.id,
+            targetItem.data.id,
             trimmed
           );
           if (res instanceof Error) {
@@ -101,7 +130,7 @@ export const useTreeActions = () => {
             return;
           }
         } else {
-          const res = await entryService.updateEntry(treeCursorItem.data.id, {
+          const res = await entryService.updateEntry(targetItem.data.id, {
             text: trimmed,
           });
           if (res instanceof Error) {
@@ -110,18 +139,14 @@ export const useTreeActions = () => {
           }
         }
 
-        setRefreshTreeItemTrigger();
-        setActivePane("tree");
-        setInteractionAction("idle");
+        finishAction();
       }
     },
 
     requestDelete: () => {
-      if (
-        activePane === "tree" &&
-        interactionAction === "idle" &&
-        currentFolderItems.length > 0
-      ) {
+      const targetItem = getSingleTreeTarget();
+
+      if (activePane === "tree" && interactionAction === "idle" && targetItem) {
         setActivePane("tree");
         setInteractionAction("deleteConfirm");
       }
@@ -129,30 +154,33 @@ export const useTreeActions = () => {
 
     confirmDelete: async () => {
       if (activePane !== "tree") return;
-      if (!treeCursorItem) {
-        logger.error("No tree item selected during tree delete confirm");
+
+      const targetItem = getSingleTreeTarget();
+      if (!targetItem) {
+        logger.error("No targetItem found during tree delete confirm");
         return;
       }
 
-      if (treeCursorItem.type === "entry") {
-        const res = await entryService.deleteEntry(treeCursorItem!.data.id);
+      if (targetItem.type === "entry") {
+        const res = await entryService.deleteEntry(targetItem.data.id);
 
         if (res instanceof Error) {
           logger.error("Failed to delete entry", res);
           setInteractionAction("idle");
+          setContextMenuTarget(null);
           return;
         }
-      } else if (treeCursorItem.type === "folder") {
-        const res = await folderService.deleteFolder(treeCursorItem!.data.id);
+      } else if (targetItem.type === "folder") {
+        const res = await folderService.deleteFolder(targetItem.data.id);
         if (res instanceof Error) {
           logger.error("Failed to delete folder", res);
+          setInteractionAction("idle");
+          setContextMenuTarget(null);
           return;
         }
       }
 
-      setRefreshTreeItemTrigger();
-      setActivePane("tree");
-      setInteractionAction("idle");
+      finishAction();
     },
   };
 };

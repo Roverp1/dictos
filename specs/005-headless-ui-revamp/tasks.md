@@ -9,40 +9,48 @@
 
 _(These tasks block the rest of the work. Establish the shared interfaces and state shape first.)_
 
-- [ ] T001: Update `packages/react/src/modules/dictionary/types.ts` to define `TreeItemRef`, `ActivePane`, and `InteractionAction`.
-- [ ] T002: Refactor `useDictionaryStore.ts` to replace `focus` with `activePane` and `interactionAction`.
-- [ ] T003: Rename selected index state to explicit cursors: `selectedTreeItemIndex` -> `treeCursor`, and `selectedDescriptionIndex` -> `descriptionCursor`.
-- [ ] T004: Add `activeEntryId`, `selectedTreeItems`, `contextMenuTarget`, `selectedDescriptionIds`, and `descriptionContextMenuTargetId` to the store.
+- [x] T001: Update `packages/react/src/modules/dictionary/types.ts` to define `TreeItemReference`, `ActivePane`, and `InteractionAction`.
+- [x] T002: Refactor `useDictionaryStore.ts` to replace `focus` with `activePane` and `interactionAction`.
+- [x] T003: Rename selected index state to explicit cursors: `selectedTreeItemIndex` -> `treeCursor`, and `selectedDescriptionIndex` -> `descriptionCursor`.
+- [x] T004: Add `activeEntryId`, `selectedTreeItems`, `contextMenuTarget`, `selectedDescriptionIds`, and `descriptionContextMenuTargetId` to the store.
+- [x] T004A: Replace `treeItemsToDisplay`, `treeItemsOnHoverToDisplay`, and `descriptionsToDisplay` with `currentFolderItems`, `previewPaneContent`, and `activeEntryDescriptions`.
+- [x] T004B: Document the lifecycle rules for tree and Description context menu targets in the store API.
 
 ## Phase 2: Core Navigation Logic
 
 _(Implement browse mode and entry mode before modifying destructive actions.)_
 
-- [ ] T005: Update `useDictionary.ts` derived state so Descriptions load from `activeEntryId` when present and from `treeCursor` preview only in browse mode.
-- [ ] T006: Update navigation actions to expose `moveCursor`, `openEntry`, and `closeEntry`.
-- [ ] T007: Ensure `openEntry` always moves `treeCursor` to the opened Entry, sets `activeEntryId`, switches `activePane` to `description`, and clamps/resets `descriptionCursor`.
-- [ ] T008: Ensure `closeEntry` clears `activeEntryId`, switches `activePane` to `tree`, and preserves `treeCursor` on the opened Entry.
-- [ ] T009: Ensure keyboard movement cannot move `treeCursor` while `activeEntryId` exists.
+- [x] T005: Update `useDictionary.ts` derived state so Descriptions load from `activeEntryId` when present and from `treeCursor` preview only in browse mode.
+- [x] T006: Update navigation actions to expose `moveCursor`, `openEntry`, and `closeEntry`.
+- [x] T007: Ensure `openEntry` always moves `treeCursor` to the opened Entry, sets `activeEntryId`, switches `activePane` to `description`, and clamps/resets `descriptionCursor`.
+- [x] T008: Ensure `closeEntry` clears `activeEntryId`, switches `activePane` to `tree`, and preserves `treeCursor` on the opened Entry.
+- [x] T009: Ensure keyboard movement cannot move `treeCursor` while `activeEntryId` exists.
+- [x] T009A: Split cursor-driven preview loading from active Entry Description loading.
+- [x] T009B: Add stale active Entry Description guard so late loads cannot overwrite a newer active Entry.
 
 ## Phase 3: Selection & Context Targeting
 
 _(Separate persistent selection from temporary context menu targeting.)_
 
-- [ ] T010: [P] Add tree selection mutators: `setSelectedTreeItems`, `toggleSelectedTreeItem`, and `clearSelectedTreeItems`.
-- [ ] T011: [P] Add context menu mutator: `setContextMenuTarget`.
-- [ ] T012: [P] Add Description selection mutators: `setSelectedDescriptionIds`, `toggleSelectedDescriptionId`, and `clearSelectedDescriptionIds`.
-- [ ] T013: [P] Add Description context menu mutator: `setDescriptionContextMenuTargetId`.
-- [ ] T014: Implement target resolution helpers for tree actions and Description actions using the rules from `plan.md`.
+- [x] T010: [P] Add tree selection API actions: `selectTreeItem`, `unselectTreeItem`, `toggleTreeItemSelection`, and `clearTreeSelection`.
+- [x] T011: [P] Add tree context menu API actions: `openTreeContextMenu` and `closeTreeContextMenu`.
+- [x] T012: [P] Add Description selection API actions: `selectDescription`, `unselectDescription`, `toggleDescriptionSelection`, and `clearDescriptionSelection`.
+- [x] T013: [P] Add Description context menu API actions: `openDescriptionContextMenu` and `closeDescriptionContextMenu`.
+- [x] T014: Add single-target resolution for tree and Description actions using cursor fallback and context menu target override.
+- [ ] T014A: Add batch target resolution for tree delete/move using `selectedTreeItems` and `contextMenuTarget` rules from `plan.md`.
+- [ ] T014B: Add batch target resolution for Description delete using `selectedDescriptionIds` and `descriptionContextMenuTargetId` rules from `plan.md`.
 
 ## Phase 4: Action Updates
 
 _(Update mutations to use explicit targets instead of implicit focus state.)_
 
-- [ ] T015: Update `useTreeActions.ts` create and rename flows to use `activePane`, `interactionAction`, `treeCursor`, and single-target resolution.
+- [x] T015: Update `useTreeActions.ts` create and rename flows to use `activePane`, `interactionAction`, `treeCursor`, and single-target resolution.
 - [ ] T016: Update `useTreeActions.ts` delete and move flows to use selection-aware tree target resolution.
-- [ ] T017: Update `useDescriptionActions.ts` create flow to require `activeEntryId`.
-- [ ] T018: Update `useDescriptionActions.ts` rename and delete flows to use Description target resolution.
-- [ ] T019: Clear context menu targets after context actions complete or are cancelled.
+- [x] T017: Update `useDescriptionActions.ts` create flow to require `activeEntryId`.
+- [x] T018: Update `useDescriptionActions.ts` rename and delete flows to use Description target resolution.
+- [x] T019: Clear context menu targets after context actions complete or are cancelled.
+- [x] T019A: Expose `actions.selection` from `useDictionary()` as the stable cross-platform selection/context API.
+- [ ] T019B: Decide whether failed delete actions should clear context targets and exit confirmation consistently.
 
 ## Phase 5: TUI Integration
 

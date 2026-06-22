@@ -9,14 +9,34 @@ export const useDescriptionActions = () => {
     descriptionCursor,
     activeEntryDescriptions,
     activeEntryId,
+    descriptionContextMenuTargetId,
 
     setInputValue,
     setActivePane,
     setInteractionAction,
     setDescriptionRefreshTrigger,
+    setDescriptionContextMenuTargetId,
   } = useDictionaryStore();
 
   const descriptionCursorItem = activeEntryDescriptions[descriptionCursor];
+
+  // helpers
+  const getSingleDescriptionTarget = () => {
+    if (!descriptionContextMenuTargetId) return descriptionCursorItem ?? null;
+
+    return (
+      activeEntryDescriptions.find(
+        (item) => item.id === descriptionContextMenuTargetId
+      ) ?? null
+    );
+  };
+
+  const finishAction = () => {
+    setDescriptionRefreshTrigger();
+    setDescriptionContextMenuTargetId(null);
+    setActivePane("description");
+    setInteractionAction("idle");
+  };
 
   return {
     requestCreate: () => {
@@ -44,13 +64,11 @@ export const useDescriptionActions = () => {
       });
 
       if (res instanceof Error) {
-        logger.error("Failed to crete description", res);
+        logger.error("Failed to create description", res);
         return;
       }
 
-      setDescriptionRefreshTrigger();
-      setActivePane("description");
-      setInteractionAction("idle");
+      finishAction();
     },
 
     requestRename: () => {
@@ -59,17 +77,16 @@ export const useDescriptionActions = () => {
         interactionAction === "idle" &&
         activeEntryDescriptions.length > 0
       ) {
-        setActivePane("description");
-        setInteractionAction("renameInput");
-
-        if (!descriptionCursorItem) {
+        const targetItem = getSingleDescriptionTarget();
+        if (!targetItem) {
           logger.error(
             "No description selected during description rename request"
           );
           return;
         }
 
-        setInputValue(descriptionCursorItem.text);
+        setInteractionAction("renameInput");
+        setInputValue(targetItem.text);
       }
     },
 
@@ -78,63 +95,61 @@ export const useDescriptionActions = () => {
       if (!trimmed) {
         setActivePane("description");
         setInteractionAction("idle");
+        setDescriptionContextMenuTargetId(null);
         return;
       }
-      if (!descriptionCursorItem) {
+
+      const targetItem = getSingleDescriptionTarget();
+      if (!targetItem) {
         logger.error(
           "No description selected during description rename submit"
         );
         return;
       }
 
-      const res = await descriptionService.updateDescription(
-        descriptionCursorItem.id,
-        {
-          entryId: descriptionCursorItem.entryId,
-          text: trimmed,
-        }
-      );
+      const res = await descriptionService.updateDescription(targetItem.id, {
+        entryId: targetItem.entryId,
+        text: trimmed,
+      });
       if (res instanceof Error) {
         logger.error("Failed to rename description", res);
+        return;
       }
 
-      setDescriptionRefreshTrigger();
-      setActivePane("description");
-      setInteractionAction("idle");
+      finishAction();
     },
 
     requestDelete: () => {
+      const targetItem = getSingleDescriptionTarget();
+
       if (
         activePane === "description" &&
         interactionAction === "idle" &&
-        activeEntryDescriptions.length > 0
+        targetItem
       ) {
-        setActivePane("description");
         setInteractionAction("deleteConfirm");
       }
     },
 
     confirmDelete: async () => {
-      if (activePane === "description") {
-        if (!descriptionCursorItem) {
-          logger.error(
-            "No description selected during description delete confirm"
-          );
-          return;
-        }
-        const res = await descriptionService.deleteDescription(
-          descriptionCursorItem.id
-        );
-        if (res instanceof Error) {
-          logger.error("Failed to delete description", res);
-          setInteractionAction("idle");
-          return;
-        }
+      if (activePane !== "description") return;
 
-        setDescriptionRefreshTrigger();
-        setActivePane("description");
-        setInteractionAction("idle");
+      const targetItem = getSingleDescriptionTarget();
+      if (!targetItem) {
+        logger.error(
+          "No description selected during description delete confirm"
+        );
+        return;
       }
+
+      const res = await descriptionService.deleteDescription(targetItem.id);
+      if (res instanceof Error) {
+        logger.error("Failed to delete description", res);
+        setInteractionAction("idle");
+        return;
+      }
+
+      finishAction();
     },
   };
 };
