@@ -37,20 +37,20 @@ _(Separate persistent selection from temporary context menu targeting.)_
 - [x] T012: [P] Add Description selection API actions: `selectDescription`, `unselectDescription`, `toggleDescriptionSelection`, and `clearDescriptionSelection`.
 - [x] T013: [P] Add Description context menu API actions: `openDescriptionContextMenu` and `closeDescriptionContextMenu`.
 - [x] T014: Add single-target resolution for tree and Description actions using cursor fallback and context menu target override.
-- [ ] T014A: Add batch target resolution for tree delete/move using `selectedTreeItems` and `contextMenuTarget` rules from `plan.md`.
-- [ ] T014B: Add batch target resolution for Description delete using `selectedDescriptionIds` and `descriptionContextMenuTargetId` rules from `plan.md`.
+- [ ] T014A: Add batch target resolution for tree delete/move using `selectedTreeItems` and `contextMenuTarget` rules from `plan.md`. Deferred to #25.
+- [ ] T014B: Add batch target resolution for Description delete using `selectedDescriptionIds` and `descriptionContextMenuTargetId` rules from `plan.md`. Deferred to #25.
 
 ## Phase 4: Action Updates
 
 _(Update mutations to use explicit targets instead of implicit focus state.)_
 
 - [x] T015: Update `useTreeActions.ts` create and rename flows to use `activePane`, `interactionAction`, `treeCursor`, and single-target resolution.
-- [ ] T016: Update `useTreeActions.ts` delete and move flows to use selection-aware tree target resolution.
+- [ ] T016: Update `useTreeActions.ts` delete and move flows to use selection-aware tree target resolution. Deferred to #25.
 - [x] T017: Update `useDescriptionActions.ts` create flow to require `activeEntryId`.
 - [x] T018: Update `useDescriptionActions.ts` rename and delete flows to use Description target resolution.
 - [x] T019: Clear context menu targets after context actions complete or are cancelled.
 - [x] T019A: Expose `actions.selection` from `useDictionary()` as the stable cross-platform selection/context API.
-- [ ] T019B: Decide whether failed delete actions should clear context targets and exit confirmation consistently.
+- [ ] T019B: Decide whether failed delete actions should clear context targets and exit confirmation consistently. Deferred to #21.
 
 ## Phase 5: TUI Integration
 
@@ -60,7 +60,9 @@ _(Fix the existing Terminal UI to work with the new headless logic.)_
 - [x] T021: [P] Update TUI Description view components to use `descriptionCursor` for visual highlighting.
 - [x] T022: Update TUI keybindings so `j/k` move the tree in browse mode and Descriptions in entry mode.
 - [x] T023: Update TUI keybindings so Enter/`l` opens Entries, while `h`, Escape, Backspace, or Left closes an active Entry before navigating up folders.
-- [ ] T024: Add click handling where available so clicking an Entry opens it and updates `treeCursor`.
+- [ ] T024: Add click handling where available so clicking an Entry opens it and updates `treeCursor`. Deferred to #26.
+- [x] T024D: Update TUI Dictionary panes to use the new `@dictos/react` state shape for browse mode and entry mode essentials.
+- [ ] T024E: Fully split TUI preview rendering from active Description rendering. Deferred to #28.
 
 ## Phase 5A: Web Integration
 
@@ -70,12 +72,23 @@ _(Fix the existing Terminal UI to work with the new headless logic.)_
 
 ## Phase 6: Verification
 
-- [ ] T025: Run `bun run typecheck`.
-- [ ] T026: Manually verify TUI browse mode: `j/k` moves tree cursor and previews items while no Entry is active.
-- [ ] T027: Manually verify TUI entry mode: Enter/`l` opens an Entry, `j/k` moves Description cursor, and `h`/Escape closes back to tree.
-- [ ] T028: Manually verify target resolution rules for context menu and selection state with unit tests or focused integration tests if test harnesses exist.
+- [x] T025: Run `bun run typecheck`.
+- [x] T026: Manually verify TUI browse mode essentials: `j/k` moves tree cursor and preview is usable enough for this branch.
+- [x] T027: Manually verify TUI entry mode essentials: Enter/`l` opens an Entry, `j/k` moves Description cursor, and `h`/Escape closes back to tree.
+- [ ] T028: Manually verify target resolution rules for context menu and selection state with unit tests or focused integration tests if test harnesses exist. Deferred to #25, #26, and #27.
+
+## Phase 6A: Deferred Follow-Ups
+
+- [x] T029: Document remaining preview pane cleanup in #28.
+- [x] T030: Document TUI selection controls in #27.
+- [x] T031: Document TUI mouse support in #26.
+- [x] T032: Document bulk action selection support in #25.
+- [x] T033: Document TUI shortcut/input conflicts in #23.
+- [x] T034: Document selection state functional updater cleanup in #22.
+- [x] T035: Document action failure UX in #21.
+- [x] T036: Document preview reuse optimization in #20.
 
 ## Phase 7: Absorb into Documentation
 
 - [ ] Run `/docify.absorb` to update living documentation and archive this specification after implementation.
-- [ ] **Manual Verification:** Ensure new UI vocabulary has been grilled and added to `CONTEXT.md`: `Tree Cursor`, `Description Cursor`, `Active Pane`, `Active Entry`, `Selected Tree Items`, and `Context Menu Target`.
+- [x] **Manual Verification:** Ensure new UI vocabulary has been grilled and added to `CONTEXT.md`: `Tree Cursor`, `Description Cursor`, `Active Pane`, `Active Entry`, `Selected Tree Items`, and `Context Menu Target`.
