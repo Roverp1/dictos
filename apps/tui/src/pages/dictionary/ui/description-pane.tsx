@@ -7,9 +7,9 @@ import { useDictionary } from "@dictos/react";
 export const DescriptionPane = () => {
   const theme = useTheme();
 
-  const { state, selectedTreeItem, actions } = useDictionary();
+  const { state: st, treeCursorItem, actions } = useDictionary();
 
-  if (!selectedTreeItem) return;
+  if (!treeCursorItem) return;
 
   return (
     <box
@@ -20,30 +20,28 @@ export const DescriptionPane = () => {
       gap={1}
       border={["left"]}
       borderColor={
-        state.focus.pane === "description" ? theme.base0D : theme.base04
+        st.activePane === "description" ? theme.base0D : theme.base04
       }
     >
-      <text
-        fg={state.focus.pane === "description" ? theme.base0E : theme.base03}
-      >
-        {selectedTreeItem?.type === "entry"
-          ? `${selectedTreeItem.data.text}`
-          : `${selectedTreeItem.label}`}
+      <text fg={st.activePane === "description" ? theme.base0E : theme.base03}>
+        {treeCursorItem?.type === "entry"
+          ? `${treeCursorItem.data.text}`
+          : `${treeCursorItem.label}`}
       </text>
 
       {/* if hovered on word */}
-      {selectedTreeItem.type === "entry" ? (
+      {treeCursorItem.type === "entry" ? (
         <InteractiveList
           id="description-list"
           contentOptions={{ gap: 1 }}
           flexGrow={1}
-          items={state.descriptionsToDisplay}
-          focused={state.focus.pane === "description"}
-          selectedIndex={state.selectedDescriptionIndex}
+          items={st.activeEntryDescriptions}
+          focused={st.activePane === "description"}
+          selectedIndex={st.descriptionCursor}
           renderItem={(item, i, isSelected) => {
             const isRenaming =
-              state.focus.action === "renameInput" &&
-              state.focus.pane === "description";
+              st.interactionAction === "renameInput" &&
+              st.activePane === "description";
 
             if (isSelected && isRenaming) {
               return (
@@ -54,7 +52,7 @@ export const DescriptionPane = () => {
                   <SubmitTextarea
                     focused={true}
                     onSave={actions.description.submitRename}
-                    initialValue={state.inputValue}
+                    initialValue={st.inputValue}
                   />
                 </box>
               );
@@ -70,8 +68,8 @@ export const DescriptionPane = () => {
             );
           }}
           ListFooterComponent={
-            state.focus.pane === "description" &&
-            state.focus.action === "createInput" ? (
+            st.activePane === "description" &&
+            st.interactionAction === "createInput" ? (
               <box
                 border
                 borderColor={theme.base0B}
@@ -87,7 +85,7 @@ export const DescriptionPane = () => {
       ) : (
         // if hovered on folder
         <box>
-          {state.treeItemsOnHoverToDisplay.map((item, i) => (
+          {st.currentFolderItems.map((item, i) => (
             <text
               fg={theme.base05}
               key={i}

@@ -7,38 +7,38 @@ import { InteractiveList } from "./interactive-list";
 export const FolderTreePane = () => {
   const theme = useTheme();
 
-  const { state, actions } = useDictionary();
+  const { state: st, actions } = useDictionary();
 
   return (
     <box
       flexDirection="column"
       id="folder-tree-pane"
       border={["right"]}
-      borderColor={state.focus.pane === "tree" ? theme.base0D : theme.base04}
+      borderColor={st.activePane === "tree" ? theme.base0D : theme.base04}
       width="50%"
     >
       <box marginBottom={0}>
         <text fg={theme.base0D}>
-          {state.pathStack
+          {st.pathStack
             .map((dir) => {
-              if (state.pathStack.length > 1 && dir.name === "/") return;
+              if (st.pathStack.length > 1 && dir.name === "/") return;
               return dir.name;
             })
             .join("/")}
         </text>
       </box>
 
-      {state.treeItemsToDisplay.length > 0 ? (
+      {st.currentFolderItems.length > 0 ? (
         <InteractiveList
           id="tree-item-list"
           flexGrow={1}
-          items={state.treeItemsToDisplay}
-          focused={state.focus.pane === "tree"}
-          selectedIndex={state.selectedTreeItemIndex}
+          items={st.currentFolderItems}
+          focused={st.activePane === "tree"}
+          selectedIndex={st.treeCursor}
           renderItem={(item, _, isSelected) => {
             const isRenaming =
-              state.focus.action === "renameInput" &&
-              state.focus.pane === "tree";
+              st.interactionAction === "renameInput" &&
+              st.activePane === "tree";
             const bgColor = isSelected ? theme.base02 : theme.base00;
 
             if (isSelected && isRenaming) {
@@ -49,7 +49,7 @@ export const FolderTreePane = () => {
                   paddingX={1}
                 >
                   <input
-                    value={state.inputValue}
+                    value={st.inputValue}
                     onChange={actions.general.updateInputValue}
                     // @ts-expect-error opentui type bug
                     onSubmit={actions.tree.submitRename}
