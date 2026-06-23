@@ -1,207 +1,233 @@
-<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
+# Dictos
 
-<a id="readme-top"></a>
+> Local-first, keyboard-driven, and cross-platform personal dictionaries, for extremely low friction.
 
-<!--
-*** Thanks for checking out the Best-README-Template. If you have a suggestion
-*** that would make this better, please fork the repo and create a pull request
-*** or simply open an issue with the tag "enhancement".
-*** Don't forget to give the project a star!
-*** Thanks again! Now go create something AMAZING! :D
--->
+Dictos is an open-source app for building and managing personal dictionaries while reading, learning, and collecting language material. It stores your data locally first, keeps the interface fast, and is designed to sync across devices without making the network the source of truth.
 
-<!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
+The project is still early. The Terminal UI is the main ~usable~ client today, with a Web client and central server under development.
 
-<!-- PROJECT LOGO -->
-<!-- <br /> -->
-<!-- <div align="center"> -->
-<!--   <a href="https://github.com/Roverp/dictos"> -->
-<!--     <img src="images/logo.png" alt="Logo" width="80" height="80"> -->
-<!--   </a> -->
+## Quick Start
 
-<h3 align="center">Dictos</h3>
+The supported development workflow assumes a `devenv shell` environment.
 
-  <p align="center">
-    A local-first cross-platform personal dictionary. Built for speed, keyboard navigation, and seamless offline-first synchronization across your devices.
-    <br />
-    <a href="https://github.com/Roverp1/dictos/tree/main/docs/system-overview.md"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <!-- <a href="https://github.com/Roverp/dictos">View Demo</a> -->
-    <!-- &middot; -->
-    <a href="https://github.com/Roverp/dictos/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
-    &middot;
-    <a href="https://github.com/Roverp/dictos/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
-  </p>
-</div>
+```bash
+git clone git@github.com:Roverp1/dictos.git
+cd dictos
+devenv shell
 
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
+secretspec config init
+secretspec check
 
-<!-- ABOUT THE PROJECT -->
+bun install
+devenv up
+bun run dev:tui
+```
 
-## About The Project
+This starts fully local Terminal UI.
 
-I built Dictos because I wanted a fast way to capture notes from reading, organize them, and generate LLM definitions, translations, and examples with LLM's for anki cards.
+## What It Does
 
-It runs locally on a Turso database, so it opens instantly and works entirely offline, with optional opt-in synchronization.
+Dictos helps you build a personal Dictionary from text you care about.
 
-Right now, the only client is a Terminal UI. However, work is being done on web client, and mobile is planned for later.
+- **Entries** - Words, phrases, or sentences saved from reading or entered manually.
+- **Descriptions** - Explanations, translations, examples, or other text attached to an Entry.
+- **Folders** - Nested containers for organizing Entries.
+- **Instructions** - Reusable templates for generating Descriptions with an LLM API.
+- **Sync** - Local-first replication across your devices.
+- **Export** - Planned output to external formats such as Anki, JSON, or your favorite learning app.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+See [`CONTEXT.md`](./CONTEXT.md) for the project vocabulary. The terms are deliberate because they shape the domain model and UI.
 
-### Built With
+## Status
 
-- [![Bun][Bun.sh]][Bun-url]
-- [![React][React.js]][React-url]
-- [![Turso][Turso.tech]][Turso-url]
-- [![Elysia][Elysiajs.com]][Elysia-url]
+Dictos is intended to become a serious open-source app for outside users, but it is not polished enough for casual users yet.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+Current state:
 
-<!-- GETTING STARTED -->
+- Terminal UI is the primary client.
+- Web client exists and is being developed.
+- Central server exists for auth, sync setup, and future social features.
+- Mobile is part of the longer-term architecture, not the current product surface.
+- APIs, storage details, and UX can still change hard.
 
-## Getting Started
+## Features
 
-To get a local copy up and running, follow these steps.
+- **Local-first data** - Your Dictionary lives locally and should keep working offline.
+- **Keyboard-first workflow** - The TUI is built for fast navigation and editing.
+- **Cross-platform architecture** - Shared domain and headless UI logic are reused across clients.
+- **Turso database** - Local persistence with sync-oriented database adapters.
+- **Headless React controller** - `@dictos/react` owns shared interaction state while clients render their own UI.
+- **Server-backed sync setup** - The central ElysiaJS server supports auth and database provisioning flows.
 
-### Prerequisites
+## Requirements
 
-You need the Bun runtime installed.
+Recommended:
 
-- bun
-  ```sh
-  curl -fsSL https://bun.sh/install | bash
-  ```
+- [devenv](https://devenv.sh/) 2.x
+- Nix, as required by devenv
 
-### Installation
+Provided by `devenv shell`:
 
-1. Clone the repo
-   ```sh
-   git clone https://github.com/Roverp/dictos.git
-   cd dictos
-   ```
-2. Install packages
-   ```sh
-   bun install
-   ```
-3. Start the Terminal UI
-   ```sh
-   bun run dev:tui
-   ```
+- Bun
+- Turso CLI / `tursodb`
+- SecretSpec
+- GitHub CLI
+- Development environment variables
+- Local process wiring for the Web client, server, and sync server
+- Additional file strcture setup
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+Manual setup is possible, but you must recreate the work that devenv automates. That means installing the tools above, setting the environment variables, configuring secrets, creating expected local data directories, running the local sync server, and starting each process yourself.
 
-<!-- USAGE EXAMPLES -->
+## Development
 
-## Usage
+Enter the development environment first:
 
-Start the app and use your keyboard to navigate. You can create folders, add entries, and manually trigger syncs once you've registered an account.
+```bash
+devenv shell
+```
 
-- `a` to create entry, folder or description
-- `d` to delete
-- `r` to rename
-- `j/k` to move down/up
-- `h/l` to go left/right
-- `1/2/3` to navigate
+Install dependencies:
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+```bash
+bun install
+```
 
-<!-- ROADMAP -->
+Run the Terminal UI:
 
-## Roadmap
+```bash
+bun run dev:tui
+```
 
-- [x] Core dictionary management (Folders, Entries)
-- [x] Local SQLite persistence
-- [x] Terminal UI
-- [x] Cross-device offline-first sync (Turso)
-- [ ] Web client
-- [ ] LLM-generated descriptions
-- [ ] Export to Anki format
+Run the Web client:
 
-See the [open issues](https://github.com/Roverp/dictos/issues) for a full list of proposed features (and known issues).
+```bash
+bun run dev:web
+```
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+Run the central server:
 
-<!-- CONTRIBUTING -->
+```bash
+bun run dev:server
+```
+
+Run the full local Web/server/sync stack managed by devenv:
+
+```bash
+devenv up
+```
+
+Typecheck the monorepo:
+
+```bash
+bun run typecheck
+```
+
+## Secrets
+
+Dictos uses [SecretSpec](https://devenv.sh/integrations/secretspec/) through devenv.
+
+If this is your first time entering the shell, initialize a SecretSpec backend when prompted:
+
+```bash
+secretspec config init
+```
+
+Then check or fill missing secrets:
+
+```bash
+secretspec check
+```
+
+Development defaults are declared in [`secretspec.toml`](./secretspec.toml). Production-like server flows need real values.
+
+| Variable               | Purpose                              | Development default            |
+| ---------------------- | ------------------------------------ | ------------------------------ |
+| `JWT_SECRET`           | Signs auth tokens                    | Generated by SecretSpec        |
+| `TURSO_ORG_SLUG`       | Turso organization slug              | `local-dev-org`                |
+| `TURSO_PLATFORM_TOKEN` | Turso Platform API token             | Local placeholder              |
+| `TURSO_SYNC_URL`       | Local sync server URL                | `http://localhost:8080`        |
+| `TURSO_DATABASE_URL`   | Central server database URL          | `file:.data/central-server.db` |
+| `TURSO_AUTH_TOKEN`     | Auth token for remote Turso database | unset                          |
+| `PORT`                 | Central server port                  | `1488`                         |
+
+## Manual Setup Notes
+
+Use devenv if you can.
+
+Without devenv:
+
+- read `devenv.nix` to figure out what needs to be done.
+- figure it out
+- ask `Roverp1` for help
+
+## Project Structure
+
+```text
+apps/tui/                 Terminal UI client using OpenTUI + React
+apps/web/                 Web client using Vite + React Router
+apps/server/              ElysiaJS central server
+packages/core/            Pure domain logic, ports, and services
+packages/react/           Headless shared UI state and actions
+packages/db-core/         Shared Drizzle schema and repositories
+packages/bun-turso-sync/  Bun/local Turso sync adapter
+packages/wasm-turso-sync/ Browser/WASM Turso sync adapter
+packages/fs-storage/      Filesystem storage adapter
+packages/local-storage/   Browser localStorage adapter
+packages/eden-http/       Elysia Eden HTTP client adapter
+packages/logger/          Shared logger interface
+packages/pino-logger/     Pino logger adapter
+```
+
+## Architecture
+
+Dictos uses a hexagonal architecture.
+
+The core domain lives in `packages/core` and must not depend on React, UI frameworks, database drivers, logging implementations, or platform APIs. Infrastructure details are pushed into adapters and injected through ports.
+
+`@dictos/react` is a headless controller shared by clients. It owns cross-platform Dictionary interaction state such as browse mode, entry mode, preview content, cursors, selection, and context-menu targets. The TUI and Web clients decide how that state is rendered and how input is bound.
+
+For the full architecture, read [`docs/system-overview.md`](./docs/system-overview.md).
+
+## Documentation
+
+- [`docs/system-overview.md`](./docs/system-overview.md) - Purpose, architecture, stack, and codebase map.
+- [`CONTEXT.md`](./CONTEXT.md) - Project terminology.
+- [`docs/testing.md`](./docs/testing.md) - Testing strategy and rules.
+- [`docs/adr`](./docs/adr) - Architecture decisions.
+
+## Troubleshooting
+
+### `devenv shell` is not available
+
+Install devenv using the official guide: <https://devenv.sh/getting-started/>.
+
+If you do not want to use devenv, follow the manual setup notes and expect extra work. The repo assumes devenv during development.
+
+### SecretSpec says secrets are missing
+
+Initialize a backend and fill the required secrets:
+
+```bash
+secretspec config init
+secretspec check
+```
+
+### Web sync requests fail locally
+
+The Web client proxies sync endpoints to `http://localhost:8080`. Start the local sync server with `devenv up`.
 
 ## Contributing
 
-Any contributions are **greatly appreciated**.
+Contributions are extremely welcome, but the project is still moving quickly. For larger changes, open an issue first.
 
-Please open an issue, if you unsure about conturibution proccess
+Before changing domain or architecture code, read:
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+- [`CONTEXT.md`](./CONTEXT.md)
+- [`docs/system-overview.md`](./docs/system-overview.md)
+- [`docs/testing.md`](./docs/testing.md)
 
-<!-- LICENSE -->
+For questions, open a GitHub issue or contact Yaroslav Gulevsky at `yar.zubaha@proton.me`.
 
 ## License
 
-Distributed under the Apache 2.0 License. See `LICENSE.txt` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- CONTACT -->
-
-## Contact
-
-Yaroslav Gulevsky - [@Roverp](https://github.com/Roverp) - yar.zubaha@proton.me
-
-Project Link: [https://github.com/Roverp/dictos](https://github.com/Roverp/dictos)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-
-[contributors-shield]: https://img.shields.io/github/contributors/Roverp/dictos.svg?style=for-the-badge
-[contributors-url]: https://github.com/Roverp/dictos/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/Roverp/dictos.svg?style=for-the-badge
-[forks-url]: https://github.com/Roverp/dictos/network/members
-[stars-shield]: https://img.shields.io/github/stars/Roverp/dictos.svg?style=for-the-badge
-[stars-url]: https://github.com/Roverp/dictos/stargazers
-[issues-shield]: https://img.shields.io/github/issues/Roverp/dictos.svg?style=for-the-badge
-[issues-url]: https://github.com/Roverp/dictos/issues
-[license-shield]: https://img.shields.io/github/license/Roverp/dictos.svg?style=for-the-badge
-[license-url]: https://github.com/Roverp/dictos/blob/master/LICENSE.txt
-
-<!-- Shields.io badges. You can a comprehensive list with many more badges at: https://github.com/inttter/md-badges -->
-
-[Bun.sh]: https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white
-[Bun-url]: https://bun.sh
-[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
-[React-url]: https://reactjs.org/
-[Turso.tech]: https://img.shields.io/badge/Turso-4A4A55?style=for-the-badge&logo=turso&logoColor=4FC08D
-[Turso-url]: https://turso.tech/
-[Elysiajs.com]: https://img.shields.io/badge/Elysia-DD0031?style=for-the-badge&logo=elysia&logoColor=white
-[Elysia-url]: https://elysiajs.com/
+Dictos is licensed under the GNU Affero General Public License v3.0. See [`LICENSE`](./LICENSE).
