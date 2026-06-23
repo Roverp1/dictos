@@ -73,3 +73,20 @@ Explanations attached to entries.
 | `text`       | `text`           | NOT NULL                        | The description content |
 | `createdAt`  | `int (timestamp)`| NOT NULL                        | Creation timestamp |
 | `modifiedAt` | `int (timestamp)`| NOT NULL                        | Last modification timestamp |
+
+## Headless UI State (`@dictos/react`)
+
+This state is not persisted. It describes the current client interaction model for the Dictionary view.
+
+```typescript
+type TreeItemReference =
+  | { type: "entry"; id: string }
+  | { type: "folder"; id: string };
+
+type PreviewPaneContent =
+  | { kind: "empty" }
+  | { kind: "folder"; folderId: string; items: TreeItem[] }
+  | { kind: "entry"; entryId: string; descriptions: Description[] };
+```
+
+The headless UI stores full `TreeItem` snapshots for the current folder and preview pane, while long-lived selection and context menu state use typed references. Active Entry state is split between `activeEntryId` and `activeEntryDescriptions` so clients can render opened Entry content separately from cursor-driven previews.

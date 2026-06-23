@@ -90,5 +90,5 @@ _(Fix the existing Terminal UI to work with the new headless logic.)_
 
 ## Phase 7: Absorb into Documentation
 
-- [ ] Run `/docify.absorb` to update living documentation and archive this specification after implementation.
+- [x] Run `/docify.absorb` to update living documentation and archive this specification after implementation.
 - [x] **Manual Verification:** Ensure new UI vocabulary has been grilled and added to `CONTEXT.md`: `Tree Cursor`, `Description Cursor`, `Active Pane`, `Active Entry`, `Selected Tree Items`, and `Context Menu Target`.
