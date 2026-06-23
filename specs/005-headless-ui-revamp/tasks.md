@@ -56,11 +56,17 @@ _(Update mutations to use explicit targets instead of implicit focus state.)_
 
 _(Fix the existing Terminal UI to work with the new headless logic.)_
 
-- [ ] T020: [P] Update TUI Tree view components to use `treeCursor` for visual highlighting.
-- [ ] T021: [P] Update TUI Description view components to use `descriptionCursor` for visual highlighting.
-- [ ] T022: Update TUI keybindings so `j/k` move the tree in browse mode and Descriptions in entry mode.
-- [ ] T023: Update TUI keybindings so Enter/`l` opens Entries, while `h`, Escape, Backspace, or Left closes an active Entry before navigating up folders.
+- [x] T020: [P] Update TUI Tree view components to use `treeCursor` for visual highlighting.
+- [x] T021: [P] Update TUI Description view components to use `descriptionCursor` for visual highlighting.
+- [x] T022: Update TUI keybindings so `j/k` move the tree in browse mode and Descriptions in entry mode.
+- [x] T023: Update TUI keybindings so Enter/`l` opens Entries, while `h`, Escape, Backspace, or Left closes an active Entry before navigating up folders.
 - [ ] T024: Add click handling where available so clicking an Entry opens it and updates `treeCursor`.
+
+## Phase 5A: Web Integration
+
+- [x] T024A: Update Web Dictionary page keybindings and modals to use `activePane`, `interactionAction`, `moveCursor`, `treeCursorItem`, and `descriptionCursorItem`.
+- [x] T024B: Update Web Tree view to use `currentFolderItems`, `treeCursor`, and the new action state.
+- [x] T024C: Update Web Description pane to render read-only `previewPaneContent` in browse mode and `activeEntryDescriptions` in entry mode.
 
 ## Phase 6: Verification
 

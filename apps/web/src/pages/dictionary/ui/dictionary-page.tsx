@@ -8,7 +8,8 @@ import { DeleteConfirmModal } from "./modals/delete-confirm-modal";
 
 export const DictionaryPage = () => {
   const theme = useTheme();
-  const { state, selectedTreeItem, selectedDescription, actions } = useDictionary();
+  const { state, treeCursorItem, descriptionCursorItem, actions } =
+    useDictionary();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -17,18 +18,18 @@ export const DictionaryPage = () => {
         return;
       }
 
-      if (state.focus.action !== "idle" && e.key === "Escape") {
+      if (state.interactionAction !== "idle" && e.key === "Escape") {
         actions.general.cancelAction();
       }
 
       // Navigation
       if (e.key === "j" || e.key === "ArrowDown") {
         e.preventDefault();
-        actions.navigation.moveSelectionDown();
+        actions.navigation.moveCursor("down");
       }
       if (e.key === "k" || e.key === "ArrowUp") {
         e.preventDefault();
-        actions.navigation.moveSelectionUp();
+        actions.navigation.moveCursor("up");
       }
       if (e.key === "Enter" || e.key === "l" || e.key === "ArrowRight") {
         e.preventDefault();
@@ -40,7 +41,7 @@ export const DictionaryPage = () => {
       }
 
       // Actions
-      if (state.focus.pane === "tree") {
+      if (state.activePane === "tree") {
         if (e.key === "a") {
           e.preventDefault();
           actions.tree.requestCreate();
@@ -53,7 +54,7 @@ export const DictionaryPage = () => {
           e.preventDefault();
           actions.tree.requestDelete();
         }
-      } else if (state.focus.pane === "description") {
+      } else if (state.activePane === "description") {
         if (e.key === "a") {
           e.preventDefault();
           actions.description.requestCreate();
@@ -88,7 +89,8 @@ export const DictionaryPage = () => {
 
       <DescriptionPane />
 
-      {state.focus.pane === "tree" && state.focus.action === "createInput" && (
+      {state.activePane === "tree" &&
+        state.interactionAction === "createInput" && (
         <CreateModal
           value={state.inputValue}
           onChange={actions.general.updateInputValue}
@@ -97,21 +99,23 @@ export const DictionaryPage = () => {
         />
       )}
 
-      {state.focus.pane === "tree" && state.focus.action === "deleteConfirm" && (
+      {state.activePane === "tree" &&
+        state.interactionAction === "deleteConfirm" && (
         <DeleteConfirmModal
           itemName={
-            selectedTreeItem?.type === "folder"
-              ? `${selectedTreeItem.data.name}/`
-              : selectedTreeItem?.data.text
+            treeCursorItem?.type === "folder"
+              ? `${treeCursorItem.data.name}/`
+              : treeCursorItem?.data.text
           }
           onConfirm={actions.tree.confirmDelete}
           onCancel={actions.general.cancelAction}
         />
       )}
 
-      {state.focus.pane === "description" && state.focus.action === "deleteConfirm" && (
+      {state.activePane === "description" &&
+        state.interactionAction === "deleteConfirm" && (
         <DeleteConfirmModal
-          itemName={selectedDescription?.text}
+          itemName={descriptionCursorItem?.text}
           onConfirm={actions.description.confirmDelete}
           onCancel={actions.general.cancelAction}
         />

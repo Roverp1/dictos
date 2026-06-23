@@ -9,10 +9,14 @@ export const FolderTreePane = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (state.focus.action === "renameInput" && state.focus.pane === "tree" && inputRef.current) {
+    if (
+      state.interactionAction === "renameInput" &&
+      state.activePane === "tree" &&
+      inputRef.current
+    ) {
       inputRef.current.focus();
     }
-  }, [state.focus.action, state.focus.pane]);
+  }, [state.interactionAction, state.activePane]);
 
   return (
     <div
@@ -20,7 +24,7 @@ export const FolderTreePane = () => {
       style={{
         display: "flex",
         flexDirection: "column",
-        borderRight: `1px solid ${state.focus.pane === "tree" ? theme.base0D : theme.base04}`,
+        borderRight: `1px solid ${state.activePane === "tree" ? theme.base0D : theme.base04}`,
         width: "50%",
         height: "100%",
         padding: "1rem",
@@ -38,16 +42,16 @@ export const FolderTreePane = () => {
         </span>
       </div>
 
-      {state.treeItemsToDisplay.length > 0 ? (
+      {state.currentFolderItems.length > 0 ? (
         <InteractiveList
           id="tree-item-list"
           flexGrow={1}
-          items={state.treeItemsToDisplay}
-          selectedIndex={state.selectedTreeItemIndex}
+          items={state.currentFolderItems}
+          selectedIndex={state.treeCursor}
           renderItem={(item, _, isSelected) => {
             const isRenaming =
-              state.focus.action === "renameInput" &&
-              state.focus.pane === "tree";
+              state.interactionAction === "renameInput" &&
+              state.activePane === "tree";
             const bgColor = isSelected ? theme.base02 : "transparent";
 
             if (isSelected && isRenaming) {
@@ -62,9 +66,12 @@ export const FolderTreePane = () => {
                   <input
                     ref={inputRef}
                     value={state.inputValue}
-                    onChange={(e) => actions.general.updateInputValue(e.target.value)}
+                    onChange={(e) =>
+                      actions.general.updateInputValue(e.target.value)
+                    }
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") actions.tree.submitRename(state.inputValue);
+                      if (e.key === "Enter")
+                        actions.tree.submitRename(state.inputValue);
                       if (e.key === "Escape") actions.general.cancelAction();
                     }}
                     style={{
@@ -80,7 +87,8 @@ export const FolderTreePane = () => {
               );
             }
 
-            const label = item.type === "folder" ? `📁 ${item.label}` : `📄 ${item.label}`;
+            const label =
+              item.type === "folder" ? `📁 ${item.label}` : `📄 ${item.label}`;
 
             return (
               <div
