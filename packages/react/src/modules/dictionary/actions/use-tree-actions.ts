@@ -4,28 +4,55 @@ import { useDictionaryStore } from "../use-dictionary-store";
 export const useTreeActions = () => {
   const { entryService, folderService, logger } = useServices();
   const {
-    focus,
-    treeItemsToDisplay,
-    selectedTreeItemIndex,
+    activePane,
+    interactionAction,
+    currentFolderItems,
+    treeCursor,
     pathStack,
+    contextMenuTarget,
     setInputValue,
-    setFocus,
+    setActivePane,
+    setInteractionAction,
     setRefreshTreeItemTrigger,
+    setContextMenuTarget,
   } = useDictionaryStore();
 
   const currentFolder = pathStack[pathStack.length - 1];
-  const selectedTreeItem = treeItemsToDisplay[selectedTreeItemIndex];
+  const treeCursorItem = currentFolderItems[treeCursor];
 
+  // helpers
+  const getSingleTreeTarget = () => {
+    if (!contextMenuTarget) return treeCursorItem ?? null;
+
+    return (
+      currentFolderItems.find(
+        (item) =>
+          item.type === contextMenuTarget.type &&
+          item.data.id === contextMenuTarget.id
+      ) ?? null
+    );
+  };
+
+  const finishAction = () => {
+    setRefreshTreeItemTrigger();
+    setContextMenuTarget(null);
+    setActivePane("tree");
+    setInteractionAction("idle");
+  };
+
+  // actions
   return {
     requestCreate: () => {
       setInputValue("");
-      setFocus({ pane: "tree", action: "createInput" });
+      setActivePane("tree");
+      setInteractionAction("createInput");
     },
 
     submitCreate: async (val: string) => {
       const trimmed = val.trim();
       if (!trimmed) {
-        setFocus({ pane: "tree", action: "idle" });
+        setActivePane("tree");
+        setInteractionAction("idle");
         return;
       }
 
@@ -55,38 +82,47 @@ export const useTreeActions = () => {
         }
       }
 
-      setRefreshTreeItemTrigger();
-      setFocus({ pane: "tree", action: "idle" });
+      finishAction();
     },
 
     requestRename: () => {
-      if (
-        focus.pane === "tree" &&
-        focus.action === "idle" &&
-        treeItemsToDisplay.length > 0 &&
-        selectedTreeItem
-      ) {
-        setFocus({ pane: "tree", action: "renameInput" });
+      const targetItem = getSingleTreeTarget();
 
-        if (selectedTreeItem.type === "folder") {
-          setInputValue(selectedTreeItem.data.name);
-        } else if (selectedTreeItem.type === "entry") {
-          setInputValue(selectedTreeItem.data.text);
+      if (
+        activePane === "tree" &&
+        interactionAction === "idle" &&
+        currentFolderItems.length > 0 &&
+        targetItem
+      ) {
+        setActivePane("tree");
+        setInteractionAction("renameInput");
+
+        if (targetItem.type === "folder") {
+          setInputValue(targetItem.data.name);
+        } else if (targetItem.type === "entry") {
+          setInputValue(targetItem.data.text);
         }
       }
     },
 
     submitRename: async (val: string) => {
-      if (focus.action === "renameInput" && focus.pane === "tree") {
+      if (interactionAction === "renameInput" && activePane === "tree") {
         const trimmed = val.trim();
-        if (!trimmed || !selectedTreeItem) {
-          setFocus({ pane: "tree", action: "idle" });
+        if (!trimmed) {
+          setContextMenuTarget(null);
+          setInteractionAction("idle");
           return;
         }
 
-        if (selectedTreeItem.type === "folder") {
+        const targetItem = getSingleTreeTarget();
+        if (!targetItem) {
+          logger.error("No targetItem found during tree rename submit");
+          return;
+        }
+
+        if (targetItem.type === "folder") {
           const res = await folderService.renameFolder(
-            selectedTreeItem.data.id,
+            targetItem.data.id,
             trimmed
           );
           if (res instanceof Error) {
@@ -94,7 +130,7 @@ export const useTreeActions = () => {
             return;
           }
         } else {
-          const res = await entryService.updateEntry(selectedTreeItem.data.id, {
+          const res = await entryService.updateEntry(targetItem.data.id, {
             text: trimmed,
           });
           if (res instanceof Error) {
@@ -103,38 +139,48 @@ export const useTreeActions = () => {
           }
         }
 
-        setRefreshTreeItemTrigger();
-        setFocus({ pane: "tree", action: "idle" });
+        finishAction();
       }
     },
 
     requestDelete: () => {
-      if (
-        focus.pane === "tree" &&
-        focus.action === "idle" &&
-        treeItemsToDisplay.length > 0
-      ) {
-        setFocus((prev) => ({ ...prev, action: "deleteConfirm" }));
+      const targetItem = getSingleTreeTarget();
+
+      if (activePane === "tree" && interactionAction === "idle" && targetItem) {
+        setActivePane("tree");
+        setInteractionAction("deleteConfirm");
       }
     },
 
     confirmDelete: async () => {
-      if (selectedTreeItem!.type === "entry" && focus.pane === "tree") {
-        const res = await entryService.deleteEntry(selectedTreeItem!.data.id);
+      if (activePane !== "tree") return;
+
+      const targetItem = getSingleTreeTarget();
+      if (!targetItem) {
+        logger.error("No targetItem found during tree delete confirm");
+        return;
+      }
+
+      if (targetItem.type === "entry") {
+        const res = await entryService.deleteEntry(targetItem.data.id);
+
         if (res instanceof Error) {
           logger.error("Failed to delete entry", res);
+          setInteractionAction("idle");
+          setContextMenuTarget(null);
           return;
         }
-      } else if (selectedTreeItem!.type === "folder") {
-        const res = await folderService.deleteFolder(selectedTreeItem!.data.id);
+      } else if (targetItem.type === "folder") {
+        const res = await folderService.deleteFolder(targetItem.data.id);
         if (res instanceof Error) {
           logger.error("Failed to delete folder", res);
+          setInteractionAction("idle");
+          setContextMenuTarget(null);
           return;
         }
       }
 
-      setRefreshTreeItemTrigger();
-      setFocus({ pane: "tree", action: "idle" });
+      finishAction();
     },
   };
 };

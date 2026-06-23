@@ -4,115 +4,152 @@ import { useDictionaryStore } from "../use-dictionary-store";
 export const useDescriptionActions = () => {
   const { descriptionService, logger } = useServices();
   const {
-    focus,
-    treeItemsToDisplay,
-    selectedTreeItemIndex,
-    descriptionsToDisplay,
-    selectedDescriptionIndex,
+    activePane,
+    interactionAction,
+    descriptionCursor,
+    activeEntryDescriptions,
+    activeEntryId,
+    descriptionContextMenuTargetId,
+
     setInputValue,
-    setFocus,
+    setActivePane,
+    setInteractionAction,
     setDescriptionRefreshTrigger,
+    setDescriptionContextMenuTargetId,
   } = useDictionaryStore();
 
-  const selectedTreeItem = treeItemsToDisplay[selectedTreeItemIndex];
-  const selectedDescription = descriptionsToDisplay[selectedDescriptionIndex];
+  const descriptionCursorItem = activeEntryDescriptions[descriptionCursor];
+
+  // helpers
+  const getSingleDescriptionTarget = () => {
+    if (!descriptionContextMenuTargetId) return descriptionCursorItem ?? null;
+
+    return (
+      activeEntryDescriptions.find(
+        (item) => item.id === descriptionContextMenuTargetId
+      ) ?? null
+    );
+  };
+
+  const finishAction = () => {
+    setDescriptionRefreshTrigger();
+    setDescriptionContextMenuTargetId(null);
+    setActivePane("description");
+    setInteractionAction("idle");
+  };
 
   return {
     requestCreate: () => {
       setInputValue("");
-      setFocus({ pane: "description", action: "createInput" });
+      setActivePane("description");
+      setInteractionAction("createInput");
     },
 
     submitCreate: async (val: string) => {
       const trimmed = val.trim();
       if (!trimmed) {
-        setFocus({ pane: "description", action: "idle" });
+        setActivePane("description");
+        setInteractionAction("idle");
         return;
       }
 
-      if (!selectedTreeItem) {
-        logger.error("No entry selected during description creation");
+      if (!activeEntryId) {
+        logger.error("No entry active during description creation");
         return;
       }
 
-      await descriptionService.createDescription({
-        entryId: selectedTreeItem.data.id,
+      const res = await descriptionService.createDescription({
+        entryId: activeEntryId,
         text: trimmed,
       });
 
-      setDescriptionRefreshTrigger();
-      setFocus({ pane: "description", action: "idle" });
+      if (res instanceof Error) {
+        logger.error("Failed to create description", res);
+        return;
+      }
+
+      finishAction();
     },
 
     requestRename: () => {
       if (
-        focus.pane === "description" &&
-        focus.action === "idle" &&
-        descriptionsToDisplay.length > 0
+        activePane === "description" &&
+        interactionAction === "idle" &&
+        activeEntryDescriptions.length > 0
       ) {
-        setFocus((prev) => ({ ...prev, action: "renameInput" }));
-
-        if (!selectedDescription) {
+        const targetItem = getSingleDescriptionTarget();
+        if (!targetItem) {
           logger.error(
             "No description selected during description rename request"
           );
           return;
         }
 
-        setInputValue(selectedDescription.text);
+        setInteractionAction("renameInput");
+        setInputValue(targetItem.text);
       }
     },
 
     submitRename: async (val: string) => {
       const trimmed = val.trim();
       if (!trimmed) {
-        setFocus({ pane: "description", action: "idle" });
+        setActivePane("description");
+        setInteractionAction("idle");
+        setDescriptionContextMenuTargetId(null);
         return;
       }
-      if (!selectedDescription) {
+
+      const targetItem = getSingleDescriptionTarget();
+      if (!targetItem) {
         logger.error(
           "No description selected during description rename submit"
         );
         return;
       }
 
-      const res = await descriptionService.updateDescription(
-        selectedDescription.id,
-        {
-          entryId: selectedDescription.entryId,
-          text: trimmed,
-        }
-      );
+      const res = await descriptionService.updateDescription(targetItem.id, {
+        entryId: targetItem.entryId,
+        text: trimmed,
+      });
       if (res instanceof Error) {
         logger.error("Failed to rename description", res);
+        return;
       }
 
-      setDescriptionRefreshTrigger();
-      setFocus({ pane: "description", action: "idle" });
+      finishAction();
     },
 
     requestDelete: () => {
+      const targetItem = getSingleDescriptionTarget();
+
       if (
-        focus.pane === "description" &&
-        focus.action === "idle" &&
-        descriptionsToDisplay.length > 0
+        activePane === "description" &&
+        interactionAction === "idle" &&
+        targetItem
       ) {
-        setFocus({ pane: "description", action: "deleteConfirm" });
+        setInteractionAction("deleteConfirm");
       }
     },
 
     confirmDelete: async () => {
-      if (focus.pane === "description") {
-        if (!selectedDescription) {
-          logger.error(
-            "No description selected during description delete confirm"
-          );
-          return;
-        }
-        await descriptionService.deleteDescription(selectedDescription.id);
-        setDescriptionRefreshTrigger();
-        setFocus({ pane: "description", action: "idle" });
+      if (activePane !== "description") return;
+
+      const targetItem = getSingleDescriptionTarget();
+      if (!targetItem) {
+        logger.error(
+          "No description selected during description delete confirm"
+        );
+        return;
       }
+
+      const res = await descriptionService.deleteDescription(targetItem.id);
+      if (res instanceof Error) {
+        logger.error("Failed to delete description", res);
+        setInteractionAction("idle");
+        return;
+      }
+
+      finishAction();
     },
   };
 };

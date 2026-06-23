@@ -1,6 +1,6 @@
 # System Overview: Dictos
 
-**Last Updated**: Jun 7, 2026 | **Version**: 1.0.0-draft
+**Last Updated**: Jun 23, 2026 | **Version**: 1.0.0-draft
 
 ## Project Purpose
 
@@ -8,18 +8,18 @@ Dictos is a local-first, application for building and managing personal dictiona
 
 ## High-Level Architecture
 
-The project uses a monorepo structure. It employs Hexagonal Architecture to isolate core business logic and React state from specific rendering environments or infrastructure. This separation allows the core logic to be shared across the current TUI and future Mobile/Web clients. Data is persisted locally via libSQL, and cross-device synchronization will be handled via native libSQL push/pull features utilizing Turso hosting. The central ElysiaJS will handle social features and data mirroring required for these social features.
+The project uses a monorepo structure. It employs Hexagonal Architecture to isolate core business logic and headless React state from specific rendering environments or infrastructure. This separation allows the core logic and shared Dictionary interaction model to be reused across the current TUI, Web client, and future Mobile client. Data is persisted locally via libSQL, and cross-device synchronization will be handled via native libSQL push/pull features utilizing Turso hosting. The central ElysiaJS will handle social features and data mirroring required for these social features.
 
 ## Tech Stack & Project Rules (The Constitution)
 
 - **Architecture**: Clean / Hexagonal Architecture. Core domain logic (`packages/core`) MUST NOT depend on external libraries, frameworks, or DB drivers.
-- **Interface Adapters**: The `@dictos/react` package acts as a headless controller, exposing state and actions while receiving domain services and infrastructure utilities (like Loggers) via Dependency Injection (`DictosProvider`).
+- **Interface Adapters**: The `@dictos/react` package acts as a headless controller, exposing shared state and intent actions while receiving domain services and infrastructure utilities (like Loggers) via Dependency Injection (`DictosProvider`). For the Dictionary view, it owns browse mode, entry mode, preview content, selection state, and context-menu targeting; clients provide the UI and input bindings for their platform.
 - **Error Handling**: "Errors as values" using the `errore` package is preferred in almost every case. Return `ReturnType | ErrorType` unions. Only `throw` exceptions for truly exceptional circumstances, some exapmles include but not limited to: unrecoverable system errors, deep stack bubbling (e.g., global middleware catching low-level crashes), or violations of invariants/developer mistakes (e.g., out-of-bounds array access).
 - **Testing**: Value over coverage. We favor testing against real boundaries (Integration Tests, local Turso server) over mocking internal infrastructure. See `docs/testing.md` for full strategy.
 - **Logging**: The core domain is ignorant of logging. The presentation layer (`@dictos/react`) and adapters log execution outcomes using a generic `Logger` interface (`@dictos/logger`), fulfilled by concrete adapters (e.g., Pino) at the application composition root.
 - **Developer Environment**: Declarative and reproducible environments via `devenv.sh`.
 - **Secret Management**: Native `devenv` integration with `SecretSpec` for secure runtime injection. Secrets are never stored in global shell environments or committed.
-- **Frontend/Clients**: OpenTUI with React bindings (for the TUI client). Web and Mobile clients planned for future phases.
+- **Frontend/Clients**: OpenTUI with React bindings (for the TUI client), a Vite Web client, and future Mobile clients. Each client should lean on its most natural input first, but the shared headless state is built to handle keyboard, mouse, touch, and context-menu interactions on every platform.
 - **Backend**: Bun, ElysiaJS.
 - **Database**: local libSQL (and Turso hosting), Drizzle ORM.
 - **Glossary**: See `CONTEXT.md` for strict domain terminology.
@@ -31,7 +31,7 @@ The project uses a monorepo structure. It employs Hexagonal Architecture to isol
 /apps/web/               # Web client SPA (Vite + React Router)
 /apps/server/            # ElysiaJS central backend for sync & social features
 /packages/core/          # Pure domain entities, ports, and services
-/packages/react/         # Headless shared UI logic, state, and actions
+/packages/react/         # Headless shared UI logic, Dictionary state/actions, and provider wiring
 /packages/db-core/       # Shared Drizzle schema, migrations, and generic repositories
 /packages/*-turso-sync/  # Platform-specific Turso DB clients (bun, wasm)
 /packages/*-storage/     # Platform-specific local storage adapters (fs, local-storage)

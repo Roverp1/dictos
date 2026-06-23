@@ -40,6 +40,28 @@ _Avoid_: Publish, Upload, Social Sync
 The automated, unidirectional background process that pushes a user's shared data (folders, activity stats) from their local database to the central server so it can be viewed by others.
 _Avoid_: Social Sync, Publishing, Broadcasting
 
+**Active Pane**:
+The section of the interface currently receiving keyboard input.
+
+**Tree Cursor**:
+The Entry or Folder currently highlighted while browsing the Dictionary.
+_Avoid_: Focused Item, Selected Item
+
+**Description Cursor**:
+The Description currently highlighted while viewing an Entry.
+
+**Active Entry**:
+The Entry explicitly opened by the user for viewing or editing its Descriptions.
+_Avoid_: Active Item, Open Item, Selected Entry
+
+**Selected Tree Items**:
+Entries and Folders explicitly marked by the user for batch actions.
+_Avoid_: Selection Pool, Selected Items, Multi-select state
+
+**Context Menu Target**:
+The item a context menu action applies to after a right-click or long-press.
+_Avoid_: Selected Item, Active Item, Focused Item
+
 **System Overview**:
 The primary entry point document (`docs/system-overview.md`) for understanding the project's purpose, architecture, tech stack, codebase map, and domain modules.
 

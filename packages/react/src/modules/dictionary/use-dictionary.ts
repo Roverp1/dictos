@@ -7,6 +7,7 @@ import type { TreeItem } from "./types";
 import { useTreeActions } from "./actions/use-tree-actions";
 import { useNavigateActions } from "./actions/use-navigation-actions";
 import { useDescriptionActions } from "./actions/use-description-actions";
+import { useSelectionActions } from "./actions/use-selection-actions";
 
 export const useDictionary = () => {
   const { entryService, descriptionService, folderService, logger } =
@@ -16,13 +17,45 @@ export const useDictionary = () => {
   const navigationActions = useNavigateActions();
   const treeActions = useTreeActions();
   const descriptionActions = useDescriptionActions();
+  const selectionActions = useSelectionActions();
 
   const isAtRoot = state.pathStack.length === 1;
   const currentFolder = state.pathStack[state.pathStack.length - 1];
-  const selectedTreeItem =
-    state.treeItemsToDisplay[state.selectedTreeItemIndex];
-  const selectedDescription =
-    state.descriptionsToDisplay[state.selectedDescriptionIndex];
+  const treeCursorItem = state.currentFolderItems[state.treeCursor];
+  const descriptionCursorItem =
+    state.activeEntryDescriptions[state.descriptionCursor];
+
+  const loadTreeItemsForFolder = async (folderId: string) => {
+    const [foldersResult, entriesResult] = await Promise.all([
+      folderService.getSubFolders(folderId),
+      entryService.getEntriesInFolder(folderId),
+    ]);
+
+    if (foldersResult instanceof Error) return foldersResult;
+    if (entriesResult instanceof Error) return entriesResult;
+
+    const items: TreeItem[] = [];
+
+    for (const childFolder of foldersResult) {
+      items.push({
+        id: `folder-${childFolder.id}`,
+        type: "folder",
+        data: childFolder,
+        label: `${childFolder.name}`,
+      });
+    }
+
+    for (const entry of entriesResult) {
+      items.push({
+        id: `entry-${entry.id}`,
+        type: "entry",
+        data: entry,
+        label: `${entry.text}`,
+      });
+    }
+
+    return items;
+  };
 
   // effects
   useEffect(() => {
@@ -45,152 +78,172 @@ export const useDictionary = () => {
     if (!currentFolder) return;
 
     const loadItems = async () => {
-      const [foldersResult, entriesResult] = await Promise.all([
-        folderService.getSubFolders(currentFolder.id),
-        entryService.getEntriesInFolder(currentFolder.id),
-      ]);
+      const items = await loadTreeItemsForFolder(currentFolder.id);
 
-      if (foldersResult instanceof Error) {
-        logger.error(
-          "Failed to get sub-folders in current folder:",
-          foldersResult
-        );
-        return;
-      }
-      if (entriesResult instanceof Error) {
-        logger.error("Failed to get entries in current folder:", entriesResult);
+      if (items instanceof Error) {
+        logger.error("Failed to load current folder items.", items);
         return;
       }
 
-      const items: TreeItem[] = [];
-
-      for (const childFolder of foldersResult) {
-        items.push({
-          id: `folder-${childFolder.id}`,
-          type: "folder",
-          data: childFolder,
-          label: `${childFolder.name}`,
-        });
-      }
-
-      for (const entry of entriesResult) {
-        items.push({
-          id: `entry-${entry.id}`,
-          type: "entry",
-          data: entry,
-          label: `${entry.text}`,
-        });
-      }
-
-      state.setTreeItemsToDisplay(items);
+      state.setCurrentFolderItems(items);
     };
 
     loadItems();
   }, [state.pathStack, state.refreshTreeItemTrigger]);
 
-  // Load tree items on hover (for preview)
+  // Load preview pane content from the tree cursor
   useEffect(() => {
-    if (selectedTreeItem?.type !== "folder") return;
+    if (state.activeEntryId !== null) {
+      state.setPreviewPaneContent({ kind: "empty" });
+      return;
+    }
 
-    const loadItems = async () => {
-      const [foldersResult, entriesResult] = await Promise.all([
-        folderService.getSubFolders(selectedTreeItem.data.id),
-        entryService.getEntriesInFolder(selectedTreeItem.data.id),
-      ]);
+    if (!treeCursorItem) {
+      state.setPreviewPaneContent({ kind: "empty" });
+      return;
+    }
 
-      if (foldersResult instanceof Error) {
-        logger.error(
-          "Failed to get sub-folders in current folder:",
-          foldersResult
-        );
-        return;
-      }
-      if (entriesResult instanceof Error) {
-        logger.error("Failed to get entries in current folder:", entriesResult);
-        return;
-      }
-
-      const items: TreeItem[] = [];
-
-      for (const childFolder of foldersResult) {
-        items.push({
-          id: `folder-${childFolder.id}`,
-          type: "folder",
-          data: childFolder,
-          label: `${childFolder.name}`,
-        });
-      }
-
-      for (const entry of entriesResult) {
-        items.push({
-          id: `entry-${entry.id}`,
-          type: "entry",
-          data: entry,
-          label: `${entry.text}`,
-        });
-      }
-
-      state.setTreeItemsOnHoverToDisplay(items);
+    const previewSource = {
+      type: treeCursorItem.type,
+      id: treeCursorItem.data.id,
     };
 
-    loadItems();
-  }, [selectedTreeItem]);
+    const loadPreview = async () => {
+      if (treeCursorItem.type === "folder") {
+        const items = await loadTreeItemsForFolder(treeCursorItem.data.id);
+        if (items instanceof Error) {
+          logger.error("Failed to load folder preview.", items);
+          return;
+        }
 
-  useEffect(() => {
-    state.setSelectedTreeItemIndex((prev) => {
-      if (state.treeItemsToDisplay.length === 0) return 0;
+        const latestItem =
+          useDictionaryStore.getState().currentFolderItems[state.treeCursor];
+        if (
+          !latestItem ||
+          latestItem.type !== previewSource.type ||
+          latestItem.data.id !== previewSource.id
+        )
+          return;
 
-      return prev >= state.treeItemsToDisplay.length
-        ? state.treeItemsToDisplay.length - 1
-        : prev;
-    });
-  }, [state.treeItemsToDisplay]);
+        state.setPreviewPaneContent({
+          kind: "folder",
+          folderId: treeCursorItem.data.id,
+          items: items,
+        });
 
-  // Load descriptions
-  useEffect(() => {
-    const loadDescriptions = async () => {
-      if (!selectedTreeItem || selectedTreeItem.type !== "entry") return;
+        return;
+      }
 
       const descriptions = await descriptionService.getDescriptionsForEntry(
-        selectedTreeItem.data.id
+        treeCursorItem.data.id
       );
       if (descriptions instanceof Error) {
-        logger.error("Failed to load descriptions.", descriptions);
+        logger.error("Failed to load Entry preview.", descriptions);
         return;
       }
 
-      state.setDescriptionsToDisplay(descriptions);
+      const latestItem =
+        useDictionaryStore.getState().currentFolderItems[state.treeCursor];
+      if (
+        !latestItem ||
+        latestItem.type !== previewSource.type ||
+        latestItem.data.id !== previewSource.id
+      )
+        return;
+
+      state.setPreviewPaneContent({
+        kind: "entry",
+        entryId: treeCursorItem.data.id,
+        descriptions,
+      });
     };
 
-    loadDescriptions();
-  }, [state.selectedTreeItemIndex, state.descriptionRefreshTrigger]);
+    loadPreview();
+  }, [
+    state.activeEntryId,
+    state.currentFolderItems,
+    state.treeCursor,
+    state.descriptionRefreshTrigger,
+  ]);
+
+  useEffect(() => {
+    state.setTreeCursor((prev) => {
+      if (state.currentFolderItems.length === 0) return 0;
+
+      return prev >= state.currentFolderItems.length
+        ? state.currentFolderItems.length - 1
+        : prev;
+    });
+  }, [state.currentFolderItems]);
+
+  // Load active Entry descriptions
+  useEffect(() => {
+    const entryId = state.activeEntryId;
+
+    if (entryId === null) {
+      state.setActiveEntryDescriptions([]);
+      return;
+    }
+
+    const loadActiveDescriptions = async () => {
+      state.setActiveEntryDescriptions([]);
+
+      const descriptions =
+        await descriptionService.getDescriptionsForEntry(entryId);
+
+      if (descriptions instanceof Error) {
+        logger.error("Failed to load active Entry descriptions.", descriptions);
+        return;
+      }
+      if (useDictionaryStore.getState().activeEntryId !== entryId) return;
+
+      state.setActiveEntryDescriptions(descriptions);
+    };
+
+    loadActiveDescriptions();
+  }, [state.activeEntryId, state.descriptionRefreshTrigger]);
 
   const publicState = Object.freeze({
     inputValue: state.inputValue,
-    focus: state.focus,
-    treeItemsToDisplay: state.treeItemsToDisplay,
-    treeItemsOnHoverToDisplay: state.treeItemsOnHoverToDisplay,
-    descriptionsToDisplay: state.descriptionsToDisplay,
-    selectedTreeItemIndex: state.selectedTreeItemIndex,
-    selectedDescriptionIndex: state.selectedDescriptionIndex,
+
+    currentFolderItems: state.currentFolderItems,
+    activeEntryDescriptions: state.activeEntryDescriptions,
+    previewPaneContent: state.previewPaneContent,
+
+    activePane: state.activePane,
+    activeEntryId: state.activeEntryId,
+    interactionAction: state.interactionAction,
+    pathStack: state.pathStack,
+
+    treeCursor: state.treeCursor,
+    descriptionCursor: state.descriptionCursor,
+
+    selectedTreeItems: state.selectedTreeItems,
+    contextMenuTarget: state.contextMenuTarget,
+    selectedDescriptionIds: state.selectedDescriptionIds,
+    descriptionContextMenuTargetId: state.descriptionContextMenuTargetId,
+
     refreshTreeItemTrigger: state.refreshTreeItemTrigger,
     descriptionRefreshTrigger: state.descriptionRefreshTrigger,
-    pathStack: state.pathStack,
   });
 
   return {
     state: publicState,
     isAtRoot,
-    selectedTreeItem,
-    selectedDescription,
+    treeCursorItem,
+    descriptionCursorItem,
     currentFolder,
     actions: {
       tree: treeActions,
       description: descriptionActions,
       navigation: navigationActions,
+      selection: selectionActions,
       general: {
-        cancelAction: () =>
-          state.setFocus((prev) => ({ ...prev, action: "idle" })),
+        cancelAction: () => {
+          state.setInteractionAction("idle");
+          state.setContextMenuTarget(null);
+          state.setDescriptionContextMenuTargetId(null);
+        },
 
         updateInputValue: (val: string) => state.setInputValue(val),
       },

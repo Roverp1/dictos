@@ -1,13 +1,35 @@
-import { useDictionary } from "@dictos/react";
+import { useDictionary, type TreeItem } from "@dictos/react";
 import { useTheme } from "../../../shared/lib/theme";
 import { InteractiveList } from "./interactive-list";
 import { SubmitTextarea } from "./submit-textarea";
 
 export const DescriptionPane = () => {
   const theme = useTheme();
-  const { state, selectedTreeItem, actions } = useDictionary();
+  const { state, treeCursorItem, actions } = useDictionary();
 
-  if (!selectedTreeItem) {
+  const isEntryMode = state.activeEntryId !== null;
+  const isDescriptionFocused = state.activePane === "description";
+  let descriptions = state.activeEntryDescriptions;
+  if (!isEntryMode) {
+    descriptions =
+      state.previewPaneContent.kind === "entry"
+        ? state.previewPaneContent.descriptions
+        : [];
+  }
+
+  let folderPreviewItems: TreeItem[] = [];
+  if (!isEntryMode && state.previewPaneContent.kind === "folder") {
+    folderPreviewItems = state.previewPaneContent.items;
+  }
+
+  let title = "";
+  if (isEntryMode && treeCursorItem?.type === "entry") {
+    title = treeCursorItem.data.text;
+  } else if (state.previewPaneContent.kind !== "empty") {
+    title = treeCursorItem?.label ?? "";
+  }
+
+  if (!isEntryMode && state.previewPaneContent.kind === "empty") {
     return (
       <div
         id="description-pane"
@@ -36,31 +58,30 @@ export const DescriptionPane = () => {
         flexDirection: "column",
         gap: "1rem",
         padding: "1rem",
-        borderLeft: `1px solid ${state.focus.pane === "description" ? theme.base0D : theme.base04}`,
+        borderLeft: `1px solid ${isDescriptionFocused ? theme.base0D : theme.base04}`,
       }}
     >
       <div
         style={{
-          color: state.focus.pane === "description" ? theme.base0E : theme.base03,
+          color: isDescriptionFocused ? theme.base0E : theme.base03,
           fontWeight: "bold",
           fontSize: "1.2rem",
         }}
       >
-        {selectedTreeItem?.type === "entry"
-          ? selectedTreeItem.data.text
-          : selectedTreeItem.label}
+        {title}
       </div>
 
-      {selectedTreeItem.type === "entry" ? (
+      {descriptions.length > 0 || isEntryMode ? (
         <InteractiveList
           id="description-list"
           flexGrow={1}
-          items={state.descriptionsToDisplay}
-          selectedIndex={state.selectedDescriptionIndex}
+          items={descriptions}
+          selectedIndex={isEntryMode ? state.descriptionCursor : -1}
           renderItem={(item, i, isSelected) => {
             const isRenaming =
-              state.focus.action === "renameInput" &&
-              state.focus.pane === "description";
+              isEntryMode &&
+              state.interactionAction === "renameInput" &&
+              state.activePane === "description";
 
             if (isSelected && isRenaming) {
               return (
@@ -94,8 +115,8 @@ export const DescriptionPane = () => {
             );
           }}
           ListFooterComponent={
-            state.focus.pane === "description" &&
-            state.focus.action === "createInput" ? (
+            state.activePane === "description" &&
+            state.interactionAction === "createInput" ? (
               <div
                 style={{
                   border: `1px solid ${theme.base0B}`,
@@ -111,8 +132,10 @@ export const DescriptionPane = () => {
           }
         />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          {state.treeItemsOnHoverToDisplay.map((item, i) => (
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+        >
+          {folderPreviewItems.map((item, i) => (
             <div
               key={i}
               style={{
