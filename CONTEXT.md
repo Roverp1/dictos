@@ -62,6 +62,10 @@ _Avoid_: Selection Pool, Selected Items, Multi-select state
 The item a context menu action applies to after a right-click or long-press.
 _Avoid_: Selected Item, Active Item, Focused Item
 
+**Notification**:
+A user-visible message describing the outcome of an application action, such as a handled failure, success, or progress state. Clients decide how a Notification is rendered, for example as a toast, snackbar, inline banner, or terminal overlay.
+_Avoid_: Toast, Alert, Snackbar, Error Message
+
 **System Overview**:
 The primary entry point document (`docs/system-overview.md`) for understanding the project's purpose, architecture, tech stack, codebase map, and domain modules.
 
