@@ -65,47 +65,53 @@ export const NavBottomBar = () => {
   return (
     <box
       position="absolute"
-      width="80%"
-      height={5}
       bottom={2}
-      left="10%"
-      paddingX={1}
-      backgroundColor={theme.base00}
-      borderColor={isBarActive ? theme.base0D : theme.base04}
+      width="100%"
       flexDirection="row"
-      onMouseOver={() => setIsBarActive(true)}
-      onMouseOut={() => setIsBarActive(false)}
-      borderStyle="double"
+      justifyContent="center"
     >
       <box
-        paddingX={2}
-        paddingY={1}
-        backgroundColor={
-          location.pathname === "/auth" ? theme.base0D : theme.base02
-        }
-        onMouseDown={() => navigate("/auth")}
+        position="absolute"
+        bottom={2}
+        paddingX={1}
+        backgroundColor={theme.base00}
+        borderColor={isBarActive ? theme.base0D : theme.base04}
+        flexDirection="row"
+        alignItems="center"
+        onMouseOver={() => setIsBarActive(true)}
+        onMouseOut={() => setIsBarActive(false)}
+        borderStyle="double"
       >
-        <text>auth</text>
-      </box>
+        <box
+          paddingX={2}
+          paddingY={1}
+          backgroundColor={
+            location.pathname === "/auth" ? theme.base0D : theme.base02
+          }
+          onMouseDown={() => navigate("/auth")}
+        >
+          <text>auth</text>
+        </box>
 
-      <box
-        paddingX={2}
-        paddingY={1}
-        backgroundColor={
-          location.pathname === "/dictionary" ? theme.base0D : theme.base02
-        }
-        onMouseDown={() => navigate("/dictionary")}
-      >
-        <text>dictionary</text>
-      </box>
+        <box
+          paddingX={2}
+          paddingY={1}
+          backgroundColor={
+            location.pathname === "/dictionary" ? theme.base0D : theme.base02
+          }
+          onMouseDown={() => navigate("/dictionary")}
+        >
+          <text>dictionary</text>
+        </box>
 
-      <box
-        paddingX={2}
-        paddingY={1}
-        backgroundColor={theme.base02}
-        // onMouseDown={() => yourFunction()}
-      >
-        <text>synchronise</text>
+        <box
+          paddingX={2}
+          paddingY={1}
+          backgroundColor={theme.base02}
+          // onMouseDown={() => yourFunction()}
+        >
+          <text>synchronise</text>
+        </box>
       </box>
     </box>
   );
