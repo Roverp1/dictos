@@ -1,4 +1,4 @@
-import { toast } from "@dictos/opentui-toast";
+import { toast } from "@dictos/opentui-toast/react";
 import type {
   NotificationOptions,
   NotificationPromiseResult,
