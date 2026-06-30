@@ -77,8 +77,8 @@ These tasks prove the feature works across shared React, TUI, and Web boundaries
 
 ## Phase 7: Absorb into Documentation
 
-- [ ] T041: Update `docs/system-overview.md` to mention `@dictos/react` receives a platform-provided Notifier through `DictosProvider` for user-visible Notifications.
-- [ ] T042: Update `docs/modules/dictionary-management/contracts.md` to document the Notifier dependency and Dictionary action failure Notification behavior.
-- [ ] T043: Update `docs/modules/dictionary-management/data-model.md` to mention Notification-related headless UI state remains non-persisted and platform-rendered.
-- [ ] T044: Confirm `CONTEXT.md` still contains the canonical `Notification` term and no new unresolved vocabulary was introduced.
-- [ ] T045: Run `/docify.absorb` to archive this specification after implementation and documentation updates are complete.
+- [x] T041: Update `docs/system-overview.md` to mention `@dictos/react` receives a platform-provided Notifier through `DictosProvider` for user-visible Notifications.
+- [x] T042: Update `docs/modules/dictionary-management/contracts.md` to document the Notifier dependency and Dictionary action failure Notification behavior.
+- [x] T043: Update `docs/modules/dictionary-management/data-model.md` to mention Notification-related headless UI state remains non-persisted and platform-rendered.
+- [x] T044: Confirm `CONTEXT.md` still contains the canonical `Notification` term and no new unresolved vocabulary was introduced.
+- [x] T045: Run `/docify.absorb` to archive this specification after implementation and documentation updates are complete.

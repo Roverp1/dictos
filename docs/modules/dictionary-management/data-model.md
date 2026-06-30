@@ -90,3 +90,5 @@ type PreviewPaneContent =
 ```
 
 The headless UI stores full `TreeItem` snapshots for the current folder and preview pane, while long-lived selection and context menu state use typed references. Active Entry state is split between `activeEntryId` and `activeEntryDescriptions` so clients can render opened Entry content separately from cursor-driven previews.
+
+Notifications are not part of persisted Dictionary state. `@dictos/react` emits Notification intent through the injected `Notifier`, and each client renders that intent using its platform-native Notification system.

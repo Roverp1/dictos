@@ -1,6 +1,6 @@
 # Domain: Dictionary Management
 
-**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Jun 2, 2026
+**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Jun 30, 2026
 
 ## Module Responsibility
 
