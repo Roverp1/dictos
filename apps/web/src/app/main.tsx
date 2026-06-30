@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
+import { toast } from "sonner";
 import pino from "pino";
 
 import {
@@ -130,6 +131,7 @@ export const bootstrap = async () => {
         authService,
         syncService,
         logger,
+        notifier: toast,
       }}
     >
       <StrictMode>
