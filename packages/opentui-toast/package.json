@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@dictos/opentui-toast",
+  "version": "0.0.5",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./themes": "./src/themes.ts",
+    "./icons": "./src/icons.ts",
+    "./react": "./src/react.tsx"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.0",
+    "@types/bun": "latest",
+    "@types/react": "^19.2.14"
+  },
+  "peerDependencies": {
+    "@opentui/core": "^0.1.103",
+    "@opentui/react": "^0.1.103",
+    "react": "^19.2.4"
+  }
+}

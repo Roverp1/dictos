@@ -29,6 +29,7 @@ import { DictosProvider } from "@dictos/react";
 
 import { App } from "./app";
 import path from "path";
+import { notifier } from "./notifier";
 
 export const bootstrap = async () => {
   const renderer = await createCliRenderer({
@@ -144,6 +145,7 @@ export const bootstrap = async () => {
         authService,
         syncService,
         logger,
+        notifier,
       }}
     >
       <MemoryRouter initialEntries={["/dictionary"]}>

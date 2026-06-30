@@ -30,6 +30,7 @@ import {
 import { DictosProvider } from "@dictos/react";
 
 import { App } from "./app";
+import { notifier } from "./notifier";
 import type { Journal } from "../../../../packages/wasm-turso-sync/src/migrator";
 
 // If changing relative path - you MUST change it on `journalFiles`
@@ -130,6 +131,7 @@ export const bootstrap = async () => {
         authService,
         syncService,
         logger,
+        notifier,
       }}
     >
       <StrictMode>

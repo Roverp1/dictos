@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { Toaster } from "@opentui-ui/toast/react";
+import { Toaster } from "@dictos/opentui-toast/react";
 
 import { NavBottomBar } from "../ui/nav-bottom-bar";
 import { useTheme } from "@shared/lib/theme";

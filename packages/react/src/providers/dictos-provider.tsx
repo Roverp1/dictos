@@ -10,6 +10,8 @@ import type {
 } from "@dictos/core";
 import { type Logger } from "@dictos/logger";
 
+import type { Notifier } from "./notifier";
+
 interface DictosDependencies {
   entryService: EntryService;
   folderService: FolderService;
@@ -19,6 +21,7 @@ interface DictosDependencies {
   syncService: SyncService;
 
   logger: Logger;
+  notifier: Notifier;
 }
 
 const DependenciesContext = createContext<DictosDependencies | null>(null);

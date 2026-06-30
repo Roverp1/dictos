@@ -40,12 +40,11 @@
         "@dictos/db-core": "workspace:*",
         "@dictos/eden-http": "workspace:*",
         "@dictos/fs-storage": "workspace:*",
+        "@dictos/opentui-toast": "workspace:*",
         "@dictos/pino-logger": "workspace:*",
         "@dictos/react": "workspace:*",
-        "@opentui-ui/toast": "^0.0.5",
         "@opentui/core": "^0.1.103",
         "@opentui/react": "^0.1.103",
-        "@types/react": "^19.2.14",
         "pino": "^10.3.1",
         "react": "^19.2.4",
         "react-router-dom": "^7.15.1",
@@ -53,6 +52,7 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "@types/react": "^19.2.14",
         "typescript": "^6",
       },
     },
@@ -193,6 +193,20 @@
       "version": "0.0.0",
       "devDependencies": {
         "typescript": "^6.0.0",
+      },
+    },
+    "packages/opentui-toast": {
+      "name": "@dictos/opentui-toast",
+      "version": "0.0.5",
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/react": "^19.2.14",
+        "typescript": "^6.0.0",
+      },
+      "peerDependencies": {
+        "@opentui/core": "^0.1.103",
+        "@opentui/react": "^0.1.103",
+        "react": "^19.2.4",
       },
     },
     "packages/pino-logger": {
@@ -445,6 +459,8 @@
 
     "@dictos/logger": ["@dictos/logger@workspace:packages/logger"],
 
+    "@dictos/opentui-toast": ["@dictos/opentui-toast@workspace:packages/opentui-toast"],
+
     "@dictos/pino-logger": ["@dictos/pino-logger@workspace:packages/pino-logger"],
 
     "@dictos/react": ["@dictos/react@workspace:packages/react"],
@@ -656,8 +672,6 @@
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.0.7", "", { "dependencies": { "@emnapi/core": "^1.5.0", "@emnapi/runtime": "^1.5.0", "@tybys/wasm-util": "^0.10.1" } }, "sha512-SeDnOO0Tk7Okiq6DbXmmBODgOAb9dp9gjlphokTUxmt8U3liIP1ZsozBahH69j/RJv+Rfs6IwUKHTgQYJ/HBAw=="],
 
     "@neon-rs/load": ["@neon-rs/load@0.0.4", "", {}, "sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw=="],
-
-    "@opentui-ui/toast": ["@opentui-ui/toast@0.0.5", "", { "peerDependencies": { "@opentui/core": "^0.1.63", "@opentui/react": "^0.1.63", "@opentui/solid": "^0.1.63" }, "optionalPeers": ["@opentui/react", "@opentui/solid"] }, "sha512-LOT5Bw0F5AEyhjSqpKgS7aSe7M7v+ahaAa4t3/K2dtWiT0CJ711UHXqM31KKN6yuHoUKRNs+g+643ety/a3lEw=="],
 
     "@opentui/core": ["@opentui/core@0.1.107", "", { "dependencies": { "bun-ffi-structs": "0.1.2", "diff": "8.0.2", "jimp": "1.6.0", "marked": "17.0.1", "string-width": "7.2.0", "strip-ansi": "7.1.2", "yoga-layout": "3.2.1" }, "optionalDependencies": { "@dimforge/rapier2d-simd-compat": "^0.17.3", "@opentui/core-darwin-arm64": "0.1.107", "@opentui/core-darwin-x64": "0.1.107", "@opentui/core-linux-arm64": "0.1.107", "@opentui/core-linux-x64": "0.1.107", "@opentui/core-win32-arm64": "0.1.107", "@opentui/core-win32-x64": "0.1.107", "bun-webgpu": "0.1.7", "planck": "^1.4.2", "three": "0.177.0" }, "peerDependencies": { "web-tree-sitter": "0.25.10" } }, "sha512-gadu9EtNR+sOGyHN0buZryllavkWHRkCcX4yW/1ldp/l7HGS52hvkjYmo+74cuzUcfds/5Rbw2cgiy0Z7RxXmQ=="],
 
