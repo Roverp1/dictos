@@ -1,7 +1,7 @@
 import { useKeyboard } from "@opentui/react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { toast } from "@opentui-ui/toast";
+import { toast } from "@dictos/opentui-toast/react";
 
 import { useServices } from "@dictos/react";
 

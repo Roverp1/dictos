@@ -1,5 +1,5 @@
 import { useKeyboard } from "@opentui/react";
-import { toast } from "@opentui-ui/toast/react";
+import { toast } from "@dictos/opentui-toast/react";
 
 import { InputValidationError } from "@dictos/core";
 import { useServices } from "@dictos/react";
