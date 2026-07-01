@@ -2,7 +2,7 @@ import { useServices } from "../../../providers";
 import { useDictionaryStore } from "../use-dictionary-store";
 
 export const useDescriptionActions = () => {
-  const { descriptionService, logger } = useServices();
+  const { descriptionService, logger, notifier } = useServices();
   const {
     activePane,
     interactionAction,
@@ -65,6 +65,9 @@ export const useDescriptionActions = () => {
 
       if (res instanceof Error) {
         logger.error("Failed to create description", res);
+        notifier.error("Failed to create Description", {
+          description: res.message,
+        });
         return;
       }
 
@@ -113,6 +116,9 @@ export const useDescriptionActions = () => {
       });
       if (res instanceof Error) {
         logger.error("Failed to rename description", res);
+        notifier.error("Failed to rename Description", {
+          description: res.message,
+        });
         return;
       }
 
@@ -145,6 +151,9 @@ export const useDescriptionActions = () => {
       const res = await descriptionService.deleteDescription(targetItem.id);
       if (res instanceof Error) {
         logger.error("Failed to delete description", res);
+        notifier.error("Failed to delete Description", {
+          description: res.message,
+        });
         setInteractionAction("idle");
         return;
       }

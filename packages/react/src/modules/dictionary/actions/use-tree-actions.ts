@@ -2,7 +2,7 @@ import { useServices } from "../../../providers";
 import { useDictionaryStore } from "../use-dictionary-store";
 
 export const useTreeActions = () => {
-  const { entryService, folderService, logger } = useServices();
+  const { entryService, folderService, logger, notifier } = useServices();
   const {
     activePane,
     interactionAction,
@@ -69,6 +69,7 @@ export const useTreeActions = () => {
         });
         if (res instanceof Error) {
           logger.error("Failed to create folder.", res);
+          notifier.error("Failed to create Folder", { description: res.message });
           return;
         }
       } else {
@@ -78,6 +79,7 @@ export const useTreeActions = () => {
         });
         if (res instanceof Error) {
           logger.error("Failed to create entry.", res);
+          notifier.error("Failed to create Entry", { description: res.message });
           return;
         }
       }
@@ -127,6 +129,9 @@ export const useTreeActions = () => {
           );
           if (res instanceof Error) {
             logger.error("Failed to rename folder", res);
+            notifier.error("Failed to rename Folder", {
+              description: res.message,
+            });
             return;
           }
         } else {
@@ -135,6 +140,9 @@ export const useTreeActions = () => {
           });
           if (res instanceof Error) {
             logger.error("Failed to rename entry", res);
+            notifier.error("Failed to rename Entry", {
+              description: res.message,
+            });
             return;
           }
         }
@@ -166,6 +174,7 @@ export const useTreeActions = () => {
 
         if (res instanceof Error) {
           logger.error("Failed to delete entry", res);
+          notifier.error("Failed to delete Entry", { description: res.message });
           setInteractionAction("idle");
           setContextMenuTarget(null);
           return;
@@ -174,6 +183,7 @@ export const useTreeActions = () => {
         const res = await folderService.deleteFolder(targetItem.data.id);
         if (res instanceof Error) {
           logger.error("Failed to delete folder", res);
+          notifier.error("Failed to delete Folder", { description: res.message });
           setInteractionAction("idle");
           setContextMenuTarget(null);
           return;
