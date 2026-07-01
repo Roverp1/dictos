@@ -1,7 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
-import { toast } from "sonner";
 import pino from "pino";
 
 import {
@@ -31,6 +30,7 @@ import {
 import { DictosProvider } from "@dictos/react";
 
 import { App } from "./app";
+import { notifier } from "./notifier";
 import type { Journal } from "../../../../packages/wasm-turso-sync/src/migrator";
 
 // If changing relative path - you MUST change it on `journalFiles`
@@ -131,7 +131,7 @@ export const bootstrap = async () => {
         authService,
         syncService,
         logger,
-        notifier: toast,
+        notifier,
       }}
     >
       <StrictMode>

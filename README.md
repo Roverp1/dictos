@@ -228,6 +228,13 @@ Before changing domain or architecture code, read:
 
 For questions, open a GitHub issue or contact Yaroslav Gulevsky at `yar.zubaha@proton.me`.
 
+## AI Policy
+
+All the main production code is currently written by hand, with AI being used only for assistance. The current `web` app is an exception, as it was fully generated from the `tui` app, for exploration purposes, and will require full human rewrite, before it will be considered _production_ ready.
+Also all of the documentation (including github issues, and pr's) are mostly generated with AI, but fully review, and lightly edited, to keep it factual. As the project grows - the documentation will need to be rewritten by a human, and will have a higher quality enforcment.
+
+For more information read [`AI Policy`](./AI_POLICY.md) (adapted from [Ghosty AI Policy](https://github.com/ghostty-org/ghostty))
+
 ## License
 
 Dictos is licensed under the GNU Affero General Public License v3.0. See [`LICENSE`](./LICENSE).

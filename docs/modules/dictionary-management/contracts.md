@@ -20,7 +20,7 @@ These services expose the pure domain logic use-cases to the clients (e.g., the 
 
 ## Headless Dictionary UI (`packages/react/src/modules/dictionary`)
 
-`@dictos/react` exposes shared Dictionary state and actions for clients. It receives the domain services through `DictosProvider` and keeps TUI, Web, and future Mobile clients from duplicating Dictionary interaction logic.
+`@dictos/react` exposes shared Dictionary state and actions for clients. It receives the domain services, `Logger`, and platform-provided `Notifier` through `DictosProvider`, keeping TUI, Web, and future Mobile clients from duplicating Dictionary interaction logic or leaking platform-specific Notification renderers into the shared package.
 
 The headless Dictionary model separates these UI concerns:
 
@@ -31,6 +31,12 @@ The headless Dictionary model separates these UI concerns:
 
 Key public state includes `currentFolderItems`, `previewPaneContent`, `activeEntryId`, `activeEntryDescriptions`, `activePane`, `interactionAction`, `treeCursor`, `descriptionCursor`, `selectedTreeItems`, `selectedDescriptionIds`, and context menu target state.
 
-Key action groups include navigation actions, tree actions, Description actions, selection/context actions, and general cancellation/input actions.
+Key action groups include navigation actions, tree actions, Description actions, selection/context actions, and general cancellation/input actions. User-actionable service failures in these actions should be logged and surfaced through the injected `Notifier`; developer-only impossible states should remain logged unless the user can act on the message.
 
 Client applications remain responsible for presentation and input bindings. Each client should lean on its most natural input first, but the headless model is meant to work with keyboard, mouse, touch, context menus, and long-press flows wherever the platform supports them.
+
+## Notification Boundary (`packages/react/src/providers`)
+
+The `Notifier` interface describes user-visible Notification intent for `@dictos/react` without depending on a renderer. It supports common toast-like operations such as `message`, `success`, `info`, `warning`, `error`, `loading`, `dismiss`, and `promise`.
+
+Promise-backed Notifications follow the project errors-as-values rule: expected failures resolve as `Error` values, and `notifier.promise()` renders those as error Notifications while returning the same error. Rejected promises are boundary failures and should be converted before they reach the Notifier.

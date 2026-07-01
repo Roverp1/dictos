@@ -1,6 +1,5 @@
 import { ConsolePosition, createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import { toast } from "@opentui-ui/toast/react";
 import { MemoryRouter } from "react-router-dom";
 import pino from "pino";
 
@@ -30,6 +29,7 @@ import { DictosProvider } from "@dictos/react";
 
 import { App } from "./app";
 import path from "path";
+import { notifier } from "./notifier";
 
 export const bootstrap = async () => {
   const renderer = await createCliRenderer({
@@ -145,7 +145,7 @@ export const bootstrap = async () => {
         authService,
         syncService,
         logger,
-        notifier: toast,
+        notifier,
       }}
     >
       <MemoryRouter initialEntries={["/dictionary"]}>

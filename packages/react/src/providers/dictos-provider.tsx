@@ -10,9 +10,7 @@ import type {
 } from "@dictos/core";
 import { type Logger } from "@dictos/logger";
 
-interface Notifier {
-  error: (message: string, options?: { description?: string }) => void;
-}
+import type { Notifier } from "./notifier";
 
 interface DictosDependencies {
   entryService: EntryService;
