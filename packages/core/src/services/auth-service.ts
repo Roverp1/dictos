@@ -36,8 +36,11 @@ export class AuthService {
     const sessionRes = await this.sessionRepo.saveSession(session);
     if (sessionRes instanceof Error) return sessionRes;
 
+    // this is shit
+    // registration method should only handle registration
     if (session.turso) {
       await this.syncService.connect(session.turso.url, session.turso.token);
+      await this.syncService.sync();
     }
 
     return user;
@@ -57,8 +60,10 @@ export class AuthService {
     const sessionRes = await this.sessionRepo.saveSession(session);
     if (sessionRes instanceof Error) return sessionRes;
 
+    // this is also shit
     if (session.turso) {
       await this.syncService.connect(session.turso.url, session.turso.token);
+      await this.syncService.sync();
     }
 
     return user;
