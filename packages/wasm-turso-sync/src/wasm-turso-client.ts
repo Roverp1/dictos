@@ -177,7 +177,13 @@ export class WasmTursoClient implements SyncPort {
       };
     } catch (err) {
       this.logger.error("Sync failed.", err);
-      return new SyncError({ reason: "Exception", cause: err });
+      return new SyncError({
+        reason:
+          err instanceof Error
+            ? `sync to ${this.credentials.url} failed: ${err.message}`
+            : `sync to ${this.credentials.url} failed`,
+        cause: err,
+      });
     }
 
     this.logger.debug("Sync completed", {
