@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@dictos/cli",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@dictos/bun-turso-sync": "workspace:*",
+    "@dictos/core": "workspace:*",
+    "@dictos/db-core": "workspace:*",
+    "@dictos/eden-http": "workspace:*",
+    "@dictos/fs-storage": "workspace:*",
+    "@dictos/logger": "workspace:*",
+    "@dictos/pino-logger": "workspace:*",
+    "@dictos/errore": "workspace:*",
+    "commander": "^15.0.0",
+    "pino": "^10.3.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^6"
+  }
+}

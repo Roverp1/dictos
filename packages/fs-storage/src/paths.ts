@@ -5,9 +5,9 @@ import path from "path";
 import { StorageError } from "@dictos/core";
 
 export const getAppDataDir = (appName: string): string => {
-  if (process.env.NODE_ENV === "development") {
-    return path.join(process.cwd(), ".data");
-  }
+  // if (process.env.NODE_ENV === "development") {
+  //   return path.join(process.cwd(), ".data");
+  // }
 
   const home = os.homedir();
   const platform = process.platform;
