@@ -14,7 +14,7 @@ The domain relies on these interfaces to persist data, abstracting away the conc
 
 These services expose the pure domain logic use-cases to the clients (e.g., the TUI):
 
-- `FolderService`: Handles validation and execution for creating folders, renaming folders, fetching the root folder (`getRootFolder()`), and fetching immediate subfolders (`getSubFolders()`).
+- `FolderService`: Handles validation and execution for creating folders, renaming folders, fetching the root folder (`getRootFolder()`), fetching a folder by ID (`getFolderById()`), and fetching immediate subfolders (`getSubFolders()`).
 - `EntryService`: Exposes operations for `createEntry()`, `getEntryById()`, `getEntriesInFolder()`, `updateEntry()`, and `deleteEntry()`.
 - `DescriptionService`: Exposes operations for `createDescription()`, `getDescriptionsForEntry()`, `updateDescription()`, and `deleteDescription()`.
 
@@ -34,6 +34,10 @@ Key public state includes `currentFolderItems`, `previewPaneContent`, `activeEnt
 Key action groups include navigation actions, tree actions, Description actions, selection/context actions, and general cancellation/input actions. User-actionable service failures in these actions should be logged and surfaced through the injected `Notifier`; developer-only impossible states should remain logged unless the user can act on the message.
 
 Client applications remain responsible for presentation and input bindings. Each client should lean on its most natural input first, but the headless model is meant to work with keyboard, mouse, touch, context menus, and long-press flows wherever the platform supports them.
+
+## Command Client Dictionary Interface (`apps/cli`)
+
+The CLI exposes Folder, Entry, and Description management through Commander.js subcommands. It composes the same core services used by the TUI and Web client, operating on the shared local database.
 
 ## Notification Boundary (`packages/react/src/providers`)
 
