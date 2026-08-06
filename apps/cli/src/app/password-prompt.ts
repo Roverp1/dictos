@@ -43,7 +43,8 @@ export const createPasswordPrompt = (): PasswordPrompt => ({
           process.stdin.removeListener("data", onData);
           process.stdin.pause();
           process.stdout.write("\n");
-          return new PasswordPromptError({ reason: "Cancelled by user" });
+          resolve(new PasswordPromptError({ reason: "Cancelled by user" }));
+          return;
         }
 
         if (char === "\u007F" || char === "\b" || char === "\x7f") {
