@@ -137,15 +137,10 @@ export class BunTursoClient implements SyncPort {
 
     this.credentials.url = url;
     this.credentials.token = token;
-    const syncRes = await this.sync();
-    if (syncRes instanceof Error) return syncRes;
 
-    this.logger.info(
-      "Connected to a remote database and finished sync successfully.",
-      {
-        remoteUrl: url,
-      }
-    );
+    this.logger.info("Connected to a remote database.", {
+      remoteUrl: url,
+    });
   }
 
   async sync(): Promise<SyncResult | SyncError> {
@@ -179,7 +174,13 @@ export class BunTursoClient implements SyncPort {
       };
     } catch (err) {
       this.logger.error("Sync failed.", err);
-      return new SyncError({ reason: "Exception", cause: err });
+      return new SyncError({
+        reason:
+          err instanceof Error
+            ? `sync to ${this.credentials.url} failed: ${err.message}`
+            : `sync to ${this.credentials.url} failed`,
+        cause: err,
+      });
     }
 
     this.logger.debug("Sync completed", {

@@ -23,6 +23,10 @@ export class FolderService {
     return folder;
   }
 
+  async getFolderById(id: string): Promise<Folder | DbError | null> {
+    return await this.repo.findById(id);
+  }
+
   async getRootFolder(): Promise<Folder | DbError> {
     return await this.repo.findRoot();
   }

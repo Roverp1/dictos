@@ -1,10 +1,10 @@
 # System Overview: Dictos
 
-**Last Updated**: Jun 30, 2026 | **Version**: 1.0.0-draft
+**Last Updated**: Aug 07, 2026 | **Version**: 1.0.0-draft
 
 ## Project Purpose
 
-Dictos is a local-first, application for building and managing personal dictionaries. It allows users to capture text fragments (Entries) from digital reading, organize them into Folders, generate LLM-powered explanations (Descriptions) using reusable templates (Instructions), and export the data for spaced-repetition study (e.g., Anki). While the initial client is a Terminal UI, Dictos is designed as a cross-platform system that is also implementing a Mobile (React Native) client, with Web platforms planned for the future.
+Dictos is a local-first, application for building and managing personal dictionaries. It allows users to capture text fragments (Entries) from digital reading, organize them into Folders, generate LLM-powered explanations (Descriptions) using reusable templates (Instructions), and export the data for spaced-repetition study (e.g., Anki). Users interact with Dictos through first-class clients: a Terminal UI, a Command Line Interface, and a Web client, with Mobile (React Native) planned for the future.
 
 ## High-Level Architecture
 
@@ -19,7 +19,7 @@ The project uses a monorepo structure. It employs Hexagonal Architecture to isol
 - **Logging**: The core domain is ignorant of logging. The presentation layer (`@dictos/react`) and adapters log execution outcomes using a generic `Logger` interface (`@dictos/logger`), fulfilled by concrete adapters (e.g., Pino) at the application composition root.
 - **Developer Environment**: Declarative and reproducible environments via `devenv.sh`.
 - **Secret Management**: Native `devenv` integration with `SecretSpec` for secure runtime injection. Secrets are never stored in global shell environments or committed.
-- **Frontend/Clients**: OpenTUI with React bindings (for the TUI client), a Vite Web client, and future Mobile clients. Each client should lean on its most natural input first, but the shared headless state is built to handle keyboard, mouse, touch, and context-menu interactions on every platform.
+- **Frontend/Clients**: OpenTUI with React bindings (for the TUI client), Commander.js (for the Command Client), a Vite Web client, and future Mobile clients. Each client should lean on its most natural input first, but the shared headless state is built to handle keyboard, mouse, touch, and context-menu interactions on every platform.
 - **Backend**: Bun, ElysiaJS.
 - **Database**: local libSQL (and Turso hosting), Drizzle ORM.
 - **Glossary**: See `CONTEXT.md` for strict domain terminology.
@@ -28,6 +28,7 @@ The project uses a monorepo structure. It employs Hexagonal Architecture to isol
 
 ```text
 /apps/tui/               # Terminal UI client (OpenTUI + React bindings)
+/apps/cli/               # Command Client (Commander.js, script-oriented CLI)
 /apps/web/               # Web client SPA (Vite + React Router)
 /apps/server/            # ElysiaJS central backend for sync & social features
 /packages/core/          # Pure domain entities, ports, and services
