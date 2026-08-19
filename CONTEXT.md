@@ -9,16 +9,32 @@ A raw text fragment (word, phrase, or sentence) saved by the user from an extern
 _Avoid_: Capture, Word, Note, Term
 
 **Description**:
-An explanation, translation, or other user-defined text attached to an Entry. It includes a type or label (e.g., "translation", "explanation").
-_Avoid_: Definition, Annotation, Meaning, Note
+User-authored or generated text attached to an Entry, classified by Description Type and optionally grouped under a Sense.
+_Avoid_: Annotation, Meaning, Note
+
+**Description Type**:
+The fixed classification of a Description: `misc`, `translation`, `definition`, or `example`.
+_Avoid_: Label, Category, Kind
+
+**Sense**:
+A named interpretation of an Entry that groups related Descriptions.
+_Avoid_: Meaning, Definition Group, Description Group
 
 **Folder**:
 A nested container used to organize Entries.
 _Avoid_: Directory, Dictionary, Deck, Collection
 
 **Instruction**:
-A reusable text template saved by the user, which is combined with an Entry to form the final prompt sent to the LLM API.
+A reusable user-authored directive that guides Description Generation.
 _Avoid_: Prompt, Prompt Template, Preset, Recipe, AI Instruction
+
+**Description Generation**:
+The action of creating typed Descriptions from a selected Description using an Instruction and Model.
+_Avoid_: AI Generation, LLM Generation, Definition Generation
+
+**Provider Connection**:
+A device-local configuration used to access Models from an external provider.
+_Avoid_: Provider Account, Integration, LLM Configuration
 
 **Activity**:
 A daily record logging the count of actions a user has taken (e.g., adding entries) to power heatmaps and future gamification. Distinct from future "Statistics".
