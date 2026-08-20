@@ -10,7 +10,8 @@ export class NotFoundError extends errore.createTaggedError({
   message: "$entity with id $id not found",
 }) {}
 
-/** @deprecated use {@link StorageError} instead */
+// is StorageError better or no?
+//@deprecated use {@link StorageError} instead */
 export class DbError extends errore.createTaggedError({
   name: "DbError",
   message: "Database operation $operation failed. Reason: $reason",
