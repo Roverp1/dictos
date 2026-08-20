@@ -1,6 +1,6 @@
 # Domain: Sync
 
-**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Jun 2, 2026
+**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Aug 20, 2026
 
 ## Module Responsibility
 
@@ -32,11 +32,14 @@ Responsible for the bidirectional replication of private local data across a sin
 - **Deterministic UUIDv5 for Entities**: To prevent split-brain conflicts during offline sync, `folders` and `entries` use deterministic UUIDv5s based on their parent and text. Identical entities created offline on multiple devices merge flawlessly without SQLite constraint violations.
 - **Device-Isolated Activity Counters**: To track activity without unique constraint crashes during sync, the `activities` table drops the `UNIQUE(date)` constraint. It uses a UUIDv5 based on `date:deviceId`, allowing multiple isolated rows per date that the UI simply sums together (a basic CRDT pattern).
 - **Thin Session Pattern**: Because Turso syncs the entire SQLite file, storing JWTs inside the database would cause devices to log each other out upon sync. Device state is strictly segregated to the local file system.
+- **Synced Dictionary Structure**: Senses and Description Type/Sense assignment fields are part of the synced Dictionary database. Provider Connections and their credentials remain device-local and are not Sync data.
+- **Destructive Baseline Reset**: The Description Generation schema was introduced through a fresh pre-release baseline. Local Bun and browser databases and the development remote Sync database must be recreated together before Sync resumes; prior Dictionary data is not migrated.
 - **Non-Blocking Background Sync**: Sync operations and connection initializations are wrapped in IIFEs (Immediately Invoked Function Expressions) during app bootstrap so the TUI renders the local database instantly in milliseconds.
 
 ## Known Edge Cases & Constraints
 
 - **TursoDB Self-Referencing Cascade Crash**: Native `ON DELETE CASCADE` causes fatal stack overflows in the TursoDB engine for self-referential keys (e.g., `folders.parentId`). We handle recursive folder deletion manually via an application-level Breadth-First Search (BFS) in the `SqliteFolderRepository`.
+- Offline devices can create distinct Senses that describe the same interpretation. Sync preserves both because semantic duplicate detection is not a synchronization rule.
 
 ## Related Documents
 

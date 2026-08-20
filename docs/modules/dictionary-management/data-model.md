@@ -17,6 +17,16 @@ export interface Description {
   id: string;
   text: string;
   entryId: string;
+  senseId: string | null;
+  type: "misc" | "translation" | "definition" | "example";
+  createdAt: Date;
+  modifiedAt: Date;
+}
+
+export interface Sense {
+  id: string;
+  entryId: string;
+  name: string;
   createdAt: Date;
   modifiedAt: Date;
 }
@@ -31,48 +41,66 @@ export interface Folder {
 }
 ```
 
-## Database Tables (`packages/adapters/db/schema`)
+## Database Tables (`packages/db-core/src/schema/schema.ts`)
 
 ### `folders`
 
 Nested containers for entries.
 
-| Column       | Type             | Constraints                     | Description |
-| ------------ | ---------------- | ------------------------------- | ----------- |
-| `id`         | `text`           | PK                              | Deterministic UUIDv5 (`parentId:name`) |
-| `name`       | `text`           | NOT NULL                        | Name of the folder |
-| `parentId`   | `text`           | FK (`folders.id`)               | Nullable root, self-referencing |
-| `privacy`    | `text (enum)`    | NOT NULL, Default: "private"    | 'private', 'public', or 'unlisted' |
-| `createdAt`  | `int (timestamp)`| NOT NULL                        | Creation timestamp |
-| `modifiedAt` | `int (timestamp)`| NOT NULL                        | Last modification timestamp |
+| Column       | Type              | Constraints                  | Description                            |
+| ------------ | ----------------- | ---------------------------- | -------------------------------------- |
+| `id`         | `text`            | PK                           | Deterministic UUIDv5 (`parentId:name`) |
+| `name`       | `text`            | NOT NULL                     | Name of the folder                     |
+| `parentId`   | `text`            | FK (`folders.id`)            | Nullable root, self-referencing        |
+| `privacy`    | `text (enum)`     | NOT NULL, Default: "private" | 'private', 'public', or 'unlisted'     |
+| `createdAt`  | `int (timestamp)` | NOT NULL                     | Creation timestamp                     |
+| `modifiedAt` | `int (timestamp)` | NOT NULL                     | Last modification timestamp            |
 
-*Note: Native `UNIQUE` constraints are omitted. Duplicate offline creations merge seamlessly during Turso sync due to deterministic UUIDv5 primary keys.*
+_Note: Native `UNIQUE` constraints are omitted. Duplicate offline creations merge seamlessly during Turso sync due to deterministic UUIDv5 primary keys._
 
 ### `entries`
 
 Text fragments stored in folders.
 
-| Column       | Type             | Constraints                     | Description |
-| ------------ | ---------------- | ------------------------------- | ----------- |
-| `id`         | `text`           | PK                              | Deterministic UUIDv5 (`folderId:text`) |
-| `text`       | `text`           | NOT NULL                        | The capture text |
-| `folderId`   | `text`           | FK (`folders.id`) CASCADE       | Target folder |
-| `createdAt`  | `int (timestamp)`| NOT NULL                        | Creation timestamp |
-| `modifiedAt` | `int (timestamp)`| NOT NULL                        | Last modification timestamp |
+| Column       | Type              | Constraints               | Description                            |
+| ------------ | ----------------- | ------------------------- | -------------------------------------- |
+| `id`         | `text`            | PK                        | Deterministic UUIDv5 (`folderId:text`) |
+| `text`       | `text`            | NOT NULL                  | The capture text                       |
+| `folderId`   | `text`            | FK (`folders.id`) CASCADE | Target folder                          |
+| `createdAt`  | `int (timestamp)` | NOT NULL                  | Creation timestamp                     |
+| `modifiedAt` | `int (timestamp)` | NOT NULL                  | Last modification timestamp            |
 
-*Note: Native `UNIQUE` constraints are omitted to prevent sync crashes. Duplicate creations resolve via UUIDv5 merge.*
+_Note: Native `UNIQUE` constraints are omitted to prevent sync crashes. Duplicate creations resolve via UUIDv5 merge._
 
 ### `descriptions`
 
-Explanations attached to entries.
+Typed text attached directly to Entries and optionally grouped under Senses.
 
-| Column       | Type             | Constraints                     | Description |
-| ------------ | ---------------- | ------------------------------- | ----------- |
-| `id`         | `text`           | PK                              | UUIDv7 |
-| `entryId`    | `text`           | FK (`entries.id`) CASCADE       | Target entry |
-| `text`       | `text`           | NOT NULL                        | The description content |
-| `createdAt`  | `int (timestamp)`| NOT NULL                        | Creation timestamp |
-| `modifiedAt` | `int (timestamp)`| NOT NULL                        | Last modification timestamp |
+| Column       | Type              | Constraints                          | Description                                       |
+| ------------ | ----------------- | ------------------------------------ | ------------------------------------------------- |
+| `id`         | `text`            | PK                                   | UUIDv7                                            |
+| `entryId`    | `text`            | FK (`entries.id`) CASCADE            | Target entry                                      |
+| `senseId`    | `text`            | Nullable FK (`senses.id`) SET NULL   | Optional Sense grouping                           |
+| `type`       | `text (enum)`     | NOT NULL, default `misc`, enum check | `misc`, `translation`, `definition`, or `example` |
+| `text`       | `text`            | NOT NULL                             | The description content                           |
+| `createdAt`  | `int (timestamp)` | NOT NULL                             | Creation timestamp                                |
+| `modifiedAt` | `int (timestamp)` | NOT NULL                             | Last modification timestamp                       |
+
+Indexes exist on `entryId` and `senseId`. `senseId` never replaces direct `entryId` ownership.
+
+### `senses`
+
+Named interpretations that group related Descriptions for one Entry.
+
+| Column       | Type              | Constraints               | Description                 |
+| ------------ | ----------------- | ------------------------- | --------------------------- |
+| `id`         | `text`            | PK                        | UUIDv7                      |
+| `entryId`    | `text`            | FK (`entries.id`) CASCADE | Owning Entry                |
+| `name`       | `text`            | NOT NULL                  | User-editable Sense name    |
+| `createdAt`  | `int (timestamp)` | NOT NULL                  | Creation timestamp          |
+| `modifiedAt` | `int (timestamp)` | NOT NULL                  | Last modification timestamp |
+
+An index exists on `entryId`. There is no uniqueness constraint on `(entryId, name)` because duplicate Sense names are valid.
 
 ## Headless UI State (`@dictos/react`)
 

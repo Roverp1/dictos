@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 
-import type { CliContext } from "../app/types";
+import type { CliContext, CliDependencies } from "../app/types";
 import {
   getDependenciesOrExit,
   handleExpectedError,
@@ -187,6 +187,7 @@ export const registerDescriptionCommands = (
           return handleExpectedError(context, proposal);
         const accepted = await acceptProposal(
           context,
+          dependencies,
           proposal,
           options.allowDuplicate === true
         );
@@ -236,6 +237,7 @@ function parseDescriptionTypes(
 
 async function acceptProposal(
   context: CliContext,
+  dependencies: CliDependencies,
   proposal: DescriptionGenerationProposal,
   allowDuplicate: boolean
 ) {
@@ -244,12 +246,25 @@ async function acceptProposal(
     proposal.target.duplicateCandidateSenseId === null
   )
     return true;
-  context.output.writeData(
-    `Suspected duplicate Sense: ${proposal.target.duplicateCandidateSenseId}`
+  const candidate = await dependencies.senseService.getSenseById(
+    proposal.target.duplicateCandidateSenseId
   );
-  context.output.writeData(`Proposed Sense: ${proposal.target.senseName}`);
+  if (candidate instanceof Error) return candidate;
+  if (candidate !== null)
+    context.output.writeData(
+      `Suspected duplicate Sense: ${sanitizeTerminalText(candidate.id)}\t${sanitizeTerminalText(candidate.name)}`
+    );
+  context.output.writeData(
+    `Proposed Sense: ${sanitizeTerminalText(proposal.target.senseName)}`
+  );
   for (const description of proposal.descriptions)
-    context.output.writeData(`${description.type}\t${description.text}`);
+    context.output.writeData(
+      `${description.type}\t${sanitizeTerminalText(description.text)}`
+    );
   if (allowDuplicate) return true;
   return await context.terminalPrompt.confirm("Create duplicate Sense?");
+}
+
+function sanitizeTerminalText(value: string): string {
+  return value.replace(/[\u0000-\u001f\u007f-\u009f]/g, "");
 }

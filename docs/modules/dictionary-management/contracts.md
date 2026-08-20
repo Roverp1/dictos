@@ -8,7 +8,9 @@ The domain relies on these interfaces to persist data, abstracting away the conc
 
 - `FolderRepository`: Defines methods like `save()`, `findRoot()`, `findAll()`, `findByParentId()`, `update()`, and `delete()`.
 - `EntryRepository`: Defines methods like `save()`, `findById()`, `findByFolder()`, `update()`, and `delete()`.
-- `DescriptionRepository`: Defines methods like `save()`, `findByEntry()`, `update()`, and `delete()`.
+- `DescriptionRepository`: Defines `save()`, `findById()`, `findByEntry()`, `findBySense()`, typed `update()`, `assignSense()`, and `delete()`.
+- `SenseRepository`: Defines `save()`, `findById()`, `findByEntry()`, `update()`, and `delete({ id, cascade })`.
+- `DescriptionGenerationRepository`: Owns atomic persistence for an accepted Description Generation proposal. Its single `commitProposal()` operation creates or reuses a Sense, assigns an unassigned source Description when required, and saves generated Descriptions together.
 
 ## Core Services (`packages/core/src/services`)
 
@@ -16,7 +18,8 @@ These services expose the pure domain logic use-cases to the clients (e.g., the 
 
 - `FolderService`: Handles validation and execution for creating folders, renaming folders, fetching the root folder (`getRootFolder()`), fetching a folder by ID (`getFolderById()`), and fetching immediate subfolders (`getSubFolders()`).
 - `EntryService`: Exposes operations for `createEntry()`, `getEntryById()`, `getEntriesInFolder()`, `updateEntry()`, and `deleteEntry()`.
-- `DescriptionService`: Exposes operations for `createDescription()`, `getDescriptionsForEntry()`, `updateDescription()`, and `deleteDescription()`.
+- `DescriptionService`: Exposes `createDescription()`, `getDescriptionById()`, `getDescriptionsForEntry()`, `updateDescription()`, `assignToSense()`, `detachFromSense()`, and `deleteDescription()`. It enforces same-Entry assignment and prevents moving an assigned Description to another Entry.
+- `SenseService`: Exposes `createSense()`, `getSenseById()`, `getSensesForEntry()`, `renameSense()`, and `deleteSense()`. Deletion detaches Descriptions by default; callers must explicitly request cascading deletion.
 
 ## Headless Dictionary UI (`packages/react/src/modules/dictionary`)
 
@@ -37,7 +40,7 @@ Client applications remain responsible for presentation and input bindings. Each
 
 ## Command Client Dictionary Interface (`apps/cli`)
 
-The CLI exposes Folder, Entry, and Description management through Commander.js subcommands. It composes the same core services used by the TUI and Web client, operating on the shared local database.
+The CLI exposes Folder, Entry, Description, and Sense management through Commander.js subcommands. It composes the same Dictionary services used by the TUI and Web client, operating on the shared local database. Description Generation is composed separately for the CLI and is not part of shared React state.
 
 ## Notification Boundary (`packages/react/src/providers`)
 

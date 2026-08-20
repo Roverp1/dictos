@@ -1,10 +1,10 @@
 # System Overview: Dictos
 
-**Last Updated**: Aug 07, 2026 | **Version**: 1.0.0-draft
+**Last Updated**: Aug 20, 2026 | **Version**: 1.0.0-draft
 
 ## Project Purpose
 
-Dictos is a local-first, application for building and managing personal dictionaries. It allows users to capture text fragments (Entries) from digital reading, organize them into Folders, generate LLM-powered explanations (Descriptions) using reusable templates (Instructions), and export the data for spaced-repetition study (e.g., Anki). Users interact with Dictos through first-class clients: a Terminal UI, a Command Line Interface, and a Web client, with Mobile (React Native) planned for the future.
+Dictos is a local-first application for building and managing personal dictionaries. It allows users to save Entries from digital reading, organize them into Folders, group typed Descriptions under Senses, generate Descriptions with reusable Instructions, and export Dictionary data for spaced-repetition study. Users interact with Dictos through a Terminal UI, Command Client, and Web client, with Mobile planned for the future.
 
 ## High-Level Architecture
 
@@ -34,6 +34,7 @@ The project uses a monorepo structure. It employs Hexagonal Architecture to isol
 /packages/core/          # Pure domain entities, ports, and services
 /packages/react/         # Headless shared UI logic, Dictionary state/actions, and provider wiring
 /packages/db-core/       # Shared Drizzle schema, migrations, and generic repositories
+/packages/ai-sdk/        # OpenAI-compatible Description Generation and Model discovery adapter
 /packages/*-turso-sync/  # Platform-specific Turso DB clients (bun, wasm)
 /packages/*-storage/     # Platform-specific local storage adapters (fs, local-storage)
 /packages/eden-http/     # Elysia Eden HTTP client adapter
@@ -43,8 +44,8 @@ The project uses a monorepo structure. It employs Hexagonal Architecture to isol
 
 ## Domain Modules
 
-- **Dictionary Management**: Core domain handling `Entries`, `Descriptions`, `Folders`, and basic `Activity` tracking. See: [Documentation Module - Dictionary Management](./modules/dictionary-management/domain.md)
-- **Description Generation**: Manages reusable `Instructions`, `Provider Connections`, Model selection, and generation of typed `Descriptions` through provider-agnostic adapters.
+- **Dictionary Management**: Core domain handling `Entries`, `Descriptions`, `Senses`, `Folders`, and basic `Activity` tracking. See: [Documentation Module - Dictionary Management](./modules/dictionary-management/domain.md)
+- **Description Generation**: Manages reusable `Instructions`, device-local `Provider Connections`, Model selection, and typed Description Generation. `packages/core` owns its ports and services; `@dictos/ai-sdk` provides the OpenAI-compatible adapter. Generation is available only through the Command Client in this iteration. Provider credentials stay in device-local storage and never enter the synced Dictionary database or central server. See: [Documentation Module - Description Generation](./modules/description-generation/domain.md)
 - **Import/Export**: Handles ingesting raw text from various sources and `Export` of data (e.g., to Anki, JSON).
 - **Sync**: Handles the rules and conflict resolution for the bidirectional replication of private local data across a single user's devices. See: [Documentation Module - Sync](./modules/sync/domain.md)
 - **Social**: Handles `Mirroring` of data to the central server for public viewing and socialization features.

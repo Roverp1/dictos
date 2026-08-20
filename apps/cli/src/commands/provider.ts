@@ -37,6 +37,13 @@ export const registerProviderCommands = (
                 "Choose a Provider preset or a custom endpoint, not both.",
             })
           );
+        if (options.preset === undefined && options.baseUrl === undefined)
+          return handleExpectedError(
+            context,
+            new ValidationError({
+              reason: "Choose a Provider preset or a custom endpoint.",
+            })
+          );
         const dependencies = await getDependenciesOrExit(context);
         if (dependencies === null) return;
         const apiKey = await context.terminalPrompt.readSecret("API key: ");
@@ -77,7 +84,8 @@ export const registerProviderCommands = (
       const models =
         await dependencies.providerConnectionService.discoverModels(id);
       if (models instanceof Error) return handleExpectedError(context, models);
-      for (const model of models) context.output.writeData(model);
+      for (const model of models)
+        context.output.writeData(sanitizeTerminalText(model));
     });
   provider
     .command("update")
@@ -114,10 +122,16 @@ export const registerProviderCommands = (
         const updated =
           await dependencies.providerConnectionService.updateConnection({
             id,
-            name: options.name,
-            presetId: options.preset,
-            baseUrl: options.baseUrl,
-            apiKey,
+            ...(options.name === undefined ? {} : { name: options.name }),
+            ...(options.preset === undefined
+              ? options.baseUrl === undefined
+                ? {}
+                : { presetId: null }
+              : { presetId: options.preset }),
+            ...(options.baseUrl === undefined
+              ? {}
+              : { baseUrl: options.baseUrl }),
+            ...(apiKey === undefined ? {} : { apiKey }),
           });
         if (updated instanceof Error)
           return handleExpectedError(context, updated);
@@ -145,3 +159,7 @@ export const registerProviderCommands = (
         return handleExpectedError(context, deleted);
     });
 };
+
+function sanitizeTerminalText(value: string): string {
+  return value.replace(/[\u0000-\u001f\u007f-\u009f]/g, "");
+}
