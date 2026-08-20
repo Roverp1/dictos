@@ -155,7 +155,6 @@ function parseProposal(
   };
 }
 
-function sanitizeCause(cause: unknown): Error {
-  if (cause instanceof Error) return new Error(cause.message);
+function sanitizeCause(_cause: unknown): Error {
   return new Error("Provider request failed");
 }

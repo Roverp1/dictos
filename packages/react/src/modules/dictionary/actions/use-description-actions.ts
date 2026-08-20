@@ -110,7 +110,8 @@ export const useDescriptionActions = () => {
         return;
       }
 
-      const res = await descriptionService.updateDescription(targetItem.id, {
+      const res = await descriptionService.updateDescription({
+        id: targetItem.id,
         entryId: targetItem.entryId,
         text: trimmed,
       });

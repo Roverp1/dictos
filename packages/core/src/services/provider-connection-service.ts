@@ -114,9 +114,14 @@ export class ProviderConnectionService {
       return new ValidationError({
         reason: "A custom Provider endpoint is required.",
       });
-    if (!/^https?:\/\/[^\s]+$/i.test(input.baseUrl))
+    if (
+      !/^https:\/\/[^\s]+$/i.test(input.baseUrl) &&
+      !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/i.test(
+        input.baseUrl
+      )
+    )
       return new ValidationError({
-        reason: "Provider endpoint must use HTTP or HTTPS.",
+        reason: "Provider endpoint must use HTTPS unless it is local.",
       });
     return { name: input.name, presetId: null, baseUrl: input.baseUrl };
   }

@@ -7,12 +7,18 @@ CREATE TABLE `activities` (
 CREATE TABLE `descriptions` (
 	`id` text PRIMARY KEY DEFAULT (uuid_str(uuid7())) NOT NULL,
 	`entry_id` text NOT NULL,
+	`sense_id` text,
+	`type` text DEFAULT 'misc' NOT NULL,
 	`text` text NOT NULL,
 	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
 	`modified_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
-	FOREIGN KEY (`entry_id`) REFERENCES `entries`(`id`) ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY (`entry_id`) REFERENCES `entries`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`sense_id`) REFERENCES `senses`(`id`) ON UPDATE no action ON DELETE set null,
+	CONSTRAINT "description_type_check" CHECK("descriptions"."type" IN ('misc', 'translation', 'definition', 'example'))
 );
 --> statement-breakpoint
+CREATE INDEX `descriptions_entry_id_idx` ON `descriptions` (`entry_id`);--> statement-breakpoint
+CREATE INDEX `descriptions_sense_id_idx` ON `descriptions` (`sense_id`);--> statement-breakpoint
 CREATE TABLE `entries` (
 	`id` text PRIMARY KEY NOT NULL,
 	`text` text NOT NULL,
@@ -49,6 +55,16 @@ CREATE TABLE `outbox` (
 	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `senses` (
+	`id` text PRIMARY KEY DEFAULT (uuid_str(uuid7())) NOT NULL,
+	`entry_id` text NOT NULL,
+	`name` text NOT NULL,
+	`created_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
+	`modified_at` integer DEFAULT (strftime('%s', 'now')) NOT NULL,
+	FOREIGN KEY (`entry_id`) REFERENCES `entries`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `senses_entry_id_idx` ON `senses` (`entry_id`);--> statement-breakpoint
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY DEFAULT (uuid_str(uuid7())) NOT NULL,
 	`username` text NOT NULL,

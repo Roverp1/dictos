@@ -54,10 +54,10 @@ export const registerDescriptionCommands = (
         if (dependencies === null) return;
 
         const updatedDescription =
-          await dependencies.descriptionService.updateDescription(
-            descriptionId,
-            options
-          );
+          await dependencies.descriptionService.updateDescription({
+            id: descriptionId,
+            ...options,
+          });
 
         if (updatedDescription instanceof Error)
           return handleExpectedError(context, updatedDescription);

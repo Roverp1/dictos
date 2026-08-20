@@ -15,6 +15,7 @@ import {
   SqliteDescriptionRepository,
   SqliteEntryRepository,
   SqliteFolderRepository,
+  SqliteSenseRepository,
   SqliteUserRepository,
 } from "@dictos/db-core";
 import { CentralApiAdapter, HttpConnectivityAdapter } from "@dictos/eden-http";
@@ -78,6 +79,7 @@ export const createCliDependencies = async (): Promise<CliDependencyResult> => {
   const entryRepo = new SqliteEntryRepository(db, localState.deviceId);
   const folderRepo = new SqliteFolderRepository(db);
   const descriptionRepo = new SqliteDescriptionRepository(db);
+  const senseRepo = new SqliteSenseRepository(db);
   const userRepo = new SqliteUserRepository(db);
   const sessionRepo = new FsSessionRepository(dataDir);
 
@@ -91,7 +93,7 @@ export const createCliDependencies = async (): Promise<CliDependencyResult> => {
   const dependencies: CliDependencies = {
     entryService: new EntryService(entryRepo),
     folderService: new FolderService(folderRepo),
-    descriptionService: new DescriptionService(descriptionRepo),
+    descriptionService: new DescriptionService(descriptionRepo, senseRepo),
     authService: new AuthService(
       centralApiAdapter,
       sessionRepo,
