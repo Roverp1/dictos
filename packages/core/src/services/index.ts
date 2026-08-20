@@ -1,6 +1,9 @@
 export * from "./entry-service";
 export * from "./folder-service";
 export * from "./description-service";
+export * from "./sense-service";
+export * from "./instruction-service";
+export * from "./description-generation-service";
+export * from "./provider-connection-service";
 export * from "./auth-service";
 export * from "./sync-service";
-

@@ -22,9 +22,24 @@ export class StorageError extends errore.createTaggedError({
   message: "Storage operation $operation failed. Reason: $reason",
 }) {}
 
-export class LlmError extends errore.createTaggedError({
-  name: "LlmError",
-  message: "Llm operation $operation failed",
+export class DescriptionGenerationError extends errore.createTaggedError({
+  name: "DescriptionGenerationError",
+  message: "Description Generation $operation failed: $reason",
+}) {}
+
+export class InvalidGenerationResponseError extends errore.createTaggedError({
+  name: "InvalidGenerationResponseError",
+  message: "Description Generation response was invalid: $reason",
+}) {}
+
+export class GenerationConflictError extends errore.createTaggedError({
+  name: "GenerationConflictError",
+  message: "Description Generation proposal conflicts: $reason",
+}) {}
+
+export class ModelDiscoveryError extends errore.createTaggedError({
+  name: "ModelDiscoveryError",
+  message: "Model discovery $operation failed: $reason",
 }) {}
 
 export class AuthError extends errore.createTaggedError({

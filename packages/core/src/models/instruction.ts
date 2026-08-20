@@ -8,10 +8,10 @@ export interface Instruction {
   modifiedAt: Date;
 }
 
-export type NewInstruction = Omit<
-  Instruction,
-  "id" | "createdAt" | "modifiedAt"
->;
+export interface NewInstruction {
+  name?: string | null;
+  text: string;
+}
 
 export function validateNewInstruction(
   data: NewInstruction
