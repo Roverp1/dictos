@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText, Output } from "ai";
+import { generateText, jsonSchema, Output } from "ai";
 import * as errore from "@dictos/errore";
 
 import {
@@ -26,7 +26,7 @@ export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationP
       baseURL: request.connection.baseUrl,
       apiKey: request.connection.apiKey,
       name: "dictos-provider",
-      fetch: this.fetchImplementation,
+      fetch: this.fetchImplementation as typeof fetch,
       supportsStructuredOutputs: false,
     });
     const targetShape =
@@ -36,7 +36,7 @@ export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationP
     const result = await generateText({
       model: provider.chatModel(request.modelId),
       output: Output.object({
-        schema: proposalSchema(request.target.kind === "new") as never,
+        schema: jsonSchema(proposalSchema(request.target.kind === "new") as never),
       }),
       prompt: JSON.stringify({
         instruction: request.instruction,
@@ -77,7 +77,9 @@ function proposalSchema(newSense: boolean) {
       ...(newSense
         ? {
             senseName: { type: "string" as const },
-            duplicateCandidateSenseId: { type: ["string", "null"] as const },
+            duplicateCandidateSenseId: {
+              type: ["string", "null"] as const,
+            },
           }
         : {}),
       descriptions: {
