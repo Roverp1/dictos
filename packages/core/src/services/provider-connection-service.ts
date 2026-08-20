@@ -48,6 +48,10 @@ export class ProviderConnectionService {
       return new ValidationError({
         reason: "Choose a Provider preset or a custom endpoint, not both.",
       });
+    if (input.baseUrl !== undefined && !isSecureOrLocalUrl(input.baseUrl))
+      return new ValidationError({
+        reason: "Provider endpoint must use HTTPS unless it is local.",
+      });
     const preset =
       input.presetId === undefined || input.presetId === null
         ? null
@@ -59,10 +63,12 @@ export class ProviderConnectionService {
     )
       return new ValidationError({ reason: "Unknown Provider preset." });
     return await this.connections.update(input.id, {
-      name: input.name,
-      presetId: input.presetId,
-      baseUrl: preset?.baseUrl ?? input.baseUrl,
-      apiKey: input.apiKey,
+      ...(input.name === undefined ? {} : { name: input.name }),
+      ...(input.presetId === undefined ? {} : { presetId: input.presetId }),
+      ...(preset?.baseUrl === undefined && input.baseUrl === undefined
+        ? {}
+        : { baseUrl: preset?.baseUrl ?? input.baseUrl! }),
+      ...(input.apiKey === undefined ? {} : { apiKey: input.apiKey }),
     });
   }
 
@@ -114,15 +120,17 @@ export class ProviderConnectionService {
       return new ValidationError({
         reason: "A custom Provider endpoint is required.",
       });
-    if (
-      !/^https:\/\/[^\s]+$/i.test(input.baseUrl) &&
-      !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/i.test(
-        input.baseUrl
-      )
-    )
+    if (!isSecureOrLocalUrl(input.baseUrl))
       return new ValidationError({
         reason: "Provider endpoint must use HTTPS unless it is local.",
       });
     return { name: input.name, presetId: null, baseUrl: input.baseUrl };
   }
+}
+
+function isSecureOrLocalUrl(value: string): boolean {
+  return (
+    /^https:\/\/[^\s]+$/i.test(value) ||
+    /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/i.test(value)
+  );
 }
