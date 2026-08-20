@@ -13,6 +13,7 @@
     "apps/cli": {
       "name": "@dictos/cli",
       "dependencies": {
+        "@dictos/ai-sdk": "workspace:*",
         "@dictos/bun-turso-sync": "workspace:*",
         "@dictos/core": "workspace:*",
         "@dictos/db-core": "workspace:*",

@@ -13,17 +13,29 @@ import type { CliDependencies, CliDependencyResult } from "./types";
 import { BunTursoClient } from "@dictos/bun-turso-sync";
 import {
   SqliteDescriptionRepository,
+  SqliteDescriptionGenerationRepository,
   SqliteEntryRepository,
   SqliteFolderRepository,
+  SqliteInstructionRepository,
   SqliteSenseRepository,
   SqliteUserRepository,
 } from "@dictos/db-core";
 import { CentralApiAdapter, HttpConnectivityAdapter } from "@dictos/eden-http";
 import {
+  AiSdkDescriptionGenerationAdapter,
+  OpenAiCompatibleModelDiscoveryAdapter,
+  StaticProviderPresetCatalog,
+} from "@dictos/ai-sdk";
+import { FsProviderConnectionRepository } from "@dictos/fs-storage";
+import {
   AuthService,
   DescriptionService,
+  DescriptionGenerationService,
   EntryService,
   FolderService,
+  InstructionService,
+  ProviderConnectionService,
+  SenseService,
   SyncService,
 } from "@dictos/core";
 
@@ -80,6 +92,11 @@ export const createCliDependencies = async (): Promise<CliDependencyResult> => {
   const folderRepo = new SqliteFolderRepository(db);
   const descriptionRepo = new SqliteDescriptionRepository(db);
   const senseRepo = new SqliteSenseRepository(db);
+  const instructionRepo = new SqliteInstructionRepository(db);
+  const descriptionGenerationRepo = new SqliteDescriptionGenerationRepository(
+    db
+  );
+  const providerConnectionRepo = new FsProviderConnectionRepository(dataDir);
   const userRepo = new SqliteUserRepository(db);
   const sessionRepo = new FsSessionRepository(dataDir);
 
@@ -94,6 +111,22 @@ export const createCliDependencies = async (): Promise<CliDependencyResult> => {
     entryService: new EntryService(entryRepo),
     folderService: new FolderService(folderRepo),
     descriptionService: new DescriptionService(descriptionRepo, senseRepo),
+    senseService: new SenseService(senseRepo),
+    instructionService: new InstructionService(instructionRepo),
+    providerConnectionService: new ProviderConnectionService(
+      providerConnectionRepo,
+      new StaticProviderPresetCatalog(),
+      new OpenAiCompatibleModelDiscoveryAdapter()
+    ),
+    descriptionGenerationService: new DescriptionGenerationService(
+      descriptionRepo,
+      entryRepo,
+      instructionRepo,
+      providerConnectionRepo,
+      senseRepo,
+      new AiSdkDescriptionGenerationAdapter(),
+      descriptionGenerationRepo
+    ),
     authService: new AuthService(
       centralApiAdapter,
       sessionRepo,

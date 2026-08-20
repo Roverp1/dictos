@@ -1,9 +1,13 @@
 import type {
   AuthService,
+  DescriptionGenerationService,
   DescriptionService,
   EntryService,
   FolderService,
+  InstructionService,
+  ProviderConnectionService,
   SessionRepository,
+  SenseService,
   SyncService,
 } from "@dictos/core";
 import type { Logger } from "@dictos/logger";
@@ -11,7 +15,7 @@ import type { Logger } from "@dictos/logger";
 import type {
   CliDependencyError,
   DatabaseInUseError,
-  PasswordPromptError,
+  PromptError,
 } from "./errors";
 
 export const CliExitCode = {
@@ -28,6 +32,10 @@ export type CliDependencies = {
   entryService: EntryService;
   folderService: FolderService;
   descriptionService: DescriptionService;
+  senseService: SenseService;
+  instructionService: InstructionService;
+  providerConnectionService: ProviderConnectionService;
+  descriptionGenerationService: DescriptionGenerationService;
 
   authService: AuthService;
   syncService: SyncService;
@@ -44,8 +52,9 @@ export type CliOutput = {
   writeError(text: string): void;
 };
 
-export type PasswordPrompt = {
-  readPassword(label: string): Promise<string | PasswordPromptError>;
+export type TerminalPrompt = {
+  readSecret(label: string): Promise<string | PromptError>;
+  confirm(label: string): Promise<boolean | PromptError>;
 };
 
 export type CliDependencyResult =
@@ -55,6 +64,6 @@ export type CliDependencyResult =
 
 export type CliContext = {
   output: CliOutput;
-  passwordPrompt: PasswordPrompt;
+  terminalPrompt: TerminalPrompt;
   getDependencies(): Promise<CliDependencyResult>;
 };

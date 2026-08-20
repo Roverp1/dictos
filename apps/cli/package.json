@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@dictos/bun-turso-sync": "workspace:*",
+    "@dictos/ai-sdk": "workspace:*",
     "@dictos/core": "workspace:*",
     "@dictos/db-core": "workspace:*",
     "@dictos/eden-http": "workspace:*",

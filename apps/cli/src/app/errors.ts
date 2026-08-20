@@ -10,7 +10,7 @@ export class DatabaseInUseError extends errore.createTaggedError({
   message: "Dictos database is already open by another process",
 }) {}
 
-export class PasswordPromptError extends errore.createTaggedError({
-  name: "PasswordPromptError",
-  message: "Failed to read password from terminal: $reason",
+export class PromptError extends errore.createTaggedError({
+  name: "PromptError",
+  message: "Terminal prompt failed: $reason",
 }) {}

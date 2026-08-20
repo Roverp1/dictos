@@ -20,14 +20,14 @@ export const registerAuthCommands = (program: Command, context: CliContext) => {
       const dependencies = await getDependenciesOrExit(context);
       if (dependencies === null) return;
 
-      const password = await context.passwordPrompt.readPassword(
+      const password = await context.terminalPrompt.readSecret(
         "Type your password for creation:"
       );
       if (password instanceof Error) {
         return handleExpectedError(context, password);
       }
 
-      const passConfirmation = await context.passwordPrompt.readPassword(
+      const passConfirmation = await context.terminalPrompt.readSecret(
         "Type confirmation for your password:"
       );
       if (passConfirmation instanceof Error)
@@ -73,7 +73,7 @@ export const registerAuthCommands = (program: Command, context: CliContext) => {
       const dependencies = await getDependenciesOrExit(context);
       if (dependencies === null) return;
 
-      const password = await context.passwordPrompt.readPassword("Password:");
+      const password = await context.terminalPrompt.readSecret("Password:");
       if (password instanceof Error) {
         return handleExpectedError(context, password);
       }
