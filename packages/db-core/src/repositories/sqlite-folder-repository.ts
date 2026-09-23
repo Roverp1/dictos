@@ -1,4 +1,4 @@
-import { eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { v5 as uuidv5 } from "uuid";
 
 import {
@@ -12,6 +12,8 @@ import * as schema from "../schema/schema";
 import type { SqliteTursoDrizzleProxy } from "./types";
 
 const FOLDER_NAMESPACE = "dedc30c7-43ae-4ca3-9779-703ab44bc508";
+const ROOT_FOLDER_NAME = "/";
+const ROOT_FOLDER_ID = uuidv5(`root:${ROOT_FOLDER_NAME}`, FOLDER_NAMESPACE);
 
 export class SqliteFolderRepository implements FolderRepository {
   constructor(private db: SqliteTursoDrizzleProxy) {}
@@ -56,7 +58,7 @@ export class SqliteFolderRepository implements FolderRepository {
     const result = await this.db
       .select()
       .from(schema.foldersTable)
-      .where(isNull(schema.foldersTable.parentId))
+      .where(eq(schema.foldersTable.id, ROOT_FOLDER_ID))
       .catch(
         (e) =>
           new DbError({
@@ -67,13 +69,18 @@ export class SqliteFolderRepository implements FolderRepository {
       );
 
     if (result instanceof Error) return result;
-    if (!result[0])
+    const rootFolder = result[0];
+    if (
+      rootFolder === undefined ||
+      rootFolder.name !== ROOT_FOLDER_NAME ||
+      rootFolder.parentId !== null
+    )
       return new DbError({
         operation: "select_root_folder",
         reason: "Root Folder not found",
       });
 
-    return result[0];
+    return rootFolder;
   }
 
   async findById(id: string): Promise<Folder | DbError | null> {
@@ -135,6 +142,16 @@ export class SqliteFolderRepository implements FolderRepository {
     id: string,
     data: Partial<Omit<Folder, "id" | "createdAt" | "modifiedAt">>
   ): Promise<Folder | DbError> {
+    if (
+      id === ROOT_FOLDER_ID &&
+      ((data.name !== undefined && data.name !== ROOT_FOLDER_NAME) ||
+        (data.parentId !== undefined && data.parentId !== null))
+    )
+      return new DbError({
+        operation: "update_folder",
+        reason: "Root Folder identity cannot be changed",
+      });
+
     const result = await this.db
       .update(schema.foldersTable)
       .set(data)
@@ -183,7 +200,7 @@ export class SqliteFolderRepository implements FolderRepository {
           operation: "select_folder",
           reason: "No row returned",
         });
-      if (targetFolder.parentId === null)
+      if (targetFolder.id === ROOT_FOLDER_ID)
         return new DbError({
           operation: "delete_folder",
           reason: "Root Folder cannot be deleted",

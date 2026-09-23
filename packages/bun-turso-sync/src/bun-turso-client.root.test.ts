@@ -38,7 +38,35 @@ test("does not delete the root Folder", async () => {
   await fs.rm(directory, { recursive: true, force: true });
 });
 
-test("returns a database error when the root Folder is missing", async () => {
+test("does not allow the root Folder identity to change", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-root-"));
+  const client = await BunTursoClient.create(
+    path.join(directory, "dictos.db"),
+    testLogger
+  );
+  const folders = new SqliteFolderRepository(client.db);
+  const root = await folders.findRoot();
+  if (root instanceof Error) throw root;
+  const otherTopLevelFolder = await folders.save({
+    name: "other",
+    parentId: null,
+  });
+  if (otherTopLevelFolder instanceof Error) throw otherTopLevelFolder;
+
+  expect(
+    await folders.update(root.id, { parentId: otherTopLevelFolder.id })
+  ).toBeInstanceOf(DbError);
+  expect(await folders.update(root.id, { name: "renamed" })).toBeInstanceOf(
+    DbError
+  );
+  expect(await folders.findRoot()).toEqual(root);
+
+  const closed = await client.close();
+  if (closed instanceof Error) throw closed;
+  await fs.rm(directory, { recursive: true, force: true });
+});
+
+test("does not treat another top-level Folder as root", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-root-"));
   const client = await BunTursoClient.create(
     path.join(directory, "dictos.db"),
@@ -52,6 +80,11 @@ test("returns a database error when the root Folder is missing", async () => {
   await client.db
     .delete(schema.foldersTable)
     .where(eq(schema.foldersTable.id, root.id));
+  const otherTopLevelFolder = await folders.save({
+    name: "other",
+    parentId: null,
+  });
+  if (otherTopLevelFolder instanceof Error) throw otherTopLevelFolder;
 
   expect(await folders.findRoot()).toBeInstanceOf(DbError);
 
