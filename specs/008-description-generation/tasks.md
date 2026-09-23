@@ -69,10 +69,10 @@ _(The only new user interface is the Command Client; TUI/Web receive compatibili
 _(Prove destructive schema reset, transaction safety, and external boundaries before documentation is absorbed.)_
 
 - [ ] T041 [US1] [US2]: Apply the regenerated baseline to a fresh Bun Turso database and verify tables, indexes, checks, foreign keys, and lifecycle triggers.
-- [ ] T042 [P] [US1] [US2]: Apply the regenerated baseline through the WASM migrator to a fresh OPFS test database and verify the same schema and trigger behavior.
+- [ ] T042 [P] [US1] [US2]: Add cross-platform browser E2E coverage that applies the regenerated baseline through the WASM migrator to fresh OPFS storage and verifies schema and trigger behavior without adding a package-local WASM test runner.
 - [ ] T043 [US1] [US2]: Reset development Bun databases, browser OPFS databases, and the development remote Sync database so no replica retains the previous migration journal before Sync is re-enabled.
-- [ ] T044 [US4] [US5]: Add a real-database integration test that forces failure after the first generation write and proves the Sense, source assignment, and generated Descriptions all roll back.
-- [ ] T045 [P] [US1] [US5]: Add real-database integration coverage for default Sense detachment, explicit cascade deletion, cross-Entry assignment rejection, stale proposals, and wrong existing-Sense targets.
+- [ ] T044 [US4] [US5]: Add a runner-neutral repository contract backed by a real database that forces failure after the first generation write and proves the Sense, source assignment, and generated Descriptions all roll back.
+- [ ] T045 [P] [US1] [US5]: Add runner-neutral repository contracts backed by a real database for default Sense detachment, explicit cascade deletion and rollback, stale expected Senses, and wrong existing-Sense targets; cover cross-Entry assignment in the core Description service.
 - [ ] T046 [P] [US3] [US5]: Add real-filesystem tests for malformed-but-valid JSON, temporary-file cleanup, final `0o600` mode, credential redaction, and connection update/delete behavior.
 - [ ] T047 [P] [US3] [US4] [US5]: Add deterministic provider-boundary tests for preset/custom endpoints, Model discovery, valid proposals, malformed objects, unsupported output, sanitized errors, and absence of automatic retries.
 - [ ] T048 [P] [US4] [US5]: Add CLI integration coverage for interactive duplicate acceptance/discard and scripted `--allow-duplicate` without issuing a second model request.

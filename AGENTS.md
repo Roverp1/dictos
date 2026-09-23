@@ -6,6 +6,8 @@ This is a **Bun + Turborepo** monorepo building a local-first application with c
 
 > **CRITICAL**: For any large features, structural changes, or if you are unsure about the domain, you MUST read `docs/system-overview.md` and `CONTEXT.md` before proceeding.
 
+Before changing a package's dependencies, test runner, build tooling, or runtime assumptions, or reviewing package changes, read the nearest `AGENTS.md` and package `README.md`. Review agents must include those files as standards sources. Package-specific instructions override generic repository guidance. If the documents still conflict, stop and ask instead of guessing.
+
 - **Hexagonal Architecture**: Core domain logic lives in `packages/core`. It **MUST NOT** depend on external libraries, React, UI frameworks, or database drivers. Use Dependency Injection (ports/adapters).
 - **Headless UI**: `@dictos/react` acts as a headless controller for React state and actions. It is shared across TUI and Web clients.
 - **Error Handling**: Follow "errors as values" using the `errore` package (return `ReturnType | ErrorType` unions). **Do not use `throw` or `try/catch`** unless dealing with unrecoverable crashes. Always activate `errore` skill.
