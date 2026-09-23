@@ -1,0 +1,9 @@
+{
+  "$schema": "https://www.schemastore.org/tsconfig",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "vite/client", "vitest/globals"]
+  },
+  "include": ["src/**/*.test.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

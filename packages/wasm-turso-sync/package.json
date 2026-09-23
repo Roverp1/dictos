@@ -7,11 +7,16 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json"
   },
   "devDependencies": {
+    "@types/node": "^24.12.3",
+    "@vitest/browser-playwright": "5.0.0",
+    "playwright": "1.57.0",
     "typescript": "^6.0.0",
-    "vite": "^8.0.15"
+    "vite": "^8.0.15",
+    "vitest": "5.0.0"
   },
   "dependencies": {
     "@dictos/core": "workspace:*",
