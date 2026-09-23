@@ -1,17 +1,17 @@
-import { describe } from "bun:test";
-import { spawn, spawnSync, type Subprocess, type SyncSubprocess } from "bun";
+import { describe, test } from "bun:test";
+import { spawn, type Subprocess } from "bun";
+import { mkdir, rm } from "fs/promises";
+import { randomUUID } from "crypto";
 import path from "path";
 
 import {
-  runSyncContractTests,
-  TEST_DIR,
+  syncPortContract,
   type SyncContractHarness,
 } from "@dictos/core/testing";
 import { SqliteEntryRepository, SqliteFolderRepository } from "@dictos/db-core";
 import type { Logger } from "@dictos/logger";
 
 import { BunTursoClient } from "./bun-turso-client";
-import { randomUUID } from "crypto";
 
 const testLogger: Logger = {
   trace: () => {},
@@ -23,45 +23,65 @@ const testLogger: Logger = {
   child: () => testLogger,
 };
 
-let syncServerProcess: Subprocess | null = null;
-const SYNC_PORT = 9090;
+async function withBunSyncHarness(
+  run: (harness: SyncContractHarness) => Promise<void>
+) {
+  const testDirectory = path.resolve(
+    process.cwd(),
+    ".test-data/sync-tests",
+    randomUUID()
+  );
+  await mkdir(testDirectory, { recursive: true });
+  const port = 10_000 + Math.floor(Math.random() * 50_000);
+  let server: Subprocess | undefined;
+  const clients: BunTursoClient[] = [];
 
-const bunHarness: SyncContractHarness = {
-  setupRemoteServer: async (serverDbPath) => {
-    syncServerProcess = spawn(
-      ["tursodb", serverDbPath, "--sync-server", `0.0.0.0:${SYNC_PORT}`],
-      {
-        stdout: "ignore",
-        stderr: "ignore",
-      }
+  try {
+    server = spawn(
+      [
+        "tursodb",
+        path.join(testDirectory, "server.db"),
+        "--sync-server",
+        `0.0.0.0:${port}`,
+      ],
+      { stdout: "ignore", stderr: "ignore" }
     );
+    const harness: SyncContractHarness = {
+      remoteUrl: `http://127.0.0.1:${port}`,
+      async createClient(name) {
+        const client = await BunTursoClient.create(
+          path.join(testDirectory, `${name}.db`),
+          testLogger
+        );
+        clients.push(client);
 
-    // await new Promise((resolve) => setTimeout(resolve, 500));
-
-    return `http://127.0.0.1:${SYNC_PORT}`;
-  },
-
-  teardownRemoteServer: async () => {
-    if (!syncServerProcess) return;
-
-    syncServerProcess.kill();
-    syncServerProcess = null;
-  },
-
-  createClient: async (localDbPath: string) => {
-    const absolutePath = path.resolve(process.cwd(), localDbPath);
-
-    const client = await BunTursoClient.create(absolutePath, testLogger);
-    const dbProxy = client.db;
-
-    return {
-      sync: client,
-      entryRepo: new SqliteEntryRepository(dbProxy, randomUUID()),
-      folderRepo: new SqliteFolderRepository(dbProxy),
+        return {
+          sync: client,
+          entryRepo: new SqliteEntryRepository(client.db, randomUUID()),
+          folderRepo: new SqliteFolderRepository(client.db),
+        };
+      },
     };
-  },
-};
 
-describe("BunTursoClient", () => {
-  runSyncContractTests(bunHarness);
+    await run(harness);
+  } finally {
+    if (server) {
+      server.kill();
+      await server.exited;
+    }
+    const closeResults = await Promise.all(
+      clients.reverse().map((client) => client.close())
+    );
+    await rm(testDirectory, { recursive: true, force: true });
+    const closeError = closeResults.find((result) => result instanceof Error);
+    if (closeError instanceof Error) throw closeError;
+  }
+}
+
+describe("BunTursoClient SyncPort contract", () => {
+  for (const contractCase of syncPortContract) {
+    test(contractCase.name, () =>
+      withBunSyncHarness((harness) => contractCase.run(harness))
+    );
+  }
 });
