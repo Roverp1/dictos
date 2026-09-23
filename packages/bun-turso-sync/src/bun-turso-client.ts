@@ -123,11 +123,34 @@ export class BunTursoClient implements SyncPort {
     logger.debug("Database migrations applied successfully");
 
     const folderRepo = new SqliteFolderRepository(db);
-    await folderRepo.save({ name: "/", parentId: null, privacy: "private" });
+    const rootFolder = await folderRepo.save({
+      name: "/",
+      parentId: null,
+      privacy: "private",
+    });
+    if (rootFolder instanceof Error) {
+      logger.fatal("Root Folder initialization failed", rootFolder);
+      const closeResult = await instance.close();
+      if (closeResult instanceof Error)
+        logger.error("Database cleanup failed", closeResult);
+      throw rootFolder;
+    }
 
     logger.info("Local database is ready");
 
     return instance;
+  }
+
+  async close(): Promise<void | DbError> {
+    const result = await this.client.close().catch(
+      (cause) =>
+        new DbError({
+          operation: "close_database",
+          reason: "Exception",
+          cause,
+        })
+    );
+    if (result instanceof Error) return result;
   }
 
   async connectRemote(url: string, token: string): Promise<void | SyncError> {

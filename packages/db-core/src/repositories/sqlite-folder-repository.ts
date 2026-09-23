@@ -67,8 +67,13 @@ export class SqliteFolderRepository implements FolderRepository {
       );
 
     if (result instanceof Error) return result;
+    if (!result[0])
+      return new DbError({
+        operation: "select_root_folder",
+        reason: "Root Folder not found",
+      });
 
-    return result[0]!;
+    return result[0];
   }
 
   async findById(id: string): Promise<Folder | DbError | null> {
