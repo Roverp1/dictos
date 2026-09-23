@@ -1,12 +1,7 @@
 import { connect, type Database } from "@tursodatabase/sync-wasm/vite";
 import { drizzle } from "drizzle-orm/sqlite-proxy";
 
-import {
-  DbError,
-  type SyncPort,
-  type SyncResult,
-  SyncError,
-} from "@dictos/core";
+import { type SyncPort, type SyncResult, SyncError } from "@dictos/core";
 import { schema, SqliteFolderRepository } from "@dictos/db-core";
 import type { Logger } from "@dictos/logger";
 
@@ -115,9 +110,6 @@ export class WasmTursoClient implements SyncPort {
 
     if (migrationRes instanceof Error) {
       logger.fatal("Database migration failed during startup", migrationRes);
-      const closeResult = await instance.close();
-      if (closeResult instanceof Error)
-        logger.error("Database cleanup failed", closeResult);
       throw migrationRes;
     }
 
@@ -131,27 +123,12 @@ export class WasmTursoClient implements SyncPort {
     });
     if (rootFolder instanceof Error) {
       logger.fatal("Root Folder initialization failed", rootFolder);
-      const closeResult = await instance.close();
-      if (closeResult instanceof Error)
-        logger.error("Database cleanup failed", closeResult);
       throw rootFolder;
     }
 
     logger.info("Local database is ready");
 
     return instance;
-  }
-
-  async close(): Promise<void | DbError> {
-    const result = await this.client.close().catch(
-      (cause) =>
-        new DbError({
-          operation: "close_database",
-          reason: "Exception",
-          cause,
-        })
-    );
-    if (result instanceof Error) return result;
   }
 
   async connectRemote(url: string, token: string): Promise<void | SyncError> {
