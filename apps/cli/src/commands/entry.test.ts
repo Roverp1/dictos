@@ -84,7 +84,7 @@ function createContext() {
 }
 
 afterEach(() => {
-  process.exitCode = undefined;
+  process.exitCode = 0;
 });
 
 describe("entry commands", () => {

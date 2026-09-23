@@ -143,7 +143,7 @@ async function runGenerate(context: CliContext, types = "definition") {
 }
 
 afterEach(() => {
-  process.exitCode = undefined;
+  process.exitCode = 0;
 });
 
 describe("description generate", () => {
