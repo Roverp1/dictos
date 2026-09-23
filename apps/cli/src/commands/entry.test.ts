@@ -1,54 +1,46 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import type { NewEntry } from "@dictos/core";
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
+import { BunTursoClient } from "@dictos/bun-turso-sync";
+import { EntryService, FolderService } from "@dictos/core";
+import { SqliteEntryRepository, SqliteFolderRepository } from "@dictos/db-core";
+import type { Logger } from "@dictos/logger";
 
 import { createCliProgram } from "../app/program";
 import type { CliContext, CliDependencies } from "../app/types";
 
-const rootFolder = {
-  id: "root-folder-id",
-  name: "/",
-  parentId: null,
-  privacy: "private" as const,
-  createdAt: new Date(0),
-  modifiedAt: new Date(0),
+const testLogger: Logger = {
+  trace: () => {},
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  fatal: () => {},
+  child: () => testLogger,
 };
 
-function createContext() {
+async function createFixture() {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "dictos-cli-entry-")
+  );
+  const client = await BunTursoClient.create(
+    path.join(directory, "dictos.db"),
+    testLogger
+  );
+  const folderService = new FolderService(
+    new SqliteFolderRepository(client.db)
+  );
+  const entryService = new EntryService(
+    new SqliteEntryRepository(client.db, crypto.randomUUID())
+  );
   const output: string[] = [];
-  let createInput: NewEntry | null = null;
-  let listedFolderId: string | null = null;
-
   const dependencies = {
-    folderService: {
-      async getRootFolder() {
-        return rootFolder;
-      },
-    },
-    entryService: {
-      async createEntry(input: NewEntry) {
-        createInput = input;
-        return {
-          id: "entry-id",
-          ...input,
-          createdAt: new Date(0),
-          modifiedAt: new Date(0),
-        };
-      },
-      async getEntriesInFolder(folderId: string) {
-        listedFolderId = folderId;
-        return [
-          {
-            id: "entry-id",
-            folderId,
-            text: "hello",
-            createdAt: new Date(0),
-            modifiedAt: new Date(0),
-          },
-        ];
-      },
-    },
-  } as unknown as CliDependencies;
-
+    folderService,
+    entryService,
+  } as CliDependencies;
   const context: CliContext = {
     output: {
       writeData(text) {
@@ -73,12 +65,13 @@ function createContext() {
 
   return {
     context,
+    entryService,
+    folderService,
     output,
-    get createInput() {
-      return createInput;
-    },
-    get listedFolderId() {
-      return listedFolderId;
+    async cleanup() {
+      const closed = await client.close();
+      if (closed instanceof Error) throw closed;
+      await fs.rm(directory, { recursive: true, force: true });
     },
   };
 }
@@ -89,62 +82,95 @@ afterEach(() => {
 
 describe("entry commands", () => {
   test("creates an Entry in the root Folder when --folder is omitted", async () => {
-    const fixture = createContext();
+    const fixture = await createFixture();
 
     await createCliProgram(fixture.context)
       .exitOverride()
       .parseAsync(["entry", "create", "--text", "hello"], { from: "user" });
 
-    expect(fixture.createInput).toEqual({
-      folderId: "root-folder-id",
-      text: "hello",
-    });
-    expect(fixture.output).toEqual(["entry-id"]);
+    const root = await fixture.folderService.getRootFolder();
+    if (root instanceof Error) throw root;
+    const entries = await fixture.entryService.getEntriesInFolder(root.id);
+    if (entries instanceof Error) throw entries;
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ folderId: root.id, text: "hello" });
+    expect(fixture.output).toEqual([entries[0]!.id]);
+
+    await fixture.cleanup();
   });
 
   test("lists Entries in the root Folder when --folder is omitted", async () => {
-    const fixture = createContext();
+    const fixture = await createFixture();
+    const root = await fixture.folderService.getRootFolder();
+    if (root instanceof Error) throw root;
+    const entry = await fixture.entryService.createEntry({
+      folderId: root.id,
+      text: "hello",
+    });
+    if (entry instanceof Error) throw entry;
 
     await createCliProgram(fixture.context)
       .exitOverride()
       .parseAsync(["entry", "list"], { from: "user" });
 
-    expect(fixture.listedFolderId).toBe("root-folder-id");
-    expect(fixture.output).toEqual(["entry-id\thello"]);
+    expect(fixture.output).toEqual([`${entry.id}\thello`]);
+
+    await fixture.cleanup();
   });
 
   test("uses an explicitly selected Folder for Entry creation", async () => {
-    const fixture = createContext();
+    const fixture = await createFixture();
+    const root = await fixture.folderService.getRootFolder();
+    if (root instanceof Error) throw root;
+    const selectedFolder = await fixture.folderService.createFolder({
+      name: "selected",
+      parentId: root.id,
+    });
+    if (selectedFolder instanceof Error) throw selectedFolder;
 
     await createCliProgram(fixture.context)
       .exitOverride()
       .parseAsync(
-        [
-          "entry",
-          "create",
-          "--folder",
-          "selected-folder-id",
-          "--text",
-          "hello",
-        ],
+        ["entry", "create", "--folder", selectedFolder.id, "--text", "hello"],
         { from: "user" }
       );
 
-    expect(fixture.createInput).toEqual({
-      folderId: "selected-folder-id",
+    const entries = await fixture.entryService.getEntriesInFolder(
+      selectedFolder.id
+    );
+    if (entries instanceof Error) throw entries;
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      folderId: selectedFolder.id,
       text: "hello",
     });
+
+    await fixture.cleanup();
   });
 
   test("uses an explicitly selected Folder for Entry listing", async () => {
-    const fixture = createContext();
+    const fixture = await createFixture();
+    const root = await fixture.folderService.getRootFolder();
+    if (root instanceof Error) throw root;
+    const selectedFolder = await fixture.folderService.createFolder({
+      name: "selected",
+      parentId: root.id,
+    });
+    if (selectedFolder instanceof Error) throw selectedFolder;
+    const entry = await fixture.entryService.createEntry({
+      folderId: selectedFolder.id,
+      text: "hello",
+    });
+    if (entry instanceof Error) throw entry;
 
     await createCliProgram(fixture.context)
       .exitOverride()
-      .parseAsync(["entry", "list", "--folder", "selected-folder-id"], {
+      .parseAsync(["entry", "list", "--folder", selectedFolder.id], {
         from: "user",
       });
 
-    expect(fixture.listedFolderId).toBe("selected-folder-id");
+    expect(fixture.output).toEqual([`${entry.id}\thello`]);
+
+    await fixture.cleanup();
   });
 });
