@@ -40,7 +40,7 @@ Client applications remain responsible for presentation and input bindings. Each
 
 ## Command Client Dictionary Interface (`apps/cli`)
 
-The CLI exposes Folder, Entry, Description, and Sense management through Commander.js subcommands. It composes the same Dictionary services used by the TUI and Web client, operating on the shared local database. Description Generation is composed separately for the CLI and is not part of shared React state.
+The CLI exposes Folder, Entry, Description, and Sense management through Commander.js subcommands. It composes the same Dictionary services used by the TUI and Web client, operating on the shared local database. `entry create` and `entry list` use the root Folder when `--folder` is omitted; an explicit Folder ID selects another Folder. Description Generation is composed separately for the CLI and is not part of shared React state.
 
 ## Notification Boundary (`packages/react/src/providers`)
 
