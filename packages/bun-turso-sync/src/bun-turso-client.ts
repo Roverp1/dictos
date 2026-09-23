@@ -24,6 +24,7 @@ export class BunTursoClient implements SyncPort {
   public db: SqliteTursoDrizzleProxy;
   localDbPath: string;
   private credentials: SyncCredentials;
+  private pendingCheckpoint: Promise<void> = Promise.resolve();
 
   private constructor(
     client: Database,
@@ -142,6 +143,7 @@ export class BunTursoClient implements SyncPort {
   }
 
   async close(): Promise<void | DbError> {
+    await this.pendingCheckpoint;
     const result = await this.client.close().catch(
       (cause) =>
         new DbError({
@@ -210,11 +212,13 @@ export class BunTursoClient implements SyncPort {
       syncResult,
     });
 
-    this.client.checkpoint().catch((e) =>
-      this.logger.warn("Failed to checkpoint WAL after sync", {
-        err: e,
-      })
-    );
+    this.pendingCheckpoint = this.pendingCheckpoint
+      .then(() => this.client.checkpoint())
+      .catch((err) => {
+        this.logger.warn("Failed to checkpoint WAL after sync", {
+          err,
+        });
+      });
 
     return syncResult;
   }
