@@ -183,6 +183,11 @@ export class SqliteFolderRepository implements FolderRepository {
           operation: "select_folder",
           reason: "No row returned",
         });
+      if (targetFolder.parentId === null)
+        return new DbError({
+          operation: "delete_folder",
+          reason: "Root Folder cannot be deleted",
+        });
 
       const idsToDelete: string[] = [];
       const queue: string[] = [id];

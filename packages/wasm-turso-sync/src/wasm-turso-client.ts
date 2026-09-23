@@ -116,7 +116,15 @@ export class WasmTursoClient implements SyncPort {
     logger.debug("Database migrations applied successfully");
 
     const folderRepo = new SqliteFolderRepository(db);
-    await folderRepo.save({ name: "/", parentId: null, privacy: "private" });
+    const rootFolder = await folderRepo.save({
+      name: "/",
+      parentId: null,
+      privacy: "private",
+    });
+    if (rootFolder instanceof Error) {
+      logger.fatal("Root Folder initialization failed", rootFolder);
+      throw rootFolder;
+    }
 
     logger.info("Local database is ready");
 

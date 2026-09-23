@@ -4,8 +4,9 @@ import os from "node:os";
 import path from "node:path";
 
 import { DbError } from "@dictos/core";
-import { SqliteFolderRepository } from "@dictos/db-core";
+import { schema, SqliteFolderRepository } from "@dictos/db-core";
 import type { Logger } from "@dictos/logger";
+import { eq } from "drizzle-orm";
 
 import { BunTursoClient } from "./bun-turso-client";
 
@@ -19,6 +20,24 @@ const testLogger: Logger = {
   child: () => testLogger,
 };
 
+test("does not delete the root Folder", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-root-"));
+  const client = await BunTursoClient.create(
+    path.join(directory, "dictos.db"),
+    testLogger
+  );
+  const folders = new SqliteFolderRepository(client.db);
+  const root = await folders.findRoot();
+  if (root instanceof Error) throw root;
+
+  expect(await folders.delete(root.id)).toBeInstanceOf(DbError);
+  expect(await folders.findRoot()).toEqual(root);
+
+  const closed = await client.close();
+  if (closed instanceof Error) throw closed;
+  await fs.rm(directory, { recursive: true, force: true });
+});
+
 test("returns a database error when the root Folder is missing", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-root-"));
   const client = await BunTursoClient.create(
@@ -30,8 +49,9 @@ test("returns a database error when the root Folder is missing", async () => {
   const root = await folders.findRoot();
   if (root instanceof Error) throw root;
   expect(root).toMatchObject({ name: "/", parentId: null });
-  const deleted = await folders.delete(root.id);
-  if (deleted instanceof Error) throw deleted;
+  await client.db
+    .delete(schema.foldersTable)
+    .where(eq(schema.foldersTable.id, root.id));
 
   expect(await folders.findRoot()).toBeInstanceOf(DbError);
 
