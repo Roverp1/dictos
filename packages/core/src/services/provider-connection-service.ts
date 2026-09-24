@@ -44,7 +44,11 @@ export class ProviderConnectionService {
       return new ValidationError({
         reason: "Provider Connection name cannot be empty.",
       });
-    if (input.baseUrl !== undefined && input.presetId !== undefined)
+    if (
+      input.baseUrl !== undefined &&
+      input.presetId !== undefined &&
+      input.presetId !== null
+    )
       return new ValidationError({
         reason: "Choose a Provider preset or a custom endpoint, not both.",
       });
