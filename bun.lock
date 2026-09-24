@@ -122,6 +122,7 @@
         "@ai-sdk/openai-compatible": "^2.0.0",
         "@dictos/core": "workspace:*",
         "@dictos/errore": "workspace:*",
+        "@dictos/logger": "workspace:*",
         "ai": "^6.0.0",
       },
       "devDependencies": {
