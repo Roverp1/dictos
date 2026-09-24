@@ -40,7 +40,7 @@ _(Persistence adapters and core services can proceed in parallel once Phase 1 co
 - [ ] T020 [P] [US3]: Implement the static Provider preset catalog for OpenAI, OpenRouter, DeepSeek, and Groq plus custom endpoint resolution.
 - [ ] T021 [P] [US3] [US5]: Implement Model discovery through the selected connection's `/models` endpoint with sorted unique IDs, sanitized failures, and injected fetch.
 - [ ] T022 [US3] [US5]: Implement and test `ProviderConnectionService` for preset/custom connection validation, safe CRUD, secure credential replacement, preset listing, and Model discovery orchestration.
-- [ ] T023 [US4] [US5]: Implement the AI SDK Description Generation adapter with `createOpenAICompatible`, one non-streaming `generateText` request, `Output.object`, `json_object` mode, runtime schema validation, no retry, and sanitized provider errors.
+- [ ] T023 [US4] [US5]: Implement the AI SDK Description Generation adapter with `createOpenAICompatible`, one non-streaming `generateText` invocation, `Output.object`, `json_object` mode, runtime schema validation, at most two retries for retryable failures, a sanitized warning bridge, and sanitized provider errors.
 - [ ] T024 [US4] [US5]: Implement and unit-test `DescriptionGenerationService.createProposal()` for context loading, existing/new target selection, requested-type coverage, duplicate candidate validation, and zero persistence.
 - [ ] T025 [US4] [US5]: Implement and test `DescriptionGenerationService.commitProposal()` delegation and ensure accepted proposals return the persisted Sense, unchanged source Description, and generated Descriptions.
 - [ ] T026 [P] [US5]: Add adapter-level tests proving provider errors, Error causes, logs, and returned values cannot expose API keys, Authorization headers, request objects, or raw responses.
@@ -52,7 +52,7 @@ _(The only new user interface is the Command Client; TUI/Web receive compatibili
 
 - [ ] T028 [P] [US3] [US4]: Extract `createCliProgram(context): Command` and keep process argument parsing in the executable entrypoint so commands can be tested without auto-running the CLI.
 - [ ] T029 [P] [US3] [US5]: Replace the password-only prompt boundary with `TerminalPrompt.readSecret()` and `TerminalPrompt.confirm()`, preserving hidden input, cancellation, non-TTY errors, listener cleanup, and terminal-mode restoration.
-- [ ] T030 [US1] [US2] [US3] [US4]: Extend CLI dependency construction with Sense, Instruction, Provider Connection, Model discovery, generation, and atomic commit adapters/services.
+- [ ] T030 [US1] [US2] [US3] [US4]: Extend CLI dependency construction with Sense, Instruction, Provider Connection, Model discovery, generation, atomic commit adapters/services, and structured AI SDK warning routing.
 - [ ] T031 [P] [US1]: Add `sense create/list/update/delete` commands with ID output, `--yes`, default detachment, and explicit `--cascade` behavior.
 - [ ] T032 [P] [US1]: Extend Description commands with `--type`, typed list output, `assign-sense`, `detach-sense`, and same-Entry validation errors.
 - [ ] T033 [P] [US2]: Add Instruction CRUD commands with optional `--name`, `--clear-name`, ID-based references, and list output containing ID, empty optional name column, and full text.
@@ -74,7 +74,7 @@ _(Prove destructive schema reset, transaction safety, and external boundaries be
 - [ ] T044 [US4] [US5]: Add a runner-neutral repository contract backed by a real database that forces failure after the first generation write and proves the Sense, source assignment, and generated Descriptions all roll back.
 - [ ] T045 [P] [US1] [US5]: Add runner-neutral repository contracts backed by a real database for default Sense detachment, explicit cascade deletion and rollback, stale expected Senses, and wrong existing-Sense targets; cover cross-Entry assignment in the core Description service.
 - [ ] T046 [P] [US3] [US5]: Add real-filesystem tests for malformed-but-valid JSON, temporary-file cleanup, final `0o600` mode, credential redaction, and connection update/delete behavior.
-- [ ] T047 [P] [US3] [US4] [US5]: Add deterministic provider-boundary tests for preset/custom endpoints, Model discovery, valid proposals, malformed objects, unsupported output, sanitized errors, and absence of automatic retries.
+- [ ] T047 [P] [US3] [US4] [US5]: Add deterministic provider-boundary tests for preset/custom endpoints, Model discovery, valid proposals, malformed objects, unsupported output, sanitized warnings/errors, and at most two retries for retryable failures.
 - [ ] T048 [P] [US4] [US5]: Add CLI integration coverage for interactive duplicate acceptance/discard and scripted `--allow-duplicate` without issuing a second model request.
 - [ ] T049 [US1] [US2] [US3] [US4] [US5]: Run all package tests, `bun run typecheck`, Prettier checks, and security-sensitive secret searches; fix every failure before documentation work.
 - [ ] T050 [US3] [US4]: Perform a CLI smoke test against a controlled OpenAI-compatible endpoint covering Provider setup, Model selection, Instruction selection, new-Sense generation, and existing-Sense append.

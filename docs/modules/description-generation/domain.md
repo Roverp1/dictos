@@ -32,7 +32,7 @@ The Command Client discovers Models from a selected Provider Connection when its
 - Successful proposals cover every requested Description Type. They may include multiple Descriptions of the same type.
 - A source Description without a Sense joins the newly created Sense without changing its text or Description Type.
 - A duplicate candidate is a proposal state, not a failure. A user must decide before a duplicate is written.
-- Provider failures, malformed output, validation failure, and stale proposals write no partial Dictionary data. Description Generation does not retry automatically or stream output.
+- Provider failures, malformed output, validation failure, and stale proposals write no partial Dictionary data. The adapter permits at most two AI SDK retries for retryable provider failures; core and the Command Client do not retry generation. Description Generation does not stream output.
 - Provider Connections are not synced. Their API keys never enter the Dictionary database, central server, normal CLI output, or logs.
 
 ## Related Documents

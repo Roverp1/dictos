@@ -15,7 +15,7 @@
 
 ## Adapter Boundaries
 
-`@dictos/ai-sdk` implements Model discovery and Description Generation for OpenAI-compatible providers. The Description Generation adapter creates an AI SDK compatible provider with `supportsStructuredOutputs: false`, makes one non-streaming `generateText()` request using object output, and validates the result before returning it to core. It accepts injected `fetch` for provider-boundary tests. It does not retry, stream, persist data, or decide duplicate acceptance.
+`@dictos/ai-sdk` implements Model discovery and Description Generation for OpenAI-compatible providers. The Description Generation adapter creates an AI SDK compatible provider with `supportsStructuredOutputs: false`, makes one non-streaming `generateText()` invocation using object output, and validates the result before returning it to core. The prompt explicitly requires JSON and includes the exact output shape needed by `json_object` providers. AI SDK may retry a retryable provider failure at most twice; core and the Command Client do not retry generation. The package exposes a sanitized warning bridge that the Command Client composition root routes to structured logs instead of command output. The adapter accepts injected `fetch` for provider-boundary tests. It does not stream, persist data, or decide duplicate acceptance.
 
 The Model discovery adapter requests the selected connection's `/models` endpoint with its credential, validates the response, and returns sorted unique IDs. A user may supply a Model identifier without discovery.
 

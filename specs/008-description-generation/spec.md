@@ -61,7 +61,7 @@ When model during generation suspects that a proposed Sense duplicates an existi
   Given the user rejects a duplicate proposal, when the command finishes, then the proposed Sense and generated Descriptions are discarded and the source Description remains unchanged and unassigned.
 
 - **Scenario: Generation fails or returns malformed output**
-  Given the provider request fails or the response does not match the required proposal shape, when Dictos handles the result, then the command reports a clear failure, does not retry automatically, and writes no Sense, Description, or assignment.
+  Given a provider request still fails after at most two AI SDK retries or the response does not match the required proposal shape, when Dictos handles the result, then the command reports a clear failure and writes no Sense, Description, or assignment. Core and the Command Client do not issue additional generation requests.
 
 ## 4. Feature Boundaries (What is OUT of scope?)
 
@@ -71,7 +71,7 @@ When model during generation suspects that a proposed Sense duplicates an existi
 - [ ] No generation provenance, history, token usage, cost tracking, or persisted raw provider responses.
 - [ ] No free-form or user-defined Description Types beyond `misc`, `translation`, `definition`, and `example`.
 - [ ] No option to merge generated Descriptions into an existing suspected duplicate Sense.
-- [ ] No automatic model-request retries or streaming generation.
+- [ ] No application-level, unbounded, or non-retryable model-request retries. The adapter permits at most two AI SDK retries for retryable provider failures. Streaming generation remains out of scope.
 - [ ] No bundled provider/model catalog or dependency on a runtime catalog service.
 - [ ] No syncing of provider credentials or storage of those credentials in the Dictionary database or central server.
 - [ ] No native provider protocols outside the initially supported compatible provider interface.
