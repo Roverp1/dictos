@@ -4,6 +4,7 @@ import type { CliContext } from "../app/types";
 import {
   getDependenciesOrExit,
   handleExpectedError,
+  logOperationCompleted,
   requireConfirmation,
 } from "../app/command-action";
 
@@ -17,10 +18,16 @@ export const registerProviderCommands = (
   provider.command("presets").action(async () => {
     const dependencies = await getDependenciesOrExit(context);
     if (dependencies === null) return;
-    for (const preset of dependencies.providerConnectionService.getPresets())
+    const presets = dependencies.providerConnectionService.getPresets();
+    for (const preset of presets)
       context.output.writeData(
         `${preset.id}\t${preset.name}\t${preset.baseUrl}`
       );
+    logOperationCompleted({
+      logger: dependencies.logger,
+      operation: "provider.presets",
+      context: { presetCount: presets.length },
+    });
   });
   provider
     .command("connect")
@@ -48,7 +55,11 @@ export const registerProviderCommands = (
         if (dependencies === null) return;
         const apiKey = await context.terminalPrompt.readSecret("API key: ");
         if (apiKey instanceof Error)
-          return handleExpectedError(context, apiKey);
+          return handleExpectedError(context, apiKey, {
+            logger: dependencies.logger,
+            operation: "provider.connect",
+            context: { phase: "read_credential" },
+          });
         const connection =
           await dependencies.providerConnectionService.createConnection({
             name: options.name,
@@ -57,10 +68,22 @@ export const registerProviderCommands = (
             apiKey,
           });
         if (connection instanceof Error)
-          return handleExpectedError(context, connection);
+          return handleExpectedError(context, connection, {
+            logger: dependencies.logger,
+            operation: "provider.connect",
+            context: { phase: "persist", presetId: options.preset ?? null },
+          });
         context.output.writeData(
           `Provider Connection created: ${connection.id}`
         );
+        logOperationCompleted({
+          logger: dependencies.logger,
+          operation: "provider.connect",
+          context: {
+            providerConnectionId: connection.id,
+            presetId: connection.presetId,
+          },
+        });
       }
     );
   provider.command("list").action(async () => {
@@ -69,11 +92,19 @@ export const registerProviderCommands = (
     const connections =
       await dependencies.providerConnectionService.getConnections();
     if (connections instanceof Error)
-      return handleExpectedError(context, connections);
+      return handleExpectedError(context, connections, {
+        logger: dependencies.logger,
+        operation: "provider.list",
+      });
     for (const connection of connections)
       context.output.writeData(
         `${connection.id}\t${connection.name}\t${connection.presetId ?? ""}\t${connection.baseUrl}`
       );
+    logOperationCompleted({
+      logger: dependencies.logger,
+      operation: "provider.list",
+      context: { providerConnectionCount: connections.length },
+    });
   });
   provider
     .command("models")
@@ -83,9 +114,19 @@ export const registerProviderCommands = (
       if (dependencies === null) return;
       const models =
         await dependencies.providerConnectionService.discoverModels(id);
-      if (models instanceof Error) return handleExpectedError(context, models);
+      if (models instanceof Error)
+        return handleExpectedError(context, models, {
+          logger: dependencies.logger,
+          operation: "provider.models",
+          context: { providerConnectionId: id },
+        });
       for (const model of models)
         context.output.writeData(sanitizeTerminalText(model));
+      logOperationCompleted({
+        logger: dependencies.logger,
+        operation: "provider.models",
+        context: { providerConnectionId: id, modelCount: models.length },
+      });
     });
   provider
     .command("update")
@@ -118,7 +159,14 @@ export const registerProviderCommands = (
           ? await context.terminalPrompt.readSecret("New API key: ")
           : undefined;
         if (apiKey instanceof Error)
-          return handleExpectedError(context, apiKey);
+          return handleExpectedError(context, apiKey, {
+            logger: dependencies.logger,
+            operation: "provider.update",
+            context: {
+              phase: "read_credential",
+              providerConnectionId: id,
+            },
+          });
         const updated =
           await dependencies.providerConnectionService.updateConnection({
             id,
@@ -134,8 +182,21 @@ export const registerProviderCommands = (
             ...(apiKey === undefined ? {} : { apiKey }),
           });
         if (updated instanceof Error)
-          return handleExpectedError(context, updated);
+          return handleExpectedError(context, updated, {
+            logger: dependencies.logger,
+            operation: "provider.update",
+            context: { phase: "persist", providerConnectionId: id },
+          });
         context.output.writeData(`Provider Connection updated: ${updated.id}`);
+        logOperationCompleted({
+          logger: dependencies.logger,
+          operation: "provider.update",
+          context: {
+            providerConnectionId: updated.id,
+            presetId: updated.presetId,
+            credentialReplaced: apiKey !== undefined,
+          },
+        });
       }
     );
   provider
@@ -156,7 +217,16 @@ export const registerProviderCommands = (
       const deleted =
         await dependencies.providerConnectionService.deleteConnection(id);
       if (deleted instanceof Error)
-        return handleExpectedError(context, deleted);
+        return handleExpectedError(context, deleted, {
+          logger: dependencies.logger,
+          operation: "provider.delete",
+          context: { providerConnectionId: id },
+        });
+      logOperationCompleted({
+        logger: dependencies.logger,
+        operation: "provider.delete",
+        context: { providerConnectionId: id },
+      });
     });
 };
 

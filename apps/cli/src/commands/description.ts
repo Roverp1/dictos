@@ -4,6 +4,7 @@ import type { CliContext, CliDependencies } from "../app/types";
 import {
   getDependenciesOrExit,
   handleExpectedError,
+  logOperationCompleted,
   requireConfirmation,
 } from "../app/command-action";
 import {
@@ -33,7 +34,12 @@ export const registerDescriptionCommands = (
       if (dependencies === null) return;
 
       const type = parseDescriptionType(options.type);
-      if (type instanceof Error) return handleExpectedError(context, type);
+      if (type instanceof Error)
+        return handleExpectedError(context, type, {
+          logger: dependencies.logger,
+          operation: "description.create",
+          context: { phase: "validate", entryId: options.entry },
+        });
       const newDescription: NewDescription = {
         entryId: options.entry,
         text: options.text,
@@ -44,9 +50,22 @@ export const registerDescriptionCommands = (
         await dependencies.descriptionService.createDescription(newDescription);
 
       if (createdDescription instanceof Error)
-        return handleExpectedError(context, createdDescription);
+        return handleExpectedError(context, createdDescription, {
+          logger: dependencies.logger,
+          operation: "description.create",
+          context: { phase: "persist", entryId: options.entry },
+        });
 
       context.output.writeData(createdDescription.id);
+      logOperationCompleted({
+        logger: dependencies.logger,
+        operation: "description.create",
+        context: {
+          descriptionId: createdDescription.id,
+          entryId: createdDescription.entryId,
+          descriptionType: createdDescription.type,
+        },
+      });
     });
 
   description
@@ -65,7 +84,12 @@ export const registerDescriptionCommands = (
         if (dependencies === null) return;
 
         const type = parseDescriptionType(options.type);
-        if (type instanceof Error) return handleExpectedError(context, type);
+        if (type instanceof Error)
+          return handleExpectedError(context, type, {
+            logger: dependencies.logger,
+            operation: "description.update",
+            context: { phase: "validate", descriptionId },
+          });
         const updatedDescription =
           await dependencies.descriptionService.updateDescription({
             id: descriptionId,
@@ -74,7 +98,20 @@ export const registerDescriptionCommands = (
           });
 
         if (updatedDescription instanceof Error)
-          return handleExpectedError(context, updatedDescription);
+          return handleExpectedError(context, updatedDescription, {
+            logger: dependencies.logger,
+            operation: "description.update",
+            context: { phase: "persist", descriptionId },
+          });
+        logOperationCompleted({
+          logger: dependencies.logger,
+          operation: "description.update",
+          context: {
+            descriptionId,
+            entryId: updatedDescription.entryId,
+            descriptionType: updatedDescription.type,
+          },
+        });
       }
     );
 
@@ -97,7 +134,16 @@ export const registerDescriptionCommands = (
       const deletedDescription =
         await dependencies.descriptionService.deleteDescription(descriptionId);
       if (deletedDescription instanceof Error)
-        return handleExpectedError(context, deletedDescription);
+        return handleExpectedError(context, deletedDescription, {
+          logger: dependencies.logger,
+          operation: "description.delete",
+          context: { descriptionId },
+        });
+      logOperationCompleted({
+        logger: dependencies.logger,
+        operation: "description.delete",
+        context: { descriptionId },
+      });
     });
 
   description
@@ -113,13 +159,25 @@ export const registerDescriptionCommands = (
           options.entry
         );
       if (descriptions instanceof Error)
-        return handleExpectedError(context, descriptions);
+        return handleExpectedError(context, descriptions, {
+          logger: dependencies.logger,
+          operation: "description.list",
+          context: { entryId: options.entry },
+        });
 
       for (const desc of descriptions) {
         context.output.writeData(
           `${desc.id}\t${desc.type}\t${desc.senseId ?? "-"}\t${desc.text}`
         );
       }
+      logOperationCompleted({
+        logger: dependencies.logger,
+        operation: "description.list",
+        context: {
+          entryId: options.entry,
+          descriptionCount: descriptions.length,
+        },
+      });
     });
 
   description
@@ -135,7 +193,16 @@ export const registerDescriptionCommands = (
         senseId: options.sense,
       });
       if (assigned instanceof Error)
-        return handleExpectedError(context, assigned);
+        return handleExpectedError(context, assigned, {
+          logger: dependencies.logger,
+          operation: "description.assign_sense",
+          context: { descriptionId, senseId: options.sense },
+        });
+      logOperationCompleted({
+        logger: dependencies.logger,
+        operation: "description.assign_sense",
+        context: { descriptionId, senseId: options.sense },
+      });
     });
 
   description
@@ -148,7 +215,16 @@ export const registerDescriptionCommands = (
       const detached =
         await dependencies.descriptionService.detachFromSense(descriptionId);
       if (detached instanceof Error)
-        return handleExpectedError(context, detached);
+        return handleExpectedError(context, detached, {
+          logger: dependencies.logger,
+          operation: "description.detach_sense",
+          context: { descriptionId },
+        });
+      logOperationCompleted({
+        logger: dependencies.logger,
+        operation: "description.detach_sense",
+        context: { descriptionId },
+      });
     });
 
   description
@@ -174,7 +250,17 @@ export const registerDescriptionCommands = (
         const dependencies = await getDependenciesOrExit(context);
         if (dependencies === null) return;
         const types = parseDescriptionTypes(options.types);
-        if (types instanceof Error) return handleExpectedError(context, types);
+        if (types instanceof Error)
+          return handleExpectedError(context, types, {
+            logger: dependencies.logger,
+            operation: "description.generate",
+            context: {
+              phase: "validate",
+              sourceDescriptionId: descriptionId,
+              providerConnectionId: options.provider,
+              modelId: options.model,
+            },
+          });
         const proposal =
           await dependencies.descriptionGenerationService.createProposal({
             sourceDescriptionId: descriptionId,
@@ -184,7 +270,18 @@ export const registerDescriptionCommands = (
             targetTypes: types,
           });
         if (proposal instanceof Error)
-          return handleExpectedError(context, proposal);
+          return handleExpectedError(context, proposal, {
+            logger: dependencies.logger,
+            operation: "description.generate",
+            context: {
+              phase: "proposal",
+              sourceDescriptionId: descriptionId,
+              instructionId: options.instruction,
+              providerConnectionId: options.provider,
+              modelId: options.model,
+              targetTypes: types,
+            },
+          });
         const accepted = await acceptProposal(
           context,
           dependencies,
@@ -192,9 +289,28 @@ export const registerDescriptionCommands = (
           options.allowDuplicate === true
         );
         if (accepted instanceof Error)
-          return handleExpectedError(context, accepted);
+          return handleExpectedError(context, accepted, {
+            logger: dependencies.logger,
+            operation: "description.generate",
+            context: {
+              phase: "duplicate_confirmation",
+              sourceDescriptionId: descriptionId,
+              providerConnectionId: options.provider,
+              modelId: options.model,
+            },
+          });
         if (!accepted) {
           context.output.writeData("Generation discarded");
+          logOperationCompleted({
+            logger: dependencies.logger,
+            operation: "description.generate",
+            context: {
+              outcome: "discarded",
+              sourceDescriptionId: descriptionId,
+              providerConnectionId: options.provider,
+              modelId: options.model,
+            },
+          });
           return;
         }
         const committed =
@@ -202,10 +318,31 @@ export const registerDescriptionCommands = (
             proposal
           );
         if (committed instanceof Error)
-          return handleExpectedError(context, committed);
+          return handleExpectedError(context, committed, {
+            logger: dependencies.logger,
+            operation: "description.generate",
+            context: {
+              phase: "commit",
+              sourceDescriptionId: descriptionId,
+              providerConnectionId: options.provider,
+              modelId: options.model,
+            },
+          });
         context.output.writeData(committed.sense.id);
         for (const generated of committed.generatedDescriptions)
           context.output.writeData(generated.id);
+        logOperationCompleted({
+          logger: dependencies.logger,
+          operation: "description.generate",
+          context: {
+            outcome: "committed",
+            sourceDescriptionId: descriptionId,
+            providerConnectionId: options.provider,
+            modelId: options.model,
+            senseId: committed.sense.id,
+            descriptionCount: committed.generatedDescriptions.length,
+          },
+        });
       }
     );
 };

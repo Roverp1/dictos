@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import * as errore from "@dictos/errore";
+import type { Logger } from "@dictos/logger";
 
 import {
   StorageError,
@@ -17,9 +18,11 @@ type ProviderConnectionFile = {
 
 export class FsProviderConnectionRepository implements ProviderConnectionRepository {
   private filePath: string;
+  private logger: Logger;
 
-  constructor(dataDir: string) {
+  constructor({ dataDir, logger }: { dataDir: string; logger: Logger }) {
     this.filePath = path.join(dataDir, "providers.json");
+    this.logger = logger;
   }
 
   async save(
@@ -35,6 +38,10 @@ export class FsProviderConnectionRepository implements ProviderConnectionReposit
       connections: [...file.connections, connection],
     });
     if (saved instanceof Error) return saved;
+    this.logger.info("Provider Connection saved", {
+      providerConnectionId: connection.id,
+      presetId: connection.presetId,
+    });
     return redact(connection);
   }
 
@@ -63,11 +70,16 @@ export class FsProviderConnectionRepository implements ProviderConnectionReposit
     const existing = file.connections.find(
       (connection) => connection.id === id
     );
-    if (!existing)
-      return new StorageError({
+    if (!existing) {
+      const error = new StorageError({
         operation: "update_provider_connection",
         reason: "Provider Connection not found",
       });
+      this.logger.error("Provider Connection update failed", error, {
+        providerConnectionId: id,
+      });
+      return error;
+    }
     const updated = { ...existing, ...input };
     const saved = await this.writeFile({
       connections: file.connections.map((connection) =>
@@ -75,6 +87,10 @@ export class FsProviderConnectionRepository implements ProviderConnectionReposit
       ),
     });
     if (saved instanceof Error) return saved;
+    this.logger.info("Provider Connection updated", {
+      providerConnectionId: id,
+      presetId: updated.presetId,
+    });
     return redact(updated);
   }
 
@@ -84,17 +100,26 @@ export class FsProviderConnectionRepository implements ProviderConnectionReposit
     const existing = file.connections.find(
       (connection) => connection.id === id
     );
-    if (!existing)
-      return new StorageError({
+    if (!existing) {
+      const error = new StorageError({
         operation: "delete_provider_connection",
         reason: "Provider Connection not found",
       });
+      this.logger.error("Provider Connection deletion failed", error, {
+        providerConnectionId: id,
+      });
+      return error;
+    }
     const saved = await this.writeFile({
       connections: file.connections.filter(
         (connection) => connection.id !== id
       ),
     });
     if (saved instanceof Error) return saved;
+    this.logger.info("Provider Connection deleted", {
+      providerConnectionId: id,
+      presetId: existing.presetId,
+    });
     return redact(existing);
   }
 
@@ -109,23 +134,32 @@ export class FsProviderConnectionRepository implements ProviderConnectionReposit
           cause,
         });
       });
-    if (raw instanceof Error) return raw;
+    if (raw instanceof Error) {
+      this.logReadError(raw);
+      return raw;
+    }
     if (raw === null) return { connections: [] };
     const parsed = errore.try(
       () => JSON.parse(raw) as unknown,
-      (cause) =>
+      (_cause) =>
         new StorageError({
           operation: "parse_provider_connections",
           reason: "Provider storage contains invalid JSON",
-          cause,
+          cause: new Error("Provider storage JSON could not be parsed"),
         })
     );
-    if (parsed instanceof StorageError) return parsed;
-    if (!isConnectionFile(parsed))
-      return new StorageError({
+    if (parsed instanceof StorageError) {
+      this.logReadError(parsed);
+      return parsed;
+    }
+    if (!isConnectionFile(parsed)) {
+      const error = new StorageError({
         operation: "validate_provider_connections",
         reason: "Provider storage has an invalid shape",
       });
+      this.logReadError(error);
+      return error;
+    }
     return parsed;
   }
 
@@ -147,34 +181,64 @@ export class FsProviderConnectionRepository implements ProviderConnectionReposit
           })
       );
     if (writeResult instanceof Error) {
-      await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
+      this.logWriteError(writeResult);
+      await this.removeTemporaryFile(temporaryPath);
       return writeResult;
     }
-    const renameResult = await fs
-      .rename(temporaryPath, this.filePath)
-      .catch(
-        (cause) =>
-          new StorageError({
-            operation: "replace_provider_connections",
-            reason: "Could not replace provider storage",
-            cause,
-          })
-      );
+    const renameResult = await fs.rename(temporaryPath, this.filePath).catch(
+      (cause) =>
+        new StorageError({
+          operation: "replace_provider_connections",
+          reason: "Could not replace provider storage",
+          cause,
+        })
+    );
     if (renameResult instanceof Error) {
-      await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
+      this.logWriteError(renameResult);
+      await this.removeTemporaryFile(temporaryPath);
       return renameResult;
     }
-    const permissions = await fs
-      .chmod(this.filePath, 0o600)
-      .catch(
-        (cause) =>
-          new StorageError({
-            operation: "secure_provider_connections",
-            reason: "Could not secure provider storage",
-            cause,
-          })
-      );
-    if (permissions instanceof Error) return permissions;
+    const permissions = await fs.chmod(this.filePath, 0o600).catch(
+      (cause) =>
+        new StorageError({
+          operation: "secure_provider_connections",
+          reason: "Could not secure provider storage",
+          cause,
+        })
+    );
+    if (permissions instanceof Error) {
+      this.logWriteError(permissions);
+      return permissions;
+    }
+  }
+
+  private logReadError(error: StorageError): void {
+    this.logger.error("Provider Connection storage read failed", error, {
+      operation: error.operation,
+    });
+  }
+
+  private logWriteError(error: StorageError): void {
+    this.logger.error("Provider Connection storage write failed", error, {
+      operation: error.operation,
+    });
+  }
+
+  private async removeTemporaryFile(temporaryPath: string): Promise<void> {
+    const result = await fs.rm(temporaryPath, { force: true }).catch(
+      (cause) =>
+        new StorageError({
+          operation: "cleanup_provider_connection_temporary_file",
+          reason: "Could not remove temporary provider storage",
+          cause,
+        })
+    );
+    if (!(result instanceof Error)) return;
+    this.logger.error(
+      "Provider Connection temporary file cleanup failed",
+      result,
+      { operation: result.operation }
+    );
   }
 }
 

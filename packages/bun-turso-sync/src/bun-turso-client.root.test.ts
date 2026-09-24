@@ -6,7 +6,7 @@ import path from "node:path";
 import { DbError } from "@dictos/core";
 import { schema, SqliteFolderRepository } from "@dictos/db-core";
 import type { Logger } from "@dictos/logger";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { BunTursoClient } from "./bun-turso-client";
 
@@ -118,4 +118,49 @@ test("keeps root Folder initialization idempotent", async () => {
   const secondClose = await secondClient.close();
   if (secondClose instanceof Error) throw secondClose;
   await fs.rm(directory, { recursive: true, force: true });
+});
+
+test("does not log bound query values when a query fails", async () => {
+  const warnings: { message: string; context: Record<string, unknown> }[] = [];
+  const logger: Logger = {
+    trace: () => {},
+    debug: () => {},
+    info: () => {},
+    warn: (message, context) =>
+      warnings.push({ message, context: context ?? {} }),
+    error: () => {},
+    fatal: () => {},
+    child: () => logger,
+  };
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-logs-"));
+  const client = await BunTursoClient.create(
+    path.join(directory, "dictos.db"),
+    logger
+  );
+  const privateText = "private Description text";
+
+  try {
+    const queryResult = await client.db
+      .run(sql`SELECT * FROM missing_table WHERE value = ${privateText}`)
+      .catch((cause) => new Error("Expected query failure", { cause }));
+
+    expect(queryResult).toBeInstanceOf(Error);
+    const warning = warnings.find(
+      (event) => event.message === "Proxy query failed"
+    );
+    expect(warning).toMatchObject({
+      message: "Proxy query failed",
+      context: { parameterCount: 1 },
+    });
+    if (!warning) throw new Error("Expected query warning");
+    expect(warning.context.err).toBeInstanceOf(Error);
+    if (!(warning.context.err instanceof Error))
+      throw new Error("Expected sanitized query error");
+    expect(warning.context.err.message).toBe("Database query failed");
+    expect(JSON.stringify(warning)).not.toContain(privateText);
+  } finally {
+    const closed = await client.close();
+    await fs.rm(directory, { recursive: true, force: true });
+    if (closed instanceof Error) throw closed;
+  }
 });

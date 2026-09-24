@@ -4,19 +4,41 @@ import os from "node:os";
 import path from "node:path";
 
 import { StorageError } from "@dictos/core";
+import type { Context, Logger } from "@dictos/logger";
 
 import { FsProviderConnectionRepository } from "./fs-provider-connection-repository";
 
 const temporaryDirectories: string[] = [];
+
+type ErrorEvent = {
+  message: string;
+  error: unknown;
+  context: Context | undefined;
+};
 
 async function createRepository() {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "dictos-providers-")
   );
   temporaryDirectories.push(directory);
+  const errorEvents: ErrorEvent[] = [];
+  const logger: Logger = {
+    trace: () => {},
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: (message, error, context) =>
+      errorEvents.push({ message, error, context }),
+    fatal: () => {},
+    child: () => logger,
+  };
   return {
     directory,
-    repository: new FsProviderConnectionRepository(directory),
+    errorEvents,
+    repository: new FsProviderConnectionRepository({
+      dataDir: directory,
+      logger,
+    }),
   };
 }
 
@@ -95,10 +117,10 @@ describe("FsProviderConnectionRepository", () => {
   });
 
   test("returns a storage error for corrupt provider JSON", async () => {
-    const { directory, repository } = await createRepository();
+    const { directory, errorEvents, repository } = await createRepository();
     await fs.writeFile(
       path.join(directory, "providers.json"),
-      "{not json",
+      '{"apiKey":"top-secret-key",',
       "utf8"
     );
 
@@ -106,5 +128,16 @@ describe("FsProviderConnectionRepository", () => {
     expect(result).toBeInstanceOf(StorageError);
     if (!(result instanceof StorageError)) return;
     expect(result.operation).toBe("parse_provider_connections");
+    expect(errorEvents[0]).toMatchObject({
+      message: "Provider Connection storage read failed",
+      error: result,
+      context: { operation: "parse_provider_connections" },
+    });
+    expect(result.cause).toBeInstanceOf(Error);
+    if (!(result.cause instanceof Error)) return;
+    expect(result.cause.message).toBe(
+      "Provider storage JSON could not be parsed"
+    );
+    expect(JSON.stringify(errorEvents[0])).not.toContain("top-secret-key");
   });
 });

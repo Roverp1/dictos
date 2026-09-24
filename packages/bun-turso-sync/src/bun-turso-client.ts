@@ -78,10 +78,13 @@ export class BunTursoClient implements SyncPort {
           const rows = (await stmt.all(...params)) as Record<string, any>[];
           return { rows: rows.map((row) => Object.values(row)) };
         } catch (err) {
+          const diagnostic = new Error("Database query failed");
+          diagnostic.name = "DatabaseQueryError";
           logger.warn("Proxy query failed", {
-            err,
+            err: diagnostic,
+            errorCode: getSafeDatabaseErrorCode(err),
             sql,
-            params,
+            parameterCount: params.length,
           });
           // drizzle expects us to throw here
           // so we could handle it during the specific db call
@@ -228,4 +231,13 @@ export class BunTursoClient implements SyncPort {
     this.credentials.token = "";
     this.logger.info("Disconnected from remote database");
   }
+}
+
+function getSafeDatabaseErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== "object" || !("code" in error))
+    return undefined;
+  return typeof error.code === "string" &&
+    /^SQLITE_[A-Z0-9_]+$/.test(error.code)
+    ? error.code
+    : undefined;
 }

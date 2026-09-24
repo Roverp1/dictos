@@ -23,6 +23,7 @@ import {
 import { CentralApiAdapter, HttpConnectivityAdapter } from "@dictos/eden-http";
 import {
   AiSdkDescriptionGenerationAdapter,
+  configureAiSdkWarningLogging,
   OpenAiCompatibleModelDiscoveryAdapter,
   StaticProviderPresetCatalog,
 } from "@dictos/ai-sdk";
@@ -65,6 +66,7 @@ export const createCliDependencies = async (): Promise<CliDependencyResult> => {
       })
     )
   );
+  configureAiSdkWarningLogging(logger.child({ adapter: "AiSdkWarningLogger" }));
 
   const dbClient = await BunTursoClient.create(
     path.join(dataDir, "dictos.db"),
@@ -96,7 +98,10 @@ export const createCliDependencies = async (): Promise<CliDependencyResult> => {
   const descriptionGenerationRepo = new SqliteDescriptionGenerationRepository(
     db
   );
-  const providerConnectionRepo = new FsProviderConnectionRepository(dataDir);
+  const providerConnectionRepo = new FsProviderConnectionRepository({
+    dataDir,
+    logger: logger.child({ adapter: "FsProviderConnectionRepository" }),
+  });
   const userRepo = new SqliteUserRepository(db);
   const sessionRepo = new FsSessionRepository(dataDir);
 
@@ -116,7 +121,11 @@ export const createCliDependencies = async (): Promise<CliDependencyResult> => {
     providerConnectionService: new ProviderConnectionService(
       providerConnectionRepo,
       new StaticProviderPresetCatalog(),
-      new OpenAiCompatibleModelDiscoveryAdapter()
+      new OpenAiCompatibleModelDiscoveryAdapter({
+        logger: logger.child({
+          adapter: "OpenAiCompatibleModelDiscoveryAdapter",
+        }),
+      })
     ),
     descriptionGenerationService: new DescriptionGenerationService(
       descriptionRepo,
@@ -124,7 +133,11 @@ export const createCliDependencies = async (): Promise<CliDependencyResult> => {
       instructionRepo,
       providerConnectionRepo,
       senseRepo,
-      new AiSdkDescriptionGenerationAdapter(),
+      new AiSdkDescriptionGenerationAdapter({
+        logger: logger.child({
+          adapter: "AiSdkDescriptionGenerationAdapter",
+        }),
+      }),
       descriptionGenerationRepo
     ),
     authService: new AuthService(
