@@ -48,7 +48,11 @@ export class DescriptionService {
     if (description instanceof Error) return description;
     if (description === null)
       return new ValidationError({ reason: "Description does not exist." });
-    if (input.entryId !== undefined && description.senseId !== null)
+    if (
+      input.entryId !== undefined &&
+      input.entryId !== description.entryId &&
+      description.senseId !== null
+    )
       return new ValidationError({
         reason: "Detach Description from its Sense before changing its Entry.",
       });
