@@ -92,4 +92,30 @@ describe("ProviderConnectionService", () => {
       "Choose a Provider preset or a custom endpoint, not both."
     );
   });
+
+  test("rejects credentials embedded in custom endpoints", async () => {
+    const { existing, service } = createProviderConnectionService();
+
+    const created = await service.createConnection({
+      name: "Unsafe provider",
+      baseUrl: "https://user:password@provider.example/v1",
+      apiKey: "secret-key",
+    });
+    const updated = await service.updateConnection({
+      id: existing.id,
+      presetId: null,
+      baseUrl: "https://token@provider.example/v1",
+    });
+
+    expect(created).toBeInstanceOf(ValidationError);
+    expect(updated).toBeInstanceOf(ValidationError);
+    if (!(created instanceof ValidationError)) return;
+    if (!(updated instanceof ValidationError)) return;
+    expect(created.reason).toBe(
+      "Provider endpoint must not contain credentials."
+    );
+    expect(updated.reason).toBe(
+      "Provider endpoint must not contain credentials."
+    );
+  });
 });

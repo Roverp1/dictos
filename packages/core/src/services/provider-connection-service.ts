@@ -52,10 +52,11 @@ export class ProviderConnectionService {
       return new ValidationError({
         reason: "Choose a Provider preset or a custom endpoint, not both.",
       });
-    if (input.baseUrl !== undefined && !isSecureOrLocalUrl(input.baseUrl))
-      return new ValidationError({
-        reason: "Provider endpoint must use HTTPS unless it is local.",
-      });
+    const endpointError =
+      input.baseUrl === undefined
+        ? null
+        : validateProviderEndpoint(input.baseUrl);
+    if (endpointError instanceof Error) return endpointError;
     const preset =
       input.presetId === undefined || input.presetId === null
         ? null
@@ -124,12 +125,23 @@ export class ProviderConnectionService {
       return new ValidationError({
         reason: "A custom Provider endpoint is required.",
       });
-    if (!isSecureOrLocalUrl(input.baseUrl))
-      return new ValidationError({
-        reason: "Provider endpoint must use HTTPS unless it is local.",
-      });
+    const endpointError = validateProviderEndpoint(input.baseUrl);
+    if (endpointError instanceof Error) return endpointError;
     return { name: input.name, presetId: null, baseUrl: input.baseUrl };
   }
+}
+
+function validateProviderEndpoint(value: string): ValidationError | null {
+  const authority = /^https?:\/\/([^/?#]*)/i.exec(value)?.[1];
+  if (authority?.includes("@"))
+    return new ValidationError({
+      reason: "Provider endpoint must not contain credentials.",
+    });
+  if (!isSecureOrLocalUrl(value))
+    return new ValidationError({
+      reason: "Provider endpoint must use HTTPS unless it is local.",
+    });
+  return null;
 }
 
 function isSecureOrLocalUrl(value: string): boolean {

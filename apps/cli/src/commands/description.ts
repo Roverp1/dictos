@@ -6,6 +6,7 @@ import {
   handleExpectedError,
   logOperationCompleted,
   requireConfirmation,
+  sanitizeTerminalText,
 } from "../app/command-action";
 import {
   descriptionTypes,
@@ -400,8 +401,4 @@ async function acceptProposal(
     );
   if (allowDuplicate) return true;
   return await context.terminalPrompt.confirm("Create duplicate Sense?");
-}
-
-function sanitizeTerminalText(value: string): string {
-  return value.replace(/[\u0000-\u001f\u007f-\u009f]/g, "");
 }

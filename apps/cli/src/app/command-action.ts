@@ -64,6 +64,9 @@ export const logOperationCompleted = ({
   logger.debug("CLI operation completed", { ...context, operation });
 };
 
+export const sanitizeTerminalText = (value: string): string =>
+  value.replace(/[\u0000-\u001f\u007f-\u009f]/g, "");
+
 function sanitizeLogError(error: Error): Error {
   if (!(error instanceof DbError)) return error;
   return new DbError({

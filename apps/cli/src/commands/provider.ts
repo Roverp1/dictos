@@ -6,6 +6,7 @@ import {
   handleExpectedError,
   logOperationCompleted,
   requireConfirmation,
+  sanitizeTerminalText,
 } from "../app/command-action";
 
 export const registerProviderCommands = (
@@ -229,7 +230,3 @@ export const registerProviderCommands = (
       });
     });
 };
-
-function sanitizeTerminalText(value: string): string {
-  return value.replace(/[\u0000-\u001f\u007f-\u009f]/g, "");
-}

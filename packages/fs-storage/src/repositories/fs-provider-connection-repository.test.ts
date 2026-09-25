@@ -1,14 +1,13 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 import { StorageError } from "@dictos/core";
+import * as errore from "@dictos/errore";
 import type { Context, Logger } from "@dictos/logger";
 
 import { FsProviderConnectionRepository } from "./fs-provider-connection-repository";
-
-const temporaryDirectories: string[] = [];
 
 type ErrorEvent = {
   message: string;
@@ -16,11 +15,11 @@ type ErrorEvent = {
   context: Context | undefined;
 };
 
-async function createRepository() {
+async function createRepository(cleanup: errore.AsyncDisposableStack) {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "dictos-providers-")
   );
-  temporaryDirectories.push(directory);
+  cleanup.defer(() => fs.rm(directory, { recursive: true, force: true }));
   const errorEvents: ErrorEvent[] = [];
   const logger: Logger = {
     trace: () => {},
@@ -42,17 +41,10 @@ async function createRepository() {
   };
 }
 
-afterEach(async () => {
-  await Promise.all(
-    temporaryDirectories
-      .splice(0)
-      .map((directory) => fs.rm(directory, { recursive: true, force: true }))
-  );
-});
-
 describe("FsProviderConnectionRepository", () => {
   test("persists, redacts, updates, and deletes provider connections", async () => {
-    const { directory, repository } = await createRepository();
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, repository } = await createRepository(cleanup);
     const created = await repository.save({
       name: "Local provider",
       presetId: null,
@@ -103,7 +95,8 @@ describe("FsProviderConnectionRepository", () => {
   });
 
   test("stores provider credentials with owner-only file permissions", async () => {
-    const { directory, repository } = await createRepository();
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, repository } = await createRepository(cleanup);
     const created = await repository.save({
       name: "Local provider",
       presetId: null,
@@ -117,7 +110,9 @@ describe("FsProviderConnectionRepository", () => {
   });
 
   test("returns a storage error for corrupt provider JSON", async () => {
-    const { directory, errorEvents, repository } = await createRepository();
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, errorEvents, repository } =
+      await createRepository(cleanup);
     await fs.writeFile(
       path.join(directory, "providers.json"),
       '{"apiKey":"top-secret-key",',

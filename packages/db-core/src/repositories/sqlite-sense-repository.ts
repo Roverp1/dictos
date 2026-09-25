@@ -95,7 +95,11 @@ export class SqliteSenseRepository implements SenseRepository {
           .from(schema.sensesTable)
           .where(eq(schema.sensesTable.id, input.id));
         const sense = selected[0];
-        if (!sense) throw new Error("Sense not found");
+        if (!sense)
+          return new DbError({
+            operation: "delete_sense",
+            reason: "Sense not found",
+          });
 
         if (input.cascade)
           await tx
@@ -105,7 +109,7 @@ export class SqliteSenseRepository implements SenseRepository {
           .delete(schema.sensesTable)
           .where(eq(schema.sensesTable.id, input.id))
           .returning();
-        if (!deleted[0]) throw new Error("Sense not found");
+        if (!deleted[0]) throw new Error("Sense disappeared during deletion");
         return deleted[0];
       })
       .catch(

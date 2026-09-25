@@ -14,7 +14,7 @@ Instructions are reusable user-authored directives. An Instruction has required 
 
 ### Manage Provider Connections and Models
 
-Provider Connections are device-local configurations for external Models. A connection has a name, a preset or custom endpoint, and an API key entered through a hidden terminal prompt. The safe connection shape excludes the API key from normal lists, output, and logs. Built-in presets cover OpenAI, OpenRouter, DeepSeek, and Groq; secure custom endpoints and local development endpoints are also supported.
+Provider Connections are device-local configurations for external Models. A connection has a name, a preset or custom endpoint, and an API key entered through a hidden terminal prompt. The safe connection shape excludes the API key from normal lists, output, and logs. Built-in presets cover OpenAI, OpenRouter, DeepSeek, and Groq; secure custom endpoints without URL-embedded credentials and local development endpoints are also supported.
 
 The Command Client discovers Models from a selected Provider Connection when its `/models` endpoint is supported. Discovery failure does not prevent manual Model identifier input for Description Generation. Models are selected for each generation command and are not stored as defaults.
 

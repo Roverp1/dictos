@@ -27,4 +27,6 @@ Expected failures cross boundaries as Error values. Core and adapters return typ
 
 Provider boundary errors are sanitized. API keys, Authorization headers, request objects, raw provider responses, and credential-bearing connection records must not be returned, logged, or printed.
 
+Custom Provider endpoints reject URL-embedded credentials before storage. Provider API keys enter through the terminal secret boundary and remain separate from output-safe connection metadata.
+
 The proposal phase has no writes. Before writing, the commit adapter rechecks the source Description's Entry ownership and expected Sense assignment to reject stale proposals. It then runs all writes in one database transaction; if a write fails, the Sense creation, source assignment, and generated Description inserts roll back together.
