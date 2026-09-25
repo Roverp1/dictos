@@ -1,6 +1,6 @@
 # Domain: Sync
 
-**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Aug 20, 2026
+**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Sep 25, 2026
 
 ## Module Responsibility
 
@@ -33,7 +33,7 @@ Responsible for the bidirectional replication of private local data across a sin
 - **Device-Isolated Activity Counters**: To track activity without unique constraint crashes during sync, the `activities` table drops the `UNIQUE(date)` constraint. It uses a UUIDv5 based on `date:deviceId`, allowing multiple isolated rows per date that the UI simply sums together (a basic CRDT pattern).
 - **Thin Session Pattern**: Because Turso syncs the entire SQLite file, storing JWTs inside the database would cause devices to log each other out upon sync. Device state is strictly segregated to the local file system.
 - **Synced Dictionary Structure**: Senses and Description Type/Sense assignment fields are part of the synced Dictionary database. Provider Connections and their credentials remain device-local and are not Sync data.
-- **Destructive Baseline Reset**: The Description Generation schema was introduced through a fresh pre-release baseline. Local Bun and browser databases and the development remote Sync database must be recreated together before Sync resumes; prior Dictionary data is not migrated.
+- **Destructive Baseline Reset**: The Description Generation schema was introduced through a fresh pre-release baseline rather than an incremental data migration. Any replica still using the earlier migration journal must be recreated from the current baseline before reconnecting to Sync.
 - **Non-Blocking Background Sync**: Sync operations and connection initializations are wrapped in IIFEs (Immediately Invoked Function Expressions) during app bootstrap so the TUI renders the local database instantly in milliseconds.
 
 ## Known Edge Cases & Constraints

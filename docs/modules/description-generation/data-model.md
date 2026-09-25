@@ -2,6 +2,10 @@
 
 **Parent Module**: [domain.md](./domain.md)
 
+## Dictionary Records
+
+Senses and typed Descriptions are synced Dictionary records documented in the [Dictionary Management data model](../dictionary-management/data-model.md). Description Generation reads those records as context and writes them only through the atomic commit boundary.
+
 ## Instructions
 
 Instructions are synced Dictionary records.
@@ -37,7 +41,9 @@ interface ProviderConnectionFile {
 }
 ```
 
-Connection IDs use random UUIDs. The filesystem adapter validates the stored JSON shape, writes through a same-directory temporary file, and sets the final file mode to `0o600`. Normal lists use the safe `ProviderConnection` shape; only targeted internal reads for Model discovery and Description Generation receive the credential-bearing shape.
+Connection IDs use random UUIDs. The filesystem adapter validates the stored JSON shape, writes through a uniquely named same-directory temporary file, removes temporary files after failed writes, and enforces final file mode `0o600`. Normal lists use the safe `ProviderConnection` shape; only targeted internal reads for Model discovery and Description Generation receive the credential-bearing shape.
+
+Provider presets are static endpoint metadata. A Provider Connection stores the selected `presetId` and resolved `baseUrl`, while Models are discovered at runtime or supplied manually and are not stored as a default selection.
 
 ## Ephemeral Proposals
 

@@ -24,6 +24,9 @@ Provides actionable metrics to the UI regarding the sync operation.
 
 - `pushedLocalChanges`: `boolean`
 - `pulledRemoteChanges`: `boolean`
+- `stats.bytesSent`: `number`
+- `stats.bytesReceived`: `number`
+- `stats.operationsSynced`: `number`
 
 ## Database Schemas (SQLite / Drizzle)
 

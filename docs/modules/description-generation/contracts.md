@@ -15,11 +15,11 @@
 
 ## Adapter Boundaries
 
-`@dictos/ai-sdk` implements Model discovery and Description Generation for OpenAI-compatible providers. The Description Generation adapter creates an AI SDK compatible provider with `supportsStructuredOutputs: false`, makes one non-streaming `generateText()` invocation using object output, and validates the result before returning it to core. The prompt explicitly requires JSON and includes the exact output shape needed by `json_object` providers. AI SDK may retry a retryable provider failure at most twice; core and the Command Client do not retry generation. The package exposes a sanitized warning bridge that the Command Client composition root routes to structured logs instead of command output. The adapter accepts injected `fetch` for provider-boundary tests. It does not stream, persist data, or decide duplicate acceptance.
+`@dictos/ai-sdk` implements Model discovery and Description Generation for OpenAI-compatible providers. The Description Generation adapter creates an AI SDK compatible provider with `supportsStructuredOutputs: false`, makes one non-streaming `generateText()` invocation using object output, and validates the result before returning it to core. The prompt explicitly requires JSON and includes the exact output shape needed by `json_object` providers. That invocation may issue the initial request plus at most two retries when AI SDK marks a provider failure retryable; non-retryable failures are not retried, and neither core nor the Command Client adds another request. The package exposes a sanitized warning bridge that the Command Client composition root installs once to route expected compatibility warnings to structured logs instead of command output. The adapter accepts injected `fetch` for provider-boundary tests. It does not stream, persist data, or decide duplicate acceptance.
 
 The Model discovery adapter requests the selected connection's `/models` endpoint with its credential, validates the response, and returns sorted unique IDs. A user may supply a Model identifier without discovery.
 
-The Command Client owns command parsing, hidden API-key input, duplicate confirmation, output, and exit codes. `--allow-duplicate` commits the already-created proposal and does not issue a second model request.
+The Command Client owns command parsing, hidden API-key input, duplicate confirmation, output, and exit codes. `--allow-duplicate` commits the already-created proposal and does not issue a second model request. Successful generation prints the Sense ID followed by generated Description IDs; discarding a duplicate proposal writes no Dictionary data. No central-server endpoint participates in generation.
 
 ## Failure and Transaction Rules
 
@@ -27,4 +27,4 @@ Expected failures cross boundaries as Error values. Core and adapters return typ
 
 Provider boundary errors are sanitized. API keys, Authorization headers, request objects, raw provider responses, and credential-bearing connection records must not be returned, logged, or printed.
 
-The proposal phase has no writes. The commit adapter runs all writes in one database transaction; if a write fails, the Sense creation, source assignment, and generated Description inserts roll back together.
+The proposal phase has no writes. Before writing, the commit adapter rechecks the source Description's Entry ownership and expected Sense assignment to reject stale proposals. It then runs all writes in one database transaction; if a write fails, the Sense creation, source assignment, and generated Description inserts roll back together.

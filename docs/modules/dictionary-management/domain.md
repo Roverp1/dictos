@@ -1,6 +1,6 @@
 # Domain: Dictionary Management
 
-**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Aug 20, 2026
+**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Sep 25, 2026
 
 ## Module Responsibility
 
@@ -13,7 +13,7 @@ Responsible for managing personal Dictionary content: Entries, typed Description
 1. The TUI application invokes the `createEntry` method on the `EntryService` (`packages/core/src/services/entry-service.ts`).
 2. `EntryService` validates the domain rules (e.g., text must not be empty, `folderId` must be provided) using `validateNewEntry`.
 3. Upon validation success, `EntryService` calls the `save()` method on the `EntryRepository` port.
-4. The concrete SQLite adapter (`packages/adapters/db`) executes an atomic transaction that generates a deterministic UUIDv5 (preventing sync conflicts), inserts the Entry via Drizzle ORM, and simultaneously increments the daily Activity CRDT.
+4. The concrete SQLite adapter (`packages/db-core`) executes an atomic transaction that generates a deterministic UUIDv5 (preventing sync conflicts), inserts the Entry via Drizzle ORM, and simultaneously increments the daily Activity CRDT.
 
 ### Managing Folders
 
@@ -43,6 +43,7 @@ Responsible for managing personal Dictionary content: Entries, typed Description
 - **Cascading Deletions (Hybrid Approach)**: Deleting an Entry cascades to its Descriptions natively via SQLite `ON DELETE CASCADE` constraints. However, because the TursoDB engine suffers from a stack overflow bug when processing self-referential cascading deletes, **Folders are deleted via an application-level Breadth-First Search (BFS)** traversing from the bottom of the tree upwards inside a database transaction.
 - **Deterministic UUIDv5 over Constraints**: Instead of relying on SQLite `UNIQUE` constraints to enforce data integrity (which crash the Turso replication engine during split-brain merges), we enforce identity via UUIDv5. If two devices create an identical folder or entry offline, they generate the same PK, and the sync engine silently merges them.
 - **Optional Sense Grouping**: Senses organize an Entry's Descriptions without replacing direct Entry ownership. This keeps unstructured quick saves valid while establishing the future one-Sense-to-one-note boundary for Export.
+- **Atomic Generated Content**: Accepted Description Generation proposals use a dedicated persistence port. Creating or reusing the Sense, assigning an unassigned source Description, and inserting generated Descriptions succeed or roll back together.
 
 ## Known Edge Cases & Constraints
 
@@ -53,3 +54,4 @@ Responsible for managing personal Dictionary content: Entries, typed Description
 
 - [Data Model & State](./data-model.md)
 - [Interfaces & Contracts](./contracts.md)
+- [Description Generation](../description-generation/domain.md)

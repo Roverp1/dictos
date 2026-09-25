@@ -26,7 +26,7 @@ Implemented by the HTTP adapter to communicate with the Central API.
 
 ### `SessionRepository` & `LocalStateRepository`
 
-Implemented by file-system adapters (e.g., `packages/adapters/fs`) to persist device state.
+Implemented by adapters in `packages/fs-storage` to persist device state.
 
 - `LocalStateRepository`: Guarantees a persistent `deviceId` via `getLocalState()` and `resetLocalState()`.
 - `SessionRepository`: Stores the transient `AuthSession` (JWT and Turso credentials).
