@@ -33,7 +33,7 @@ The action of creating typed Descriptions from a selected Description using an I
 _Avoid_: AI Generation, LLM Generation, Definition Generation
 
 **Provider**:
-An external service identified by a stable provider ID whose Models Dictos can use for Description Generation.
+An external service with a stable provider ID that supplies Models for Description Generation.
 _Avoid_: Provider Connection (when referring to the service)
 
 **Provider Connection**:
@@ -45,7 +45,7 @@ A provider-specific text-generation model identified in Dictos by a qualified `p
 _Avoid_: Provider, Provider Connection
 
 **Model Catalog**:
-Locally available metadata for supported Providers and their Models. A catalog listing does not verify account access or guarantee Description Generation will succeed.
+Local metadata listing supported Providers and eligible text-generation Models. A listing does not prove account access or guarantee Description Generation will succeed.
 _Avoid_: Model discovery (when referring to catalog metadata)
 
 **Selected Model**:
