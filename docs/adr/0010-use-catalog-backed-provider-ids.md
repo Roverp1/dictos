@@ -1,0 +1,3 @@
+# Use Catalog-Backed Provider IDs
+
+We will identify supported Providers by stable IDs, keep one device-local Provider Connection per ID, and select Models using qualified `provider/model` IDs instead of endpoint presets and opaque connection IDs. A locally available models.dev catalog will supply eligible text-generation Models because live `/models` discovery is not universal and an arbitrary Model ID cannot establish a supported execution path. Catalog data can be stale and does not prove account access, so provider failures and generated proposals still need validation; custom Providers and unlisted Model IDs are deferred.
