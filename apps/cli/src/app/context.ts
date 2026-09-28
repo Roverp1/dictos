@@ -1,6 +1,6 @@
 import { createCliDependencies } from "./dependencies";
 import { createCliOutput } from "./output";
-import { createPasswordPrompt } from "./password-prompt";
+import { createTerminalPrompt } from "./terminal-prompt";
 import type { CliContext, CliDependencyResult } from "./types";
 
 export const createCliContext = (): CliContext => {
@@ -8,7 +8,7 @@ export const createCliContext = (): CliContext => {
 
   return {
     output: createCliOutput(),
-    passwordPrompt: createPasswordPrompt(),
+    terminalPrompt: createTerminalPrompt(),
 
     async getDependencies() {
       if (dependencies !== null) return dependencies;

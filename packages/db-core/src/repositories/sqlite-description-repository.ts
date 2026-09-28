@@ -19,6 +19,7 @@ export class SqliteDescriptionRepository implements DescriptionRepository {
       .values({
         text: description.text,
         entryId: description.entryId,
+        type: description.type ?? "misc",
       })
       .returning()
       .catch(
@@ -40,6 +41,23 @@ export class SqliteDescriptionRepository implements DescriptionRepository {
     return result[0];
   }
 
+  async findById(id: string): Promise<Description | DbError | null> {
+    const result = await this.db
+      .select()
+      .from(schema.descriptionsTable)
+      .where(eq(schema.descriptionsTable.id, id))
+      .catch(
+        (cause) =>
+          new DbError({
+            operation: "find_description_by_id",
+            reason: "Exception",
+            cause,
+          })
+      );
+    if (result instanceof Error) return result;
+    return result[0] ?? null;
+  }
+
   async findByEntry(entryId: string): Promise<Description[] | DbError> {
     const result = await this.db
       .select()
@@ -59,9 +77,26 @@ export class SqliteDescriptionRepository implements DescriptionRepository {
     return result;
   }
 
+  async findBySense(senseId: string): Promise<Description[] | DbError> {
+    const result = await this.db
+      .select()
+      .from(schema.descriptionsTable)
+      .where(eq(schema.descriptionsTable.senseId, senseId))
+      .catch(
+        (cause) =>
+          new DbError({
+            operation: "find_descriptions_by_sense_id",
+            reason: "Exception",
+            cause,
+          })
+      );
+    if (result instanceof Error) return result;
+    return result;
+  }
+
   async update(
     id: string,
-    data: Partial<Omit<Description, "id" | "createdAt" | "modifiedAt">>
+    data: Partial<Pick<Description, "entryId" | "text" | "type">>
   ): Promise<Description | DbError> {
     const result = await this.db
       .update(schema.descriptionsTable)
@@ -84,6 +119,32 @@ export class SqliteDescriptionRepository implements DescriptionRepository {
         reason: "Description not found",
       });
 
+    return result[0];
+  }
+
+  async assignSense(input: {
+    descriptionId: string;
+    senseId: string | null;
+  }): Promise<Description | DbError> {
+    const result = await this.db
+      .update(schema.descriptionsTable)
+      .set({ senseId: input.senseId })
+      .where(eq(schema.descriptionsTable.id, input.descriptionId))
+      .returning()
+      .catch(
+        (cause) =>
+          new DbError({
+            operation: "assign_description_sense",
+            reason: "Exception",
+            cause,
+          })
+      );
+    if (result instanceof Error) return result;
+    if (!result[0])
+      return new DbError({
+        operation: "assign_description_sense",
+        reason: "Description not found",
+      });
     return result[0];
   }
 

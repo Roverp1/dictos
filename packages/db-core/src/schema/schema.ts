@@ -5,6 +5,7 @@ import {
   text,
   type AnySQLiteColumn,
   check,
+  index,
 } from "drizzle-orm/sqlite-core";
 
 export const entriesTable = sqliteTable("entries", {
@@ -21,21 +22,56 @@ export const entriesTable = sqliteTable("entries", {
     .default(sql`(strftime('%s', 'now'))`),
 });
 
-export const descriptionsTable = sqliteTable("descriptions", {
-  id: text()
-    .primaryKey()
-    .default(sql`(uuid_str(uuid7()))`),
-  entryId: text()
-    .notNull()
-    .references(() => entriesTable.id, { onDelete: "cascade" }),
-  text: text().notNull(),
-  createdAt: int({ mode: "timestamp" })
-    .notNull()
-    .default(sql`(strftime('%s', 'now'))`),
-  modifiedAt: int({ mode: "timestamp" })
-    .notNull()
-    .default(sql`(strftime('%s', 'now'))`),
-});
+export const descriptionsTable = sqliteTable(
+  "descriptions",
+  {
+    id: text()
+      .primaryKey()
+      .default(sql`(uuid_str(uuid7()))`),
+    entryId: text()
+      .notNull()
+      .references(() => entriesTable.id, { onDelete: "cascade" }),
+    senseId: text().references(() => sensesTable.id, { onDelete: "set null" }),
+    type: text({ enum: ["misc", "translation", "definition", "example"] })
+      .notNull()
+      .default("misc"),
+    text: text().notNull(),
+    createdAt: int({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(strftime('%s', 'now'))`),
+    modifiedAt: int({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(strftime('%s', 'now'))`),
+  },
+  (table) => [
+    index("descriptions_entry_id_idx").on(table.entryId),
+    index("descriptions_sense_id_idx").on(table.senseId),
+    check(
+      "description_type_check",
+      sql`${table.type} IN ('misc', 'translation', 'definition', 'example')`
+    ),
+  ]
+);
+
+export const sensesTable = sqliteTable(
+  "senses",
+  {
+    id: text()
+      .primaryKey()
+      .default(sql`(uuid_str(uuid7()))`),
+    entryId: text()
+      .notNull()
+      .references(() => entriesTable.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    createdAt: int({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(strftime('%s', 'now'))`),
+    modifiedAt: int({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(strftime('%s', 'now'))`),
+  },
+  (table) => [index("senses_entry_id_idx").on(table.entryId)]
+);
 
 export const foldersTable = sqliteTable(
   "folders",

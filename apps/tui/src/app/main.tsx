@@ -7,6 +7,7 @@ import {
   SqliteEntryRepository,
   SqliteDescriptionRepository,
   SqliteFolderRepository,
+  SqliteSenseRepository,
   SqliteUserRepository,
 } from "@dictos/db-core";
 import { BunTursoClient } from "@dictos/bun-turso-sync";
@@ -94,6 +95,7 @@ export const bootstrap = async () => {
   const entryRepo = new SqliteEntryRepository(db, localState.deviceId);
   const folderRepo = new SqliteFolderRepository(db);
   const descriptionRepo = new SqliteDescriptionRepository(db);
+  const senseRepo = new SqliteSenseRepository(db);
   const userRepo = new SqliteUserRepository(db);
   const sessionRepo = new FsSessionRepository(dataDir);
 
@@ -104,7 +106,7 @@ export const bootstrap = async () => {
 
   const entryService = new EntryService(entryRepo);
   const folderService = new FolderService(folderRepo);
-  const descriptionService = new DescriptionService(descriptionRepo);
+  const descriptionService = new DescriptionService(descriptionRepo, senseRepo);
   const syncService = new SyncService(dbClient, httpConnectivityAdapter);
   const authService = new AuthService(
     centralApiAdapter,

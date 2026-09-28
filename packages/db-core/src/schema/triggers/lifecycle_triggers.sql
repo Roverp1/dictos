@@ -43,6 +43,17 @@ BEGIN
 END;
 --> statement-breakpoint
 
+CREATE TRIGGER set_senses_modified_at
+AFTER UPDATE ON senses
+FOR EACH ROW
+WHEN NEW.modified_at = OLD.modified_at
+BEGIN
+    UPDATE senses
+    SET modified_at = strftime('%s', 'now')
+    WHERE id = NEW.id;
+END;
+--> statement-breakpoint
+
 -- cascade modified_at for folders on entry change
 CREATE TRIGGER update_folder_on_entry_insert
 AFTER INSERT ON entries

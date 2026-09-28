@@ -24,6 +24,7 @@ export class BunTursoClient implements SyncPort {
   public db: SqliteTursoDrizzleProxy;
   localDbPath: string;
   private credentials: SyncCredentials;
+  private pendingCheckpoint: Promise<void> = Promise.resolve();
 
   private constructor(
     client: Database,
@@ -77,10 +78,13 @@ export class BunTursoClient implements SyncPort {
           const rows = (await stmt.all(...params)) as Record<string, any>[];
           return { rows: rows.map((row) => Object.values(row)) };
         } catch (err) {
+          const diagnostic = new Error("Database query failed");
+          diagnostic.name = "DatabaseQueryError";
           logger.warn("Proxy query failed", {
-            err,
+            err: diagnostic,
+            errorCode: getSafeDatabaseErrorCode(err),
             sql,
-            params,
+            parameterCount: params.length,
           });
           // drizzle expects us to throw here
           // so we could handle it during the specific db call
@@ -123,11 +127,35 @@ export class BunTursoClient implements SyncPort {
     logger.debug("Database migrations applied successfully");
 
     const folderRepo = new SqliteFolderRepository(db);
-    await folderRepo.save({ name: "/", parentId: null, privacy: "private" });
+    const rootFolder = await folderRepo.save({
+      name: "/",
+      parentId: null,
+      privacy: "private",
+    });
+    if (rootFolder instanceof Error) {
+      logger.fatal("Root Folder initialization failed", rootFolder);
+      const closeResult = await instance.close();
+      if (closeResult instanceof Error)
+        logger.error("Database cleanup failed", closeResult);
+      throw rootFolder;
+    }
 
     logger.info("Local database is ready");
 
     return instance;
+  }
+
+  async close(): Promise<void | DbError> {
+    await this.pendingCheckpoint;
+    const result = await this.client.close().catch(
+      (cause) =>
+        new DbError({
+          operation: "close_database",
+          reason: "Exception",
+          cause,
+        })
+    );
+    if (result instanceof Error) return result;
   }
 
   async connectRemote(url: string, token: string): Promise<void | SyncError> {
@@ -187,11 +215,13 @@ export class BunTursoClient implements SyncPort {
       syncResult,
     });
 
-    this.client.checkpoint().catch((e) =>
-      this.logger.warn("Failed to checkpoint WAL after sync", {
-        err: e,
-      })
-    );
+    this.pendingCheckpoint = this.pendingCheckpoint
+      .then(() => this.client.checkpoint())
+      .catch((err) => {
+        this.logger.warn("Failed to checkpoint WAL after sync", {
+          err,
+        });
+      });
 
     return syncResult;
   }
@@ -201,4 +231,13 @@ export class BunTursoClient implements SyncPort {
     this.credentials.token = "";
     this.logger.info("Disconnected from remote database");
   }
+}
+
+function getSafeDatabaseErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== "object" || !("code" in error))
+    return undefined;
+  return typeof error.code === "string" &&
+    /^SQLITE_[A-Z0-9_]+$/.test(error.code)
+    ? error.code
+    : undefined;
 }

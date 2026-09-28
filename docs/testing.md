@@ -16,7 +16,7 @@ A good test ensures reliability where it matters most (critical user flows, data
 | :---------------------------------------------------- | :------------------- | :------------------------------------------------------------------------------ |
 | Pure logic, no I/O (parsers, domain math, CRDT logic) | **Unit Test**        | Fast, isolated.                                                                 |
 | Crosses a boundary (DB, file system, network)         | **Integration Test** | Test against real local infrastructure (e.g., local Turso server). Avoid mocks. |
-| Multiple adapters for one interface (Bun vs Wasm DB)  | **Contract Test**    | Write one shared test suite in `core`, import it into adapter tests.            |
+| Multiple adapters for one interface                   | **Contract Test**    | Define runner-neutral cases once; bind them in supported adapter environments.  |
 
 ## 3. Good vs. Bad Tests
 
@@ -99,19 +99,34 @@ if (result instanceof Error) throw result;
 expect(result).toEqual({ synced: true });
 ```
 
-### C. Testing Turso Sync Locally
+### C. Shared Contracts
+
+Shared contracts export runner-neutral scenario cases from the package that owns the behavior:
+
+- `@dictos/core/testing` owns domain-port contracts.
+- `@dictos/db-core/testing` owns SQLite migration and schema contracts.
+- Contract modules do not import Bun, Jest, Vitest, Node filesystem APIs, or browser APIs.
+- Adapter packages create a fresh real-infrastructure harness per case and bind cases to their native test runner.
+- Harness cleanup is local to each test. Do not use module-global cleanup collections.
+
+Package-specific documentation can declare an adapter exception. `@dictos/wasm-turso-sync` does not run package-local contracts because its OPFS behavior requires a real browser application environment. Its migration and compatibility coverage belongs in cross-platform browser E2E tests. The package README and `AGENTS.md` are authoritative for that boundary.
+
+### D. Testing Turso Sync Locally
 
 **DO NOT mock the Turso database.** For sync integration tests, programmatically spawn a local Turso sync server within the test suite setup.
 
 ```typescript
-let server: Subprocess;
-beforeAll(() => {
-  server = spawn(["tursodb", dbPath, "--sync-server", `0.0.0.0:${port}`]);
+test(contractCase.name, async () => {
+  const fixture = await createIsolatedTursoFixture();
+  try {
+    await contractCase.run(fixture.harness);
+  } finally {
+    await fixture.dispose();
+  }
 });
-afterAll(() => server.kill());
 ```
 
-### D. The Prove-It Pattern for Bugs
+### E. The Prove-It Pattern for Bugs
 
 When fixing a bug:
 

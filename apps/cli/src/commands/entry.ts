@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 
-import type { CliContext } from "../app/types";
+import type { CliContext, CliDependencies } from "../app/types";
 import {
   getDependenciesOrExit,
   handleExpectedError,
@@ -16,14 +16,18 @@ export const registerEntryCommands = (
   entry
     .command("create")
     .description("Create an Entry")
-    .requiredOption("--folder <folder-id>", "Folder ID")
+    .option("--folder <folder-id>", "Folder ID; defaults to the root Folder")
     .requiredOption("--text <text>", "Entry text")
-    .action(async (options: { folder: string; text: string }) => {
+    .action(async (options: { folder?: string; text: string }) => {
       const dependencies = await getDependenciesOrExit(context);
       if (dependencies === null) return;
 
+      const folderId = await resolveFolderId(dependencies, options.folder);
+      if (folderId instanceof Error)
+        return handleExpectedError(context, folderId);
+
       const createdEntry = await dependencies.entryService.createEntry({
-        folderId: options.folder,
+        folderId,
         text: options.text,
       });
 
@@ -74,14 +78,17 @@ export const registerEntryCommands = (
   entry
     .command("list")
     .description("List Entries")
-    .requiredOption("--folder <folder-id>", "Folder ID")
-    .action(async (options: { folder: string }) => {
+    .option("--folder <folder-id>", "Folder ID; defaults to the root Folder")
+    .action(async (options: { folder?: string }) => {
       const dependencies = await getDependenciesOrExit(context);
       if (dependencies === null) return;
 
-      const entries = await dependencies.entryService.getEntriesInFolder(
-        options.folder
-      );
+      const folderId = await resolveFolderId(dependencies, options.folder);
+      if (folderId instanceof Error)
+        return handleExpectedError(context, folderId);
+
+      const entries =
+        await dependencies.entryService.getEntriesInFolder(folderId);
       if (entries instanceof Error)
         return handleExpectedError(context, entries);
 
@@ -90,3 +97,14 @@ export const registerEntryCommands = (
       }
     });
 };
+
+async function resolveFolderId(
+  dependencies: CliDependencies,
+  folderId: string | undefined
+) {
+  if (folderId !== undefined) return folderId;
+
+  const rootFolder = await dependencies.folderService.getRootFolder();
+  if (rootFolder instanceof Error) return rootFolder;
+  return rootFolder.id;
+}

@@ -6,4 +6,6 @@ Description Generation needs consistent requests, responses, validation, and err
 
 - Dictos does not maintain provider wire-format parsing itself.
 - AI SDK errors and throwing behavior must be converted into Dictos Error values at the adapter boundary.
+- One generation invocation permits at most two AI SDK retries for retryable provider failures; core and clients do not add retries.
+- Clients configure the package's warning bridge so expected AI SDK compatibility warnings are sanitized into structured logs rather than written to client output.
 - Provider capabilities still require explicit handling; the SDK cannot add unsupported provider features.
