@@ -8,6 +8,8 @@
 
 The asset includes Models from `openai`, `google`, `openrouter`, `deepseek`, and `groq` only when upstream reports text input, exactly `["text"]` output, and at least one of `temperature`, `tool_call`, or `structured_output` as `true`. Deprecated Models and model-specific provider overrides are excluded. Every included Model has `textGeneration: true`; this marker is derived only after those checks, never trusted from upstream. The asset retains provider display names, exact provider-specific Model IDs (including `/`), model names, status (`active` when upstream omits it), modalities, and input/output cost per million tokens when both are available. It drops execution metadata such as upstream API URLs and npm packages. Catalog membership does not guarantee account access or structured-output behavior.
 
+The snapshot updater and runtime refresh share `src/model-catalog-eligibility.ts`; review that predicate before changing which Models appear in either catalog.
+
 To reproduce from the reviewed response (use a trusted saved copy with the source hash above):
 
 ```sh

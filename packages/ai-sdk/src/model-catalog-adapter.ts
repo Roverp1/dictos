@@ -8,6 +8,7 @@ import {
 } from "@dictos/core";
 import type { Logger } from "@dictos/logger";
 
+import { isTextGenerationCandidate } from "./model-catalog-eligibility";
 import snapshot from "./models-dev-snapshot.json";
 
 const URL = "https://models.dev/api.json";
@@ -132,27 +133,13 @@ function fromUpstream(value: unknown): ModelCatalog | ModelCatalogError {
     providers.push({ id, name: provider.name });
     for (const [modelId, candidate] of Object.entries(provider.models)) {
       if (
-        !record(candidate) ||
+        !isTextGenerationCandidate(candidate) ||
         candidate.id !== modelId ||
         !safeText(modelId) ||
         modelId.trim() !== modelId ||
         !safeText(candidate.name) ||
-        ![undefined, "active", "alpha", "beta"].includes(
-          candidate.status as string | undefined
-        ) ||
-        candidate.provider !== undefined ||
-        !record(candidate.modalities) ||
-        !Array.isArray(candidate.modalities.input) ||
         !candidate.modalities.input.every(safeText) ||
-        !candidate.modalities.input.includes("text") ||
-        !Array.isArray(candidate.modalities.output) ||
-        candidate.modalities.output.length !== 1 ||
-        candidate.modalities.output[0] !== "text" ||
-        !(
-          candidate.temperature === true ||
-          candidate.tool_call === true ||
-          candidate.structured_output === true
-        )
+        !candidate.modalities.output.every(safeText)
       )
         continue;
       const cost = candidate.cost;

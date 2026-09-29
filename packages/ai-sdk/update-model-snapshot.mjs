@@ -2,6 +2,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import prettier from "prettier";
+import { isTextGenerationCandidate } from "./src/model-catalog-eligibility.ts";
 
 const [inputPath, expectedSha256] = process.argv.slice(2);
 if (!inputPath || !/^[a-f0-9]{64}$/.test(expectedSha256 ?? "")) {
@@ -43,30 +44,12 @@ for (const id of providerIds) {
   }
   providers.push({ id, name: provider.name });
   for (const [modelId, model] of Object.entries(provider.models)) {
-    if (
-      !model ||
-      typeof model !== "object" ||
-      Array.isArray(model) ||
-      model.status === "deprecated" ||
-      !Array.isArray(model.modalities?.input) ||
-      !model.modalities.input.includes("text") ||
-      !Array.isArray(model.modalities?.output) ||
-      model.modalities.output.length !== 1 ||
-      model.modalities.output[0] !== "text" ||
-      !(
-        model.temperature === true ||
-        model.tool_call === true ||
-        model.structured_output === true
-      ) ||
-      model.provider !== undefined
-    )
-      continue;
+    if (!isTextGenerationCandidate(model)) continue;
     if (
       !safe(modelId) ||
       modelId.trim() !== modelId ||
       !safe(model.name) ||
       model.id !== modelId ||
-      ![undefined, "active", "alpha", "beta"].includes(model.status) ||
       ![...model.modalities.input, ...model.modalities.output].every(safe)
     ) {
       console.error(`Invalid eligible model in ${id}: ${modelId}`);
