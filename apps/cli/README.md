@@ -13,8 +13,10 @@ With [`quick-entry.sh`](./quick-entry.sh), you can use a hotkey to select a scre
 Try the script in a Wayland session before binding a hotkey:
 
 ```bash
-/absolute/path/to/dictos/apps/cli/quick-entry.sh --verbose
+devenv --profile cli shell -- apps/cli/quick-entry.sh --verbose
 ```
+
+The `cli` profile supplies the screenshot, OCR, and notification tools for this trial. If you installed them in your graphical session already, you can also run `/absolute/path/to/dictos/apps/cli/quick-entry.sh --verbose` directly.
 
 Select text with the pointer. Press Escape to cancel without saving. The screenshot goes straight to Tesseract; the script does not write an image file or touch the clipboard. It collapses whitespace and saves the text as one Entry in the root Folder by default, without a review step or Description Generation.
 
