@@ -65,13 +65,15 @@ function normalize(
       !safeText(item.modelId) ||
       item.modelId.trim() !== item.modelId ||
       !safeText(item.name) ||
+      item.textGeneration !== true ||
       !["active", "alpha", "beta"].includes(item.status as string) ||
       !Array.isArray(item.inputModalities) ||
       !item.inputModalities.every(safeText) ||
       !Array.isArray(item.outputModalities) ||
       !item.outputModalities.every(safeText) ||
       !item.inputModalities.includes("text") ||
-      !item.outputModalities.includes("text") ||
+      item.outputModalities.length !== 1 ||
+      item.outputModalities[0] !== "text" ||
       item.protocol !== undefined ||
       (item.cost !== undefined &&
         (!record(item.cost) ||
@@ -91,6 +93,7 @@ function normalize(
       providerId: item.providerId as string,
       modelId: item.modelId,
       name: item.name,
+      textGeneration: true,
       status: item.status as CatalogModel["status"],
       inputModalities: item.inputModalities,
       outputModalities: item.outputModalities,
@@ -143,8 +146,13 @@ function fromUpstream(value: unknown): ModelCatalog | ModelCatalogError {
         !candidate.modalities.input.every(safeText) ||
         !candidate.modalities.input.includes("text") ||
         !Array.isArray(candidate.modalities.output) ||
-        !candidate.modalities.output.every(safeText) ||
-        !candidate.modalities.output.includes("text")
+        candidate.modalities.output.length !== 1 ||
+        candidate.modalities.output[0] !== "text" ||
+        !(
+          candidate.temperature === true ||
+          candidate.tool_call === true ||
+          candidate.structured_output === true
+        )
       )
         continue;
       const cost = candidate.cost;
@@ -162,6 +170,7 @@ function fromUpstream(value: unknown): ModelCatalog | ModelCatalogError {
         providerId: id,
         modelId,
         name: candidate.name,
+        textGeneration: true,
         status: (candidate.status ?? "active") as CatalogModel["status"],
         inputModalities: candidate.modalities.input,
         outputModalities: candidate.modalities.output,

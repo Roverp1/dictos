@@ -9,6 +9,7 @@ export interface CatalogModel {
   providerId: ProviderId;
   modelId: ModelId;
   name: string;
+  textGeneration: true;
   status: "active" | "alpha" | "beta";
   inputModalities: string[];
   outputModalities: string[];

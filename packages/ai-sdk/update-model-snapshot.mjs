@@ -32,7 +32,7 @@ const safe = (value) =>
   typeof value === "string" &&
   value.length > 0 &&
   value.length <= 200 &&
-  !/[\x00-\x1f\x7f-\x9f]/.test(value);
+  !/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(value);
 const providers = [];
 const models = [];
 for (const id of providerIds) {
@@ -43,20 +43,30 @@ for (const id of providerIds) {
   }
   providers.push({ id, name: provider.name });
   for (const [modelId, model] of Object.entries(provider.models)) {
-    if (model.status === "deprecated") continue;
     if (
-      !model.modalities?.input?.includes("text") ||
-      !model.modalities?.output?.includes("text")
+      !model ||
+      typeof model !== "object" ||
+      Array.isArray(model) ||
+      model.status === "deprecated" ||
+      !Array.isArray(model.modalities?.input) ||
+      !model.modalities.input.includes("text") ||
+      !Array.isArray(model.modalities?.output) ||
+      model.modalities.output.length !== 1 ||
+      model.modalities.output[0] !== "text" ||
+      !(
+        model.temperature === true ||
+        model.tool_call === true ||
+        model.structured_output === true
+      ) ||
+      model.provider !== undefined
     )
       continue;
     if (
-      model.provider ||
       !safe(modelId) ||
+      modelId.trim() !== modelId ||
       !safe(model.name) ||
       model.id !== modelId ||
-      ![undefined, "alpha", "beta"].includes(model.status) ||
-      !Array.isArray(model.modalities.input) ||
-      !Array.isArray(model.modalities.output) ||
+      ![undefined, "active", "alpha", "beta"].includes(model.status) ||
       ![...model.modalities.input, ...model.modalities.output].every(safe)
     ) {
       console.error(`Invalid eligible model in ${id}: ${modelId}`);
@@ -75,6 +85,7 @@ for (const id of providerIds) {
       providerId: id,
       modelId,
       name: model.name,
+      textGeneration: true,
       status: model.status ?? "active",
       inputModalities: model.modalities.input,
       outputModalities: model.modalities.output,

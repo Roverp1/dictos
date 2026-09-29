@@ -10,7 +10,7 @@ import {
   type ModelCatalogStore,
 } from "@dictos/core";
 
-type CacheFile = Omit<ModelCatalog, "source"> & { version: 1 };
+type CacheFile = Omit<ModelCatalog, "source"> & { version: 2 };
 
 export class FsModelCatalogStore implements ModelCatalogStore {
   private readonly filePath: string;
@@ -57,6 +57,7 @@ export class FsModelCatalogStore implements ModelCatalogStore {
         providerId: model.providerId,
         modelId: model.modelId,
         name: model.name,
+        textGeneration: model.textGeneration,
         status: model.status,
         inputModalities: [...model.inputModalities],
         outputModalities: [...model.outputModalities],
@@ -73,7 +74,7 @@ export class FsModelCatalogStore implements ModelCatalogStore {
         reason: "Model Catalog cache has invalid data",
       });
     const file: CacheFile = {
-      version: 1,
+      version: 2,
       fetchedAt: catalog.fetchedAt,
       providers: catalog.providers,
       models: catalog.models,
@@ -85,13 +86,14 @@ export class FsModelCatalogStore implements ModelCatalogStore {
       });
 
     const payload: CacheFile = {
-      version: 1,
+      version: 2,
       fetchedAt: file.fetchedAt,
       providers: file.providers.map(({ id, name }) => ({ id, name })),
       models: file.models.map((model) => ({
         providerId: model.providerId,
         modelId: model.modelId,
         name: model.name,
+        textGeneration: model.textGeneration,
         status: model.status,
         inputModalities: [...model.inputModalities],
         outputModalities: [...model.outputModalities],
@@ -150,7 +152,7 @@ export class FsModelCatalogStore implements ModelCatalogStore {
 }
 
 function isCacheFile(value: unknown): value is CacheFile {
-  if (!isRecord(value) || value.version !== 1) return false;
+  if (!isRecord(value) || value.version !== 2) return false;
   if (
     typeof value.fetchedAt !== "string" ||
     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value.fetchedAt) ||
@@ -185,11 +187,14 @@ function isCacheFile(value: unknown): value is CacheFile {
       parseQualifiedModelId(`${model.providerId}/${model.modelId}`) instanceof
         Error ||
       !isSafeText(model.name) ||
+      model.textGeneration !== true ||
       !["active", "alpha", "beta"].includes(model.status as string) ||
       !Array.isArray(model.inputModalities) ||
       !model.inputModalities.every(isSafeText) ||
+      !model.inputModalities.includes("text") ||
       !Array.isArray(model.outputModalities) ||
-      !model.outputModalities.every(isSafeText) ||
+      model.outputModalities.length !== 1 ||
+      model.outputModalities[0] !== "text" ||
       (model.protocol !== undefined && !isSafeText(model.protocol)) ||
       (model.cost !== undefined &&
         (!isRecord(model.cost) ||

@@ -28,7 +28,7 @@ export function parseQualifiedModelId(
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(providerId) ||
     modelId.trim() !== modelId ||
     !modelId ||
-    /[\x00-\x1f\x7f]/.test(modelId)
+    /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u.test(modelId)
   )
     return new ValidationError({
       reason: "Use a qualified Model ID such as openai/gpt-4o.",

@@ -34,7 +34,7 @@ import {
   FsModelCatalogStore,
   FsProviderConnectionRepository,
 } from "@dictos/fs-storage";
-import type { Logger } from "@dictos/logger";
+import type { Context, Logger } from "@dictos/logger";
 
 import { PromptError } from "../app/errors";
 import { createCliProgram } from "../app/program";
@@ -45,15 +45,6 @@ import {
 } from "../app/types";
 
 const secret = "integration-secret-never-print";
-const logger: Logger = {
-  trace: () => {},
-  debug: () => {},
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-  fatal: () => {},
-  child: () => logger,
-};
 
 type Reply = (url: string, init: RequestInit) => Promise<Response>;
 
@@ -102,6 +93,18 @@ function success(
 }
 
 async function fixture() {
+  const errorEvents: { message: string; error: unknown; context?: Context }[] =
+    [];
+  const logger: Logger = {
+    trace: () => {},
+    debug: () => {},
+    info: () => {},
+    warn: () => {},
+    error: (message, error, context) =>
+      errorEvents.push({ message, error, context }),
+    fatal: () => {},
+    child: () => logger,
+  };
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "dictos-description-integration-")
   );
@@ -280,6 +283,7 @@ async function fixture() {
     descriptions,
     selection,
     requests,
+    errorEvents,
     generate,
     run,
     dictionary,
@@ -466,6 +470,112 @@ test("invalid Model choices fail without a provider request or Dictionary write"
       expect(await f.dictionary()).toEqual(before);
     }
     expect(f.requests).toHaveLength(0);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("duplicate Description Types fail before provider HTTP or Dictionary writes", async () => {
+  const f = await fixture();
+  try {
+    const before = await f.dictionary();
+    const result = await f.generate([
+      "--model",
+      f.models.openai,
+      "--types",
+      "translation,translation",
+    ]);
+    expect(result).toEqual({
+      stdout: [],
+      stderr: ["Invalid data: Description Types must be unique."],
+      exitCode: CliExitCode.ExpectedFailure,
+    });
+    expect(f.requests).toHaveLength(0);
+    expect(await f.dictionary()).toEqual(before);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("duplicate preview strips terminal control characters from Sense and Description text", async () => {
+  const f = await fixture();
+  try {
+    const existing = await f.senses.createSense({
+      entryId: f.entry.id,
+      name: "bad\n\u001b[31mname",
+    });
+    if (existing instanceof Error) throw existing;
+    const before = await f.dictionary();
+    f.setReply(async (url, init) =>
+      success(url, init, {
+        senseName: "new\rSense",
+        duplicateCandidateSenseId: existing.id,
+        descriptions: [
+          { type: "translation", text: "generated\u001b[31m\ntext" },
+        ],
+      })
+    );
+    f.setConfirmation(false);
+    const result = await f.generate(["--model", f.models.openai]);
+    expect(result).toEqual({
+      stdout: [
+        `Suspected duplicate Sense: ${existing.id}\tbad[31mname`,
+        "Proposed Sense: newSense",
+        "translation\tgenerated[31mtext",
+        "Generation discarded",
+      ],
+      stderr: [],
+      exitCode: 0,
+    });
+    expect(await f.dictionary()).toEqual(before);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("provider authentication failure keeps CLI output and logs free of credentials", async () => {
+  const f = await fixture();
+  try {
+    const before = await f.dictionary();
+    f.setReply(async () =>
+      Response.json({ error: { message: secret } }, { status: 401 })
+    );
+    const result = await f.generate(["--model", f.models.openai]);
+    expect(result).toEqual({
+      stdout: [],
+      stderr: [
+        "Description Generation request failed: Provider authentication failed. Replace the API key.",
+      ],
+      exitCode: CliExitCode.ExpectedFailure,
+    });
+    expect(f.errorEvents).toContainEqual(
+      expect.objectContaining({
+        message: "CLI operation failed",
+        context: expect.objectContaining({
+          operation: "description.generate",
+          phase: "proposal",
+        }),
+      })
+    );
+    expect(
+      JSON.stringify(
+        f.errorEvents.map((event) => ({
+          ...event,
+          error:
+            event.error instanceof Error
+              ? {
+                  message: event.error.message,
+                  cause:
+                    event.error.cause instanceof Error
+                      ? event.error.cause.message
+                      : event.error.cause,
+                }
+              : event.error,
+        }))
+      )
+    ).not.toContain(secret);
+    expect(JSON.stringify(result)).not.toContain(secret);
+    expect(await f.dictionary()).toEqual(before);
   } finally {
     await f.cleanup();
   }

@@ -30,6 +30,7 @@ const catalogResponse = (models: Record<string, unknown>) =>
 const model = (id: string, changes: Record<string, unknown> = {}) => ({
   id,
   name: id,
+  temperature: true,
   modalities: { input: ["text"], output: ["text"] },
   ...changes,
 });

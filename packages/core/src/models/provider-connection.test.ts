@@ -12,12 +12,14 @@ describe("parseQualifiedModelId", () => {
   });
 
   test.each([
-    "openai",
-    "/gpt-4",
-    "openai/",
-    "openai/gpt\u001b[31m",
-    "OpenAI/gpt-4",
-  ])("rejects an invalid qualified Model ID: %s", (value) => {
+    { name: "missing separator", value: "openai" },
+    { name: "empty Provider ID", value: "/gpt-4" },
+    { name: "empty Model ID", value: "openai/" },
+    { name: "ASCII escape", value: "openai/gpt\u001b[31m" },
+    { name: "C1 escape", value: "openai/gpt\u009b[31m" },
+    { name: "bidirectional formatting", value: "openai/gpt\u202eunsafe" },
+    { name: "uppercase Provider ID", value: "OpenAI/gpt-4" },
+  ])("rejects $name", ({ value }) => {
     expect(parseQualifiedModelId(value)).toBeInstanceOf(ValidationError);
   });
 });

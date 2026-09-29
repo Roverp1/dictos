@@ -41,6 +41,7 @@ function fixture(
 const model = (id: string, overrides: Record<string, unknown> = {}) => ({
   id,
   name: id,
+  temperature: true,
   modalities: { input: ["text"], output: ["text"] },
   ...overrides,
 });
@@ -68,8 +69,14 @@ describe("ModelCatalogAdapter", () => {
       if (bundled instanceof Error) throw bundled;
       expect(bundled.source).toBe("bundled");
       expect(bundled.models.length).toBeGreaterThan(0);
+      expect(
+        bundled.models.every((entry) => entry.textGeneration === true)
+      ).toBe(true);
       const refreshed = await adapter.refresh();
       if (refreshed instanceof Error) throw refreshed;
+      expect(
+        refreshed.models.every((entry) => entry.textGeneration === true)
+      ).toBe(true);
       expect(refreshed.models.map((entry) => entry.modelId)).toEqual([
         "alpha",
         "z/part",
@@ -94,6 +101,10 @@ describe("ModelCatalogAdapter", () => {
             image: model("image", {
               modalities: { input: ["image"], output: ["text"] },
             }),
+            embedding: model("embedding", { temperature: false }),
+            mixed: model("mixed", {
+              modalities: { input: ["text"], output: ["text", "image"] },
+            }),
             override: model("override", { provider: { npm: "evil" } }),
             "escape\u001b[31m": model("escape\u001b[31m"),
             hostile: model("hostile", { name: "bad\u001b[31m" }),
@@ -112,6 +123,42 @@ describe("ModelCatalogAdapter", () => {
         "openrouter",
       ]);
       expect(JSON.stringify(result)).not.toContain("evil");
+    } finally {
+      await fs.rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  test("accepts tool calling or structured output as text-generation evidence", async () => {
+    const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-catalog-"));
+    try {
+      const { adapter } = fixture(dataDir, async () =>
+        Response.json(
+          upstream({
+            tools: model("tools", { temperature: false, tool_call: true }),
+            structured: model("structured", {
+              temperature: false,
+              structured_output: true,
+            }),
+            falseFlags: model("falseFlags", {
+              temperature: false,
+              tool_call: false,
+              structured_output: false,
+            }),
+            absentFlags: model("absentFlags", { temperature: undefined }),
+          })
+        )
+      );
+      const result = await adapter.refresh();
+      if (result instanceof Error) throw result;
+      expect(
+        result.models.map(({ modelId, textGeneration }) => ({
+          modelId,
+          textGeneration,
+        }))
+      ).toEqual([
+        { modelId: "structured", textGeneration: true },
+        { modelId: "tools", textGeneration: true },
+      ]);
     } finally {
       await fs.rm(dataDir, { recursive: true, force: true });
     }
@@ -162,7 +209,7 @@ describe("ModelCatalogAdapter", () => {
     }
   });
 
-  test("rejects a parseable cache whose Model is no longer eligible", async () => {
+  test("rejects a v1 cache without a text-generation marker", async () => {
     const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-catalog-"));
     try {
       await fs.writeFile(
@@ -174,11 +221,79 @@ describe("ModelCatalogAdapter", () => {
           models: [
             {
               providerId: "google",
-              modelId: "image-only",
-              name: "Image only",
+              modelId: "old-text",
+              name: "Old text",
               status: "active",
-              inputModalities: ["image"],
+              inputModalities: ["text"],
               outputModalities: ["text"],
+            },
+          ],
+        })
+      );
+      const { adapter, warnings } = fixture(dataDir, async () => {
+        throw new Error("offline");
+      });
+      const result = await adapter.get();
+      if (result instanceof Error) throw result;
+      expect(result.source).toBe("bundled");
+      expect(warnings).toHaveLength(1);
+    } finally {
+      await fs.rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  test("rejects a parseable cache with a false text-generation marker", async () => {
+    const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-catalog-"));
+    try {
+      await fs.writeFile(
+        path.join(dataDir, "model-catalog.json"),
+        JSON.stringify({
+          version: 2,
+          fetchedAt: "2026-09-28T00:00:00.000Z",
+          providers: [{ id: "google", name: "Google" }],
+          models: [
+            {
+              providerId: "google",
+              modelId: "not-generation",
+              name: "Not generation",
+              textGeneration: false,
+              status: "active",
+              inputModalities: ["text"],
+              outputModalities: ["text"],
+            },
+          ],
+        })
+      );
+      const { adapter, warnings } = fixture(dataDir, async () => {
+        throw new Error("offline");
+      });
+      const result = await adapter.get();
+      if (result instanceof Error) throw result;
+      expect(result.source).toBe("bundled");
+      expect(warnings).toHaveLength(1);
+    } finally {
+      await fs.rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  test("rejects a marked cache Model with mixed output", async () => {
+    const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-catalog-"));
+    try {
+      await fs.writeFile(
+        path.join(dataDir, "model-catalog.json"),
+        JSON.stringify({
+          version: 2,
+          fetchedAt: "2026-09-28T00:00:00.000Z",
+          providers: [{ id: "google", name: "Google" }],
+          models: [
+            {
+              providerId: "google",
+              modelId: "mixed-output",
+              name: "Mixed output",
+              textGeneration: true,
+              status: "active",
+              inputModalities: ["text"],
+              outputModalities: ["text", "image"],
             },
           ],
         })

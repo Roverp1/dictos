@@ -17,6 +17,7 @@ const catalog: ModelCatalog = {
       providerId: "openrouter",
       modelId: "vendor/model-v1",
       name: "Vendor Model",
+      textGeneration: true,
       status: "active",
       inputModalities: ["text"],
       outputModalities: ["text"],
@@ -48,7 +49,7 @@ describe("FsModelCatalogStore", () => {
     const filePath = path.join(directory, "model-catalog.json");
     expect((await fs.stat(filePath)).mode & 0o777).toBe(0o600);
     expect(JSON.parse(await fs.readFile(filePath, "utf8"))).toMatchObject({
-      version: 1,
+      version: 2,
       fetchedAt: catalog.fetchedAt,
     });
     expect(await fs.readdir(directory)).toEqual(["model-catalog.json"]);
@@ -67,12 +68,58 @@ describe("FsModelCatalogStore", () => {
 
     await fs.writeFile(
       filePath,
-      JSON.stringify({ ...catalog, version: 1, models: [{}] })
+      JSON.stringify({ ...catalog, version: 2, models: [{}] })
     );
     const invalid = await store.read();
     expect(invalid).toBeInstanceOf(StorageError);
     if (!(invalid instanceof StorageError)) return;
     expect(invalid.operation).toBe("validate_model_catalog");
+  });
+
+  test("rejects an otherwise valid v1 cache without deleting it", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, store } = await createStore(cleanup);
+    const filePath = path.join(directory, "model-catalog.json");
+    const { textGeneration: _marker, ...legacyModel } = catalog.models[0]!;
+    const legacy = JSON.stringify({
+      version: 1,
+      fetchedAt: catalog.fetchedAt,
+      providers: catalog.providers,
+      models: [legacyModel],
+    });
+    await fs.writeFile(filePath, legacy);
+
+    const result = await store.read();
+    expect(result).toBeInstanceOf(StorageError);
+    if (!(result instanceof StorageError)) return;
+    expect(result.operation).toBe("validate_model_catalog");
+    expect(await fs.readFile(filePath, "utf8")).toBe(legacy);
+  });
+
+  test("rejects cast models without text-generation proof or text-only output", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, store } = await createStore(cleanup);
+    const filePath = path.join(directory, "model-catalog.json");
+    const saved = await store.replace(catalog);
+    if (saved instanceof Error) throw saved;
+    const original = await fs.readFile(filePath, "utf8");
+
+    for (const model of [
+      { ...catalog.models[0], textGeneration: false },
+      { ...catalog.models[0], textGeneration: "true" },
+      { ...catalog.models[0], textGeneration: undefined },
+      { ...catalog.models[0], inputModalities: ["image"] },
+      { ...catalog.models[0], outputModalities: ["text", "image"] },
+      { ...catalog.models[0], outputModalities: ["image"] },
+    ]) {
+      const forged = { ...catalog, models: [model] } as ModelCatalog;
+      expect(await store.replace(forged)).toBeInstanceOf(StorageError);
+      expect(await fs.readFile(filePath, "utf8")).toBe(original);
+
+      await fs.writeFile(filePath, JSON.stringify({ ...forged, version: 2 }));
+      expect(await store.read()).toBeInstanceOf(StorageError);
+      await fs.writeFile(filePath, original);
+    }
   });
 
   test("ignores unrelated cache fields instead of returning untrusted data", async () => {
@@ -82,7 +129,7 @@ describe("FsModelCatalogStore", () => {
       path.join(directory, "model-catalog.json"),
       JSON.stringify({
         ...catalog,
-        version: 1,
+        version: 2,
         unexpected: "\u001b[2J",
         models: [{ ...catalog.models[0], unexpected: "\u001b[2J" }],
       })
@@ -116,7 +163,7 @@ describe("FsModelCatalogStore", () => {
       },
     ];
     for (const value of hostile) {
-      await fs.writeFile(filePath, JSON.stringify({ ...value, version: 1 }));
+      await fs.writeFile(filePath, JSON.stringify({ ...value, version: 2 }));
       expect(await store.read()).toBeInstanceOf(StorageError);
       await fs.writeFile(filePath, original);
       expect(await store.replace(value as ModelCatalog)).toBeInstanceOf(

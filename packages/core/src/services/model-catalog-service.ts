@@ -16,6 +16,7 @@ import type { ModelCatalogPort } from "../ports/outbound/model-catalog-port";
 import type { ProviderConnectionRepository } from "../ports/outbound/provider-connection-repository";
 
 const eligible = (model: CatalogModel) =>
+  model.textGeneration === true &&
   ["active", "alpha", "beta"].includes(model.status) &&
   model.inputModalities?.includes("text") &&
   model.outputModalities?.includes("text") &&

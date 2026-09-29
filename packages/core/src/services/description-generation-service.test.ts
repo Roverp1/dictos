@@ -39,6 +39,7 @@ const eligibleModel: CatalogModel = {
   providerId: "openrouter",
   modelId: "anthropic/claude",
   name: "Claude",
+  textGeneration: true,
   status: "active",
   inputModalities: ["text"],
   outputModalities: ["text"],
@@ -283,6 +284,31 @@ describe("DescriptionGenerationService", () => {
         await service.createProposal({ ...proposalInput, model })
       ).toBeInstanceOf(ValidationError);
     }
+  });
+
+  test("rejects a catalog Model without text-generation proof despite text modalities", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const withoutProof = {
+      providerId: eligibleModel.providerId,
+      modelId: eligibleModel.modelId,
+      name: eligibleModel.name,
+      status: eligibleModel.status,
+      inputModalities: ["text"],
+      outputModalities: ["text"],
+    } as CatalogModel;
+    const service = await createService(
+      cleanup,
+      {
+        generate: async () => {
+          throw new Error("Unexpected provider request");
+        },
+      },
+      { models: [withoutProof] }
+    );
+
+    expect(await service.createProposal(proposalInput)).toBeInstanceOf(
+      ValidationError
+    );
   });
 
   test("rejects an unconfigured Provider before a provider request", async () => {
