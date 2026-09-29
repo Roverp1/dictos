@@ -53,7 +53,7 @@ while (($#)); do
   esac
 done
 
-for tool in slurp grim tesseract bun; do
+for tool in slurp grim tesseract bun tr sed; do
   command -v "$tool" >/dev/null 2>&1 || fail "Missing executable: $tool"
 done
 

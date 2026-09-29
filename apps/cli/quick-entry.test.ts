@@ -47,6 +47,7 @@ async function withFixture(
     notificationLog: string;
     ocrArgsLog: string;
     dataDir: string;
+    binDir: string;
   }) => Promise<void>
 ) {
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), "dictos-quick-entry-"));
@@ -101,6 +102,7 @@ async function withFixture(
       notificationLog,
       ocrArgsLog,
       dataDir,
+      binDir,
     });
   } finally {
     await fsp.rm(root, { recursive: true, force: true });
@@ -196,6 +198,25 @@ test("does not save an Entry when screenshot capture fails", async () => {
     );
   });
 });
+
+test.each(["tr", "sed"])(
+  "reports a missing %s executable before screen selection",
+  async (missing) => {
+    await withFixture(async ({ launch, dataDir, binDir }) => {
+      const bash = Bun.which("bash");
+      const tr = Bun.which("tr");
+      if (!bash || !tr) throw new Error("Test requires bash and tr");
+      await fsp.symlink(bash, path.join(binDir, "bash"));
+      await fsp.symlink(process.execPath, path.join(binDir, "bun"));
+      if (missing === "sed") await fsp.symlink(tr, path.join(binDir, "tr"));
+
+      const result = launch([], { PATH: binDir });
+      expect(result.status).not.toBe(0);
+      expect(result.stderr).toContain(`Missing executable: ${missing}`);
+      expect(fs.existsSync(dataDir)).toBe(false);
+    });
+  }
+);
 
 test("propagates CLI failure and notifies without claiming success", async () => {
   await withFixture(async ({ launch, notificationLog }) => {
