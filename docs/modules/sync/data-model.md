@@ -9,6 +9,7 @@
 Represents the persistent, device-specific configuration stored outside the synced database.
 
 - `deviceId`: Persistent UUIDv4 identifying the physical installation. Used to namespace activity CRDTs.
+- `selectedModel`: `SelectedModel | null`, a device-local `{ providerId, modelId }` pair for Description Generation; `null` means no Model is selected. The filesystem adapter persists it beside `deviceId` in `<dataDir>/local-state.json`. Selection updates preserve the existing `deviceId`; an existing file with only `deviceId` reads as unselected, and an explicit reset clears the selection and creates a new device ID. The browser local-state adapter uses `dictos_local_state` in local storage instead of this file.
 
 ### AuthSession (Thin Session)
 
@@ -47,7 +48,12 @@ Provides actionable metrics to the UI regarding the sync operation.
 - The nullable Sense foreign key uses `ON DELETE SET NULL`, so ordinary Sense deletion preserves and detaches Descriptions. Explicit cascading deletion is controlled by the application.
 - Sync does not merge Senses based on their names or semantic equivalence. Distinct offline Senses can remain as cross-device semantic duplicates.
 
-### Device-Local Provider Connections
+### `instructionsTable`
 
-- Provider Connection records, including API keys, are stored in `<dataDir>/providers.json`, outside the synced database.
-- This file is not part of Sync or Mirroring. Each device needs its own Provider Connection configuration.
+- Reusable Instructions are shared SQLite records with an ID, optional name, text, and lifecycle timestamps. They Sync with the Dictionary content used for Description Generation, unlike the device-local Provider Connection and Selected Model.
+
+### Device-Local Provider Connections and Model Catalog
+
+- Provider Connections are keyed by stable Provider ID; `<dataDir>/providers.json` stores one API key per configured Provider ID. Each device needs its own credentials. This file is not part of Sync or Mirroring.
+- The Model Catalog has a bundled snapshot and an optional validated device-local cache at `<dataDir>/model-catalog.json` (`version`, `fetchedAt`, supported Providers, and eligible Models). The cache is metadata for local Model browsing, not proof of account access; it is not part of Sync or Mirroring. The Selected Model in `local-state.json` is also neither synced nor mirrored.
+- None of these device-local records adds a table or column to the shared SQLite/Drizzle schema or requires a synced database migration.
