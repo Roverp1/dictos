@@ -3,12 +3,20 @@ import type {
   DescriptionGenerationProposal,
   DescriptionGenerationResult,
   DescriptionGenerationService,
+  ModelSelectionService,
+  SelectedModel,
   Sense,
 } from "@dictos/core";
-import { DbError, DescriptionGenerationError } from "@dictos/core";
+import {
+  DbError,
+  DescriptionGenerationError,
+  NotFoundError,
+  ValidationError,
+} from "@dictos/core";
 import type { Context, Logger } from "@dictos/logger";
 
 import { createCliProgram } from "../app/program";
+import { PromptError } from "../app/errors";
 import type { CliContext, CliDependencies } from "../app/types";
 
 const proposal: DescriptionGenerationProposal = {
@@ -56,6 +64,11 @@ const result: DescriptionGenerationResult = {
 type ProposalInput = Parameters<
   DescriptionGenerationService["createProposal"]
 >[0];
+type SelectionResult = Awaited<ReturnType<ModelSelectionService["resolve"]>>;
+const selectedModel: SelectedModel = {
+  providerId: "openai",
+  modelId: "model-1",
+};
 
 type ErrorEvent = {
   message: string;
@@ -67,16 +80,21 @@ function createContext({
   confirmation,
   duplicateCandidate,
   proposalError,
+  selectionError,
+  promptError,
 }: {
   confirmation: boolean;
   duplicateCandidate: Sense | null;
   proposalError?: Error;
+  selectionError?: Exclude<SelectionResult, SelectedModel>;
+  promptError?: PromptError;
 }) {
   const output: string[] = [];
   const errorEvents: ErrorEvent[] = [];
   let proposalInput: ProposalInput | null = null;
   let committedProposal: DescriptionGenerationProposal | null = null;
   let confirmationRequested = false;
+  let resolvedOverride: string | undefined;
   const logger: Logger = {
     trace: () => {},
     debug: () => {},
@@ -90,6 +108,15 @@ function createContext({
 
   const dependencies = {
     logger,
+    modelSelectionService: {
+      async resolve(input: { override?: string }): Promise<SelectionResult> {
+        resolvedOverride = input.override;
+        if (selectionError) return selectionError;
+        return input.override === "google/gemini-2.5-flash"
+          ? { providerId: "google", modelId: "gemini-2.5-flash" }
+          : selectedModel;
+      },
+    },
     descriptionGenerationService: {
       async createProposal(input: ProposalInput) {
         proposalInput = input;
@@ -122,10 +149,13 @@ function createContext({
       },
       async confirm() {
         confirmationRequested = true;
-        return confirmation;
+        return promptError ?? confirmation;
       },
     },
     async getDependencies() {
+      return dependencies;
+    },
+    async getProviderDependencies() {
       return dependencies;
     },
   };
@@ -143,10 +173,17 @@ function createContext({
     get confirmationRequested() {
       return confirmationRequested;
     },
+    get resolvedOverride() {
+      return resolvedOverride;
+    },
   };
 }
 
-async function runGenerate(context: CliContext, types = "definition") {
+async function runGenerate(
+  context: CliContext,
+  types = "definition",
+  extraOptions: string[] = []
+) {
   await createCliProgram(context).parseAsync(
     [
       "description",
@@ -154,12 +191,9 @@ async function runGenerate(context: CliContext, types = "definition") {
       "source-1",
       "--instruction",
       "instruction-1",
-      "--provider",
-      "provider-1",
-      "--model",
-      "model-1",
       "--types",
       types,
+      ...extraOptions,
     ],
     { from: "user" }
   );
@@ -170,7 +204,7 @@ afterEach(() => {
 });
 
 describe("description generate", () => {
-  test("parses unique requested Description Types before creating a proposal", async () => {
+  test("uses the Selected Model and parses unique Description Types", async () => {
     const fixture = createContext({
       confirmation: true,
       duplicateCandidate: null,
@@ -181,11 +215,78 @@ describe("description generate", () => {
     expect(fixture.proposalInput).toMatchObject({
       sourceDescriptionId: "source-1",
       instructionId: "instruction-1",
-      providerConnectionId: "provider-1",
-      modelId: "model-1",
+      model: selectedModel,
       targetTypes: ["definition", "example"],
     });
+    expect(fixture.resolvedOverride).toBeUndefined();
   });
+
+  test("uses a one-command Model override", async () => {
+    const fixture = createContext({
+      confirmation: true,
+      duplicateCandidate: null,
+    });
+
+    await runGenerate(fixture.context, "definition", [
+      "--model",
+      "google/gemini-2.5-flash",
+    ]);
+
+    expect(fixture.resolvedOverride).toBe("google/gemini-2.5-flash");
+    expect(fixture.proposalInput).toMatchObject({
+      model: { providerId: "google", modelId: "gemini-2.5-flash" },
+    });
+
+    await runGenerate(fixture.context);
+    expect(fixture.proposalInput).toMatchObject({ model: selectedModel });
+  });
+
+  test.each([
+    [
+      "no selection",
+      new ValidationError({
+        reason: "Select a Model or supply an explicit Model override.",
+      }),
+      [],
+    ],
+    [
+      "ineligible override",
+      new ValidationError({
+        reason:
+          "Unknown or ineligible Model. Choose a listed Model or refresh the Model Catalog.",
+      }),
+      ["--model", "openai/retired"],
+    ],
+    [
+      "missing Provider Connection",
+      new NotFoundError({
+        entity: "Configured Provider Connection; connect the Provider",
+        id: "openai",
+      }),
+      [],
+    ],
+  ])(
+    "rejects %s before generating",
+    async (_name, selectionError, extraOptions) => {
+      const fixture = createContext({
+        confirmation: true,
+        duplicateCandidate: null,
+        selectionError,
+      });
+
+      await runGenerate(fixture.context, "definition", extraOptions);
+
+      expect(fixture.output).toEqual([`error: ${selectionError.message}`]);
+      expect(process.exitCode).toBe(3);
+      expect(fixture.proposalInput).toBeNull();
+      expect(fixture.committedProposal).toBeNull();
+      expect(fixture.errorEvents[0]).toMatchObject({
+        message: "CLI operation failed",
+        error: selectionError,
+        context: { operation: "description.generate", phase: "resolve" },
+      });
+    }
+  );
 
   test("rejects duplicate Description Types without creating a proposal", async () => {
     const fixture = createContext({
@@ -223,7 +324,7 @@ describe("description generate", () => {
         operation: "description.generate",
         phase: "proposal",
         sourceDescriptionId: "source-1",
-        providerConnectionId: "provider-1",
+        providerId: "openai",
         modelId: "model-1",
       },
     });
@@ -286,6 +387,21 @@ describe("description generate", () => {
     ]);
   });
 
+  test("refuses a suspected duplicate when terminal confirmation is unavailable", async () => {
+    const promptError = new PromptError({ reason: "No interactive terminal" });
+    const fixture = createContext({
+      confirmation: false,
+      duplicateCandidate: result.sense,
+      promptError,
+    });
+
+    await runGenerate(fixture.context);
+
+    expect(fixture.output).toContain(`error: ${promptError.message}`);
+    expect(fixture.committedProposal).toBeNull();
+    expect(process.exitCode).toBe(3);
+  });
+
   test("allows a suspected duplicate without a terminal confirmation", async () => {
     const fixture = createContext({
       confirmation: false,
@@ -300,10 +416,6 @@ describe("description generate", () => {
         "source-1",
         "--instruction",
         "instruction-1",
-        "--provider",
-        "provider-1",
-        "--model",
-        "model-1",
         "--types",
         "definition",
         "--allow-duplicate",

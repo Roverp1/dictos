@@ -4,6 +4,8 @@ import { registerDescriptionCommands } from "../commands/description";
 import { registerEntryCommands } from "../commands/entry";
 import { registerFolderCommands } from "../commands/folder";
 import { registerInstructionCommands } from "../commands/instruction";
+import { registerModelCommands } from "../commands/model";
+import { registerModelsCommands } from "../commands/models";
 import { registerProviderCommands } from "../commands/provider";
 import { registerSenseCommands } from "../commands/sense";
 import { registerSyncCommands } from "../commands/sync";
@@ -22,6 +24,8 @@ export const createCliProgram = (context: CliContext): Command => {
   registerSenseCommands(program, context);
   registerInstructionCommands(program, context);
   registerProviderCommands(program, context);
+  registerModelsCommands(program, context);
+  registerModelCommands(program, context);
   registerSyncCommands(program, context);
   return program;
 };

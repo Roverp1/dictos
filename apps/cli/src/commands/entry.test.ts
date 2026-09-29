@@ -61,6 +61,9 @@ async function createFixture() {
     async getDependencies() {
       return dependencies;
     },
+    async getProviderDependencies() {
+      return dependencies;
+    },
   };
 
   return {

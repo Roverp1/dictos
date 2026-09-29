@@ -37,9 +37,9 @@ export class GenerationConflictError extends errore.createTaggedError({
   message: "Description Generation proposal conflicts: $reason",
 }) {}
 
-export class ModelDiscoveryError extends errore.createTaggedError({
-  name: "ModelDiscoveryError",
-  message: "Model discovery $operation failed: $reason",
+export class ModelCatalogError extends errore.createTaggedError({
+  name: "ModelCatalogError",
+  message: "Model Catalog $operation failed: $reason",
 }) {}
 
 export class AuthError extends errore.createTaggedError({

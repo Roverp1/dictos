@@ -1,3 +1,5 @@
+import { createGoogleGenerativeAI as createGoogle } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, jsonSchema, Output } from "ai";
 import * as errore from "@dictos/errore";
@@ -11,12 +13,16 @@ import {
   InvalidGenerationResponseError,
 } from "@dictos/core";
 
-import type { Fetch } from "./model-discovery-adapter";
 import {
   getAiSdkFailureDetails,
   providerFailureReason,
   sanitizedProviderCause,
 } from "./provider-failure";
+
+type Fetch = (
+  input: Parameters<typeof fetch>[0],
+  init?: Parameters<typeof fetch>[1]
+) => ReturnType<typeof fetch>;
 
 type AiSdkDescriptionGenerationAdapterOptions = {
   fetchImplementation?: Fetch;
@@ -46,19 +52,52 @@ export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationP
   > {
     const startedAt = performance.now();
     const logContext = {
-      providerConnectionId: request.connection.id,
+      providerId: request.connection.providerId,
       modelId: request.modelId,
       targetKind: request.target.kind,
       targetTypes: request.targetTypes,
       maxRetries: MAX_PROVIDER_RETRIES,
     };
-    const provider = createOpenAICompatible({
-      baseURL: request.connection.baseUrl,
-      apiKey: request.connection.apiKey,
-      name: "dictos-provider",
-      fetch: this.fetchImplementation as typeof fetch,
-      supportsStructuredOutputs: false,
-    });
+    const { providerId, apiKey } = request.connection;
+    const fetchImplementation = this.fetchImplementation as typeof fetch;
+    const model = (() => {
+      if (providerId === "openai")
+        return createOpenAI({ apiKey, fetch: fetchImplementation }).chat(
+          request.modelId
+        );
+      if (providerId === "google")
+        return createGoogle({ apiKey, fetch: fetchImplementation })(
+          request.modelId
+        );
+      const baseURL = {
+        openrouter: "https://openrouter.ai/api/v1",
+        deepseek: "https://api.deepseek.com/v1",
+        groq: "https://api.groq.com/openai/v1",
+      }[providerId];
+      if (!baseURL) return null;
+      return createOpenAICompatible({
+        baseURL,
+        apiKey,
+        name: "dictos-provider",
+        fetch: fetchImplementation,
+        supportsStructuredOutputs: false,
+      }).chatModel(request.modelId);
+    })();
+    if (model === null) {
+      const error = new DescriptionGenerationError({
+        operation: "request",
+        reason: "Unsupported Provider. Choose a supported Provider Connection.",
+      });
+      this.logger.error(
+        "Description Generation provider request failed",
+        error,
+        {
+          ...logContext,
+          durationMs: Math.round(performance.now() - startedAt),
+        }
+      );
+      return error;
+    }
     const outputRequirements =
       request.target.kind === "new"
         ? "Return a non-empty Sense name, a duplicate candidate Sense ID from the supplied existing Senses or null, and Descriptions covering every requested Description Type."
@@ -76,7 +115,9 @@ export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationP
       })),
     };
     const result = await generateText({
-      model: provider.chatModel(request.modelId),
+      model,
+      providerOptions:
+        providerId === "google" ? { google: { structuredOutputs: false } } : {},
       maxRetries: MAX_PROVIDER_RETRIES,
       maxOutputTokens: 4096,
       output: Output.object({

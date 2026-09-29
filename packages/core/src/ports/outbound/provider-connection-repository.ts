@@ -1,23 +1,25 @@
-import type { StorageError } from "../../errors";
+import type { StorageError, ValidationError } from "../../errors";
 import type {
-  NewProviderConnection,
   ProviderConnection,
   ProviderConnectionWithCredential,
+  ProviderId,
 } from "../../models";
 
 export interface ProviderConnectionRepository {
-  save(
-    input: NewProviderConnection
-  ): Promise<ProviderConnection | StorageError>;
-  findById(
-    id: string
+  // A duplicate Provider ID is a ValidationError; existing credentials stay unchanged.
+  create(input: {
+    providerId: ProviderId;
+    apiKey: string;
+  }): Promise<ProviderConnection | ValidationError | StorageError>;
+  findByProviderId(
+    providerId: ProviderId
   ): Promise<ProviderConnectionWithCredential | StorageError | null>;
   findAll(): Promise<ProviderConnection[] | StorageError>;
-  update(
-    id: string,
-    input: Partial<Omit<NewProviderConnection, "presetId">> & {
-      presetId?: string | null;
-    }
-  ): Promise<ProviderConnection | StorageError>;
-  delete(id: string): Promise<ProviderConnection | StorageError>;
+  replaceKey(input: {
+    providerId: ProviderId;
+    apiKey: string;
+  }): Promise<ProviderConnection | StorageError | null>;
+  delete(
+    providerId: ProviderId
+  ): Promise<ProviderConnection | StorageError | null>;
 }

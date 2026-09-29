@@ -1,18 +1,87 @@
 import { describe, expect, test } from "bun:test";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import * as errore from "errore";
 
 import { DescriptionGenerationService } from "./description-generation-service";
+import { ModelCatalogService } from "./model-catalog-service";
+import { FsProviderConnectionRepository } from "../../../fs-storage/src/repositories/fs-provider-connection-repository";
+import type { Logger } from "../../../logger/src/index";
+import type { CatalogModel, ModelCatalog } from "../models";
+import type { ModelCatalogPort } from "../ports/outbound/model-catalog-port";
 import type { DescriptionGenerationPort } from "../ports/outbound/description-generation-port";
 import type { DescriptionGenerationRepository } from "../ports/outbound/description-generation-repository";
 import type { DescriptionRepository } from "../ports/outbound/description-repository";
 import type { EntryRepository } from "../ports/outbound/entry-repository";
 import type { InstructionRepository } from "../ports/outbound/instruction-repository";
-import type { ProviderConnectionRepository } from "../ports/outbound/provider-connection-repository";
 import type { SenseRepository } from "../ports/outbound/sense-repository";
-import { InvalidGenerationResponseError, ValidationError } from "../errors";
+import {
+  InvalidGenerationResponseError,
+  ModelCatalogError,
+  NotFoundError,
+  ValidationError,
+} from "../errors";
 
 const now = new Date("2026-01-01T00:00:00.000Z");
 
-function createService(generation: DescriptionGenerationPort) {
+const logger: Logger = {
+  child: () => logger,
+  trace: () => {},
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  fatal: () => {},
+};
+
+const eligibleModel: CatalogModel = {
+  providerId: "openrouter",
+  modelId: "anthropic/claude",
+  name: "Claude",
+  status: "active",
+  inputModalities: ["text"],
+  outputModalities: ["text"],
+};
+const selectedModel = {
+  providerId: eligibleModel.providerId,
+  modelId: eligibleModel.modelId,
+};
+const proposalInput = {
+  sourceDescriptionId: "description-1",
+  instructionId: "instruction-1",
+  model: selectedModel,
+  targetTypes: ["translation" as const],
+};
+
+async function createService(
+  cleanup: errore.AsyncDisposableStack,
+  generation: DescriptionGenerationPort,
+  options: {
+    models?: CatalogModel[];
+    configured?: boolean;
+    catalogError?: ModelCatalogError;
+  } = {}
+) {
+  const dataDir = await fs.mkdtemp(
+    path.join(os.tmpdir(), "dictos-generation-service-")
+  );
+  cleanup.defer(() => fs.rm(dataDir, { recursive: true, force: true }));
+  const connections = new FsProviderConnectionRepository({ dataDir, logger });
+  if (options.configured !== false) {
+    const created = await connections.create(connection);
+    if (created instanceof Error) throw created;
+  }
+  const catalog: ModelCatalog = {
+    source: "bundled",
+    fetchedAt: now.toISOString(),
+    providers: [{ id: "openrouter", name: "OpenRouter" }],
+    models: options.models ?? [eligibleModel],
+  };
+  const catalogPort: ModelCatalogPort = {
+    get: async () => options.catalogError ?? catalog,
+    refresh: async () => options.catalogError ?? catalog,
+  };
   const descriptions: DescriptionRepository = {
     save: async () => sourceDescription,
     findById: async (id) =>
@@ -37,13 +106,6 @@ function createService(generation: DescriptionGenerationPort) {
     update: async () => instruction,
     delete: async () => instruction,
   };
-  const connections: ProviderConnectionRepository = {
-    save: async () => connection,
-    findById: async (id) => (id === connection.id ? connection : null),
-    findAll: async () => [{ ...connection, apiKey: undefined }],
-    update: async () => ({ ...connection, apiKey: undefined }),
-    delete: async () => ({ ...connection, apiKey: undefined }),
-  };
   const senses: SenseRepository = {
     save: async () => sense,
     findById: async (id) => (id === sense.id ? sense : null),
@@ -63,6 +125,7 @@ function createService(generation: DescriptionGenerationPort) {
     entries,
     instructions,
     connections,
+    new ModelCatalogService(catalogPort, connections),
     senses,
     generation,
     commits
@@ -93,10 +156,7 @@ const instruction = {
   modifiedAt: now,
 };
 const connection = {
-  id: "connection-1",
-  name: "Local provider",
-  presetId: null,
-  baseUrl: "http://localhost:1234/v1",
+  providerId: "openrouter",
   apiKey: "secret-key",
 };
 const sense = {
@@ -109,26 +169,23 @@ const sense = {
 
 describe("DescriptionGenerationService", () => {
   test("creates a proposal for a new Sense when every requested type is generated", async () => {
-    const service = createService({
-      generate: async () => ({
-        target: {
-          kind: "new",
-          senseName: "greeting",
-          duplicateCandidateSenseId: "sense-1",
-        },
-        descriptions: [{ type: "translation", text: "bonjour" }],
-      }),
+    await using cleanup = new errore.AsyncDisposableStack();
+    const service = await createService(cleanup, {
+      generate: async (request) => {
+        expect(request.connection).toEqual(connection);
+        expect(request.modelId).toBe("anthropic/claude");
+        return {
+          target: {
+            kind: "new",
+            senseName: "greeting",
+            duplicateCandidateSenseId: "sense-1",
+          },
+          descriptions: [{ type: "translation", text: "bonjour" }],
+        };
+      },
     });
 
-    expect(
-      await service.createProposal({
-        sourceDescriptionId: sourceDescription.id,
-        instructionId: instruction.id,
-        providerConnectionId: connection.id,
-        modelId: "test-model",
-        targetTypes: ["translation"],
-      })
-    ).toEqual({
+    expect(await service.createProposal(proposalInput)).toEqual({
       entryId: entry.id,
       sourceDescriptionId: sourceDescription.id,
       expectedSourceSenseId: null,
@@ -142,7 +199,8 @@ describe("DescriptionGenerationService", () => {
   });
 
   test("rejects a proposal that omits a requested Description type", async () => {
-    const service = createService({
+    await using cleanup = new errore.AsyncDisposableStack();
+    const service = await createService(cleanup, {
       generate: async () => ({
         target: {
           kind: "new",
@@ -153,13 +211,7 @@ describe("DescriptionGenerationService", () => {
       }),
     });
 
-    const result = await service.createProposal({
-      sourceDescriptionId: sourceDescription.id,
-      instructionId: instruction.id,
-      providerConnectionId: connection.id,
-      modelId: "test-model",
-      targetTypes: ["translation"],
-    });
+    const result = await service.createProposal(proposalInput);
     expect(result).toBeInstanceOf(InvalidGenerationResponseError);
     if (!(result instanceof InvalidGenerationResponseError)) return;
     expect(result.reason).toBe(
@@ -167,8 +219,30 @@ describe("DescriptionGenerationService", () => {
     );
   });
 
+  test("rejects a duplicate candidate Sense outside the Entry", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const service = await createService(cleanup, {
+      generate: async () => ({
+        target: {
+          kind: "new",
+          senseName: "greeting",
+          duplicateCandidateSenseId: "other-sense",
+        },
+        descriptions: [{ type: "translation", text: "bonjour" }],
+      }),
+    });
+
+    const result = await service.createProposal(proposalInput);
+    expect(result).toBeInstanceOf(InvalidGenerationResponseError);
+    if (!(result instanceof InvalidGenerationResponseError)) return;
+    expect(result.reason).toBe(
+      "Duplicate candidate does not belong to the Entry."
+    );
+  });
+
   test("rejects duplicate requested Description types before generation", async () => {
-    const service = createService({
+    await using cleanup = new errore.AsyncDisposableStack();
+    const service = await createService(cleanup, {
       generate: async () => ({
         target: {
           kind: "new",
@@ -180,14 +254,69 @@ describe("DescriptionGenerationService", () => {
     });
 
     const result = await service.createProposal({
-      sourceDescriptionId: sourceDescription.id,
-      instructionId: instruction.id,
-      providerConnectionId: connection.id,
-      modelId: "test-model",
+      ...proposalInput,
       targetTypes: ["translation", "translation"],
     });
     expect(result).toBeInstanceOf(ValidationError);
     if (!(result instanceof ValidationError)) return;
     expect(result.reason).toBe("Description Types must be unique.");
+  });
+
+  test("rejects invalid and stale Models before a provider request", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const service = await createService(
+      cleanup,
+      {
+        generate: async () => {
+          throw new Error("Unexpected provider request");
+        },
+      },
+      { models: [{ ...eligibleModel, inputModalities: ["image"] }] }
+    );
+    for (const model of [
+      { providerId: "openrouter", modelId: "" },
+      selectedModel,
+      { providerId: "openrouter", modelId: "removed" },
+      { providerId: "unknown", modelId: "model" },
+    ]) {
+      expect(
+        await service.createProposal({ ...proposalInput, model })
+      ).toBeInstanceOf(ValidationError);
+    }
+  });
+
+  test("rejects an unconfigured Provider before a provider request", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const service = await createService(
+      cleanup,
+      {
+        generate: async () => {
+          throw new Error("Unexpected provider request");
+        },
+      },
+      { configured: false }
+    );
+    const result = await service.createProposal(proposalInput);
+    expect(result).toBeInstanceOf(NotFoundError);
+    if (!(result instanceof NotFoundError)) return;
+    expect(result.id).toBe("openrouter");
+  });
+
+  test("propagates Model Catalog errors before a provider request", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const catalogError = new ModelCatalogError({
+      operation: "get",
+      reason: "Catalog unavailable.",
+    });
+    const service = await createService(
+      cleanup,
+      {
+        generate: async () => {
+          throw new Error("Unexpected provider request");
+        },
+      },
+      { catalogError }
+    );
+    expect(await service.createProposal(proposalInput)).toBe(catalogError);
   });
 });

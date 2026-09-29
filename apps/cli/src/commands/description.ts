@@ -233,8 +233,7 @@ export const registerDescriptionCommands = (
     .description("Generate Descriptions")
     .argument("<description-id>", "Source Description ID")
     .requiredOption("--instruction <instruction-id>", "Instruction ID")
-    .requiredOption("--provider <connection-id>", "Provider Connection ID")
-    .requiredOption("--model <model-id>", "Model ID")
+    .option("--model <provider/model>", "Model override for this command")
     .requiredOption("--types <type,...>", "Description Types")
     .option("--allow-duplicate", "Create a suspected duplicate Sense")
     .action(
@@ -242,8 +241,7 @@ export const registerDescriptionCommands = (
         descriptionId: string,
         options: {
           instruction: string;
-          provider: string;
-          model: string;
+          model?: string;
           types: string;
           allowDuplicate?: boolean;
         }
@@ -258,16 +256,22 @@ export const registerDescriptionCommands = (
             context: {
               phase: "validate",
               sourceDescriptionId: descriptionId,
-              providerConnectionId: options.provider,
-              modelId: options.model,
             },
+          });
+        const model = await dependencies.modelSelectionService.resolve({
+          override: options.model,
+        });
+        if (model instanceof Error)
+          return handleExpectedError(context, model, {
+            logger: dependencies.logger,
+            operation: "description.generate",
+            context: { phase: "resolve", sourceDescriptionId: descriptionId },
           });
         const proposal =
           await dependencies.descriptionGenerationService.createProposal({
             sourceDescriptionId: descriptionId,
             instructionId: options.instruction,
-            providerConnectionId: options.provider,
-            modelId: options.model,
+            model,
             targetTypes: types,
           });
         if (proposal instanceof Error)
@@ -278,8 +282,8 @@ export const registerDescriptionCommands = (
               phase: "proposal",
               sourceDescriptionId: descriptionId,
               instructionId: options.instruction,
-              providerConnectionId: options.provider,
-              modelId: options.model,
+              providerId: model.providerId,
+              modelId: model.modelId,
               targetTypes: types,
             },
           });
@@ -296,8 +300,8 @@ export const registerDescriptionCommands = (
             context: {
               phase: "duplicate_confirmation",
               sourceDescriptionId: descriptionId,
-              providerConnectionId: options.provider,
-              modelId: options.model,
+              providerId: model.providerId,
+              modelId: model.modelId,
             },
           });
         if (!accepted) {
@@ -308,8 +312,8 @@ export const registerDescriptionCommands = (
             context: {
               outcome: "discarded",
               sourceDescriptionId: descriptionId,
-              providerConnectionId: options.provider,
-              modelId: options.model,
+              providerId: model.providerId,
+              modelId: model.modelId,
             },
           });
           return;
@@ -325,8 +329,8 @@ export const registerDescriptionCommands = (
             context: {
               phase: "commit",
               sourceDescriptionId: descriptionId,
-              providerConnectionId: options.provider,
-              modelId: options.model,
+              providerId: model.providerId,
+              modelId: model.modelId,
             },
           });
         context.output.writeData(committed.sense.id);
@@ -338,8 +342,8 @@ export const registerDescriptionCommands = (
           context: {
             outcome: "committed",
             sourceDescriptionId: descriptionId,
-            providerConnectionId: options.provider,
-            modelId: options.model,
+            providerId: model.providerId,
+            modelId: model.modelId,
             senseId: committed.sense.id,
             descriptionCount: committed.generatedDescriptions.length,
           },

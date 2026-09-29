@@ -1,12 +1,11 @@
 import type { Command } from "commander";
 import { ValidationError } from "@dictos/core";
-import type { CliContext } from "../app/types";
+import { CliExitCode, type CliContext } from "../app/types";
 import {
-  getDependenciesOrExit,
+  getProviderDependenciesOrExit,
   handleExpectedError,
   logOperationCompleted,
   requireConfirmation,
-  sanitizeTerminalText,
 } from "../app/command-action";
 
 export const registerProviderCommands = (
@@ -16,79 +15,99 @@ export const registerProviderCommands = (
   const provider = program
     .command("provider")
     .description("Manage Provider Connections");
-  provider.command("presets").action(async () => {
-    const dependencies = await getDependenciesOrExit(context);
+
+  provider.command("available").action(async () => {
+    const dependencies = await getProviderDependenciesOrExit(context);
     if (dependencies === null) return;
-    const presets = dependencies.providerConnectionService.getPresets();
-    for (const preset of presets)
-      context.output.writeData(
-        `${preset.id}\t${preset.name}\t${preset.baseUrl}`
-      );
+    const providers =
+      await dependencies.modelCatalogService.supportedProviders();
+    if (providers instanceof Error)
+      return handleExpectedError(context, providers, {
+        logger: dependencies.logger,
+        operation: "provider.available",
+      });
+    for (const item of providers) context.output.writeData(item.id);
     logOperationCompleted({
       logger: dependencies.logger,
-      operation: "provider.presets",
-      context: { presetCount: presets.length },
+      operation: "provider.available",
     });
   });
-  provider
-    .command("connect")
-    .requiredOption("--name <name>", "Connection name")
-    .option("--preset <preset-id>", "Provider preset")
-    .option("--base-url <url>", "Custom Provider endpoint")
-    .action(
-      async (options: { name: string; preset?: string; baseUrl?: string }) => {
-        if (options.preset !== undefined && options.baseUrl !== undefined)
-          return handleExpectedError(
-            context,
-            new ValidationError({
-              reason:
-                "Choose a Provider preset or a custom endpoint, not both.",
-            })
+
+  for (const action of ["connect", "reconnect"] as const) {
+    provider
+      .command(action)
+      .argument("[provider-id]", "Provider ID (required)")
+      .action(async (providerId?: string) => {
+        if (providerId === undefined) {
+          context.output.writeError(
+            `provider ${action} requires <provider-id>`
           );
-        if (options.preset === undefined && options.baseUrl === undefined)
-          return handleExpectedError(
-            context,
-            new ValidationError({
-              reason: "Choose a Provider preset or a custom endpoint.",
-            })
-          );
-        const dependencies = await getDependenciesOrExit(context);
+          process.exitCode = CliExitCode.UsageError;
+          return;
+        }
+        const dependencies = await getProviderDependenciesOrExit(context);
         if (dependencies === null) return;
+        const available =
+          await dependencies.modelCatalogService.supportedProviders();
+        if (available instanceof Error)
+          return handleExpectedError(context, available);
+        if (!available.some((item) => item.id === providerId))
+          return handleExpectedError(
+            context,
+            new ValidationError({ reason: "Unknown Provider ID." })
+          );
+        const log = {
+          logger: dependencies.logger,
+          operation: `provider.${action}`,
+          context: { providerId },
+        };
+
+        const connections =
+          await dependencies.providerConnectionService.getConnections();
+        if (connections instanceof Error)
+          return handleExpectedError(context, connections, log);
+        const exists = connections.some(
+          (item) => item.providerId === providerId
+        );
+        if (action === "connect" && exists)
+          return handleExpectedError(
+            context,
+            new ValidationError({
+              reason: "Provider Connection already exists. Use reconnect.",
+            }),
+            log
+          );
+        if (action === "reconnect" && !exists)
+          return handleExpectedError(
+            context,
+            new ValidationError({
+              reason: "Provider Connection not found. Use connect.",
+            }),
+            log
+          );
+
         const apiKey = await context.terminalPrompt.readSecret("API key: ");
         if (apiKey instanceof Error)
-          return handleExpectedError(context, apiKey, {
-            logger: dependencies.logger,
-            operation: "provider.connect",
-            context: { phase: "read_credential" },
-          });
-        const connection =
-          await dependencies.providerConnectionService.createConnection({
-            name: options.name,
-            presetId: options.preset,
-            baseUrl: options.baseUrl,
-            apiKey,
-          });
-        if (connection instanceof Error)
-          return handleExpectedError(context, connection, {
-            logger: dependencies.logger,
-            operation: "provider.connect",
-            context: { phase: "persist", presetId: options.preset ?? null },
-          });
-        context.output.writeData(
-          `Provider Connection created: ${connection.id}`
-        );
-        logOperationCompleted({
-          logger: dependencies.logger,
-          operation: "provider.connect",
-          context: {
-            providerConnectionId: connection.id,
-            presetId: connection.presetId,
-          },
-        });
-      }
-    );
+          return handleExpectedError(context, apiKey, log);
+        const result =
+          action === "connect"
+            ? await dependencies.providerConnectionService.connect({
+                providerId,
+                apiKey,
+              })
+            : await dependencies.providerConnectionService.replaceKey({
+                providerId,
+                apiKey,
+              });
+        if (result instanceof Error)
+          return handleExpectedError(context, result, log);
+        context.output.writeData(`${result.providerId}\tconfigured`);
+        logOperationCompleted(log);
+      });
+  }
+
   provider.command("list").action(async () => {
-    const dependencies = await getDependenciesOrExit(context);
+    const dependencies = await getProviderDependenciesOrExit(context);
     if (dependencies === null) return;
     const connections =
       await dependencies.providerConnectionService.getConnections();
@@ -98,135 +117,52 @@ export const registerProviderCommands = (
         operation: "provider.list",
       });
     for (const connection of connections)
-      context.output.writeData(
-        `${connection.id}\t${connection.name}\t${connection.presetId ?? ""}\t${connection.baseUrl}`
-      );
+      context.output.writeData(`${connection.providerId}\tconfigured`);
     logOperationCompleted({
       logger: dependencies.logger,
       operation: "provider.list",
-      context: { providerConnectionCount: connections.length },
     });
   });
+
   provider
-    .command("models")
-    .argument("<connection-id>", "Provider Connection ID")
-    .action(async (id: string) => {
-      const dependencies = await getDependenciesOrExit(context);
-      if (dependencies === null) return;
-      const models =
-        await dependencies.providerConnectionService.discoverModels(id);
-      if (models instanceof Error)
-        return handleExpectedError(context, models, {
-          logger: dependencies.logger,
-          operation: "provider.models",
-          context: { providerConnectionId: id },
-        });
-      for (const model of models)
-        context.output.writeData(sanitizeTerminalText(model));
-      logOperationCompleted({
-        logger: dependencies.logger,
-        operation: "provider.models",
-        context: { providerConnectionId: id, modelCount: models.length },
-      });
-    });
-  provider
-    .command("update")
-    .argument("<connection-id>", "Provider Connection ID")
-    .option("--name <name>", "Connection name")
-    .option("--preset <preset-id>", "Provider preset")
-    .option("--base-url <url>", "Custom Provider endpoint")
-    .option("--replace-key", "Replace API key")
+    .command("disconnect")
+    .argument("[provider-id]", "Provider ID (required)")
+    .option("--yes", "Confirm disconnection")
     .action(
-      async (
-        id: string,
-        options: {
-          name?: string;
-          preset?: string;
-          baseUrl?: string;
-          replaceKey?: boolean;
+      async (providerId: string | undefined, options: { yes?: boolean }) => {
+        if (providerId === undefined) {
+          context.output.writeError(
+            "provider disconnect requires <provider-id>"
+          );
+          process.exitCode = CliExitCode.UsageError;
+          return;
         }
-      ) => {
-        if (options.preset !== undefined && options.baseUrl !== undefined)
+        if (
+          !requireConfirmation(context, options.yes, "Disconnecting a Provider")
+        )
+          return;
+        const dependencies = await getProviderDependenciesOrExit(context);
+        if (dependencies === null) return;
+        const available =
+          await dependencies.modelCatalogService.supportedProviders();
+        if (available instanceof Error)
+          return handleExpectedError(context, available);
+        if (!available.some((item) => item.id === providerId))
           return handleExpectedError(
             context,
-            new ValidationError({
-              reason:
-                "Choose a Provider preset or a custom endpoint, not both.",
-            })
+            new ValidationError({ reason: "Unknown Provider ID." })
           );
-        const dependencies = await getDependenciesOrExit(context);
-        if (dependencies === null) return;
-        const apiKey = options.replaceKey
-          ? await context.terminalPrompt.readSecret("New API key: ")
-          : undefined;
-        if (apiKey instanceof Error)
-          return handleExpectedError(context, apiKey, {
-            logger: dependencies.logger,
-            operation: "provider.update",
-            context: {
-              phase: "read_credential",
-              providerConnectionId: id,
-            },
-          });
-        const updated =
-          await dependencies.providerConnectionService.updateConnection({
-            id,
-            ...(options.name === undefined ? {} : { name: options.name }),
-            ...(options.preset === undefined
-              ? options.baseUrl === undefined
-                ? {}
-                : { presetId: null }
-              : { presetId: options.preset }),
-            ...(options.baseUrl === undefined
-              ? {}
-              : { baseUrl: options.baseUrl }),
-            ...(apiKey === undefined ? {} : { apiKey }),
-          });
-        if (updated instanceof Error)
-          return handleExpectedError(context, updated, {
-            logger: dependencies.logger,
-            operation: "provider.update",
-            context: { phase: "persist", providerConnectionId: id },
-          });
-        context.output.writeData(`Provider Connection updated: ${updated.id}`);
-        logOperationCompleted({
+        const log = {
           logger: dependencies.logger,
-          operation: "provider.update",
-          context: {
-            providerConnectionId: updated.id,
-            presetId: updated.presetId,
-            credentialReplaced: apiKey !== undefined,
-          },
-        });
+          operation: "provider.disconnect",
+          context: { providerId },
+        };
+        const disconnected =
+          await dependencies.providerConnectionService.disconnect(providerId);
+        if (disconnected instanceof Error)
+          return handleExpectedError(context, disconnected, log);
+        context.output.writeData(`${disconnected.providerId}\tdisconnected`);
+        logOperationCompleted(log);
       }
     );
-  provider
-    .command("delete")
-    .argument("<connection-id>", "Provider Connection ID")
-    .option("--yes", "Confirm deletion")
-    .action(async (id: string, options: { yes?: boolean }) => {
-      const dependencies = await getDependenciesOrExit(context);
-      if (
-        dependencies === null ||
-        !requireConfirmation(
-          context,
-          options.yes,
-          "Deleting a Provider Connection"
-        )
-      )
-        return;
-      const deleted =
-        await dependencies.providerConnectionService.deleteConnection(id);
-      if (deleted instanceof Error)
-        return handleExpectedError(context, deleted, {
-          logger: dependencies.logger,
-          operation: "provider.delete",
-          context: { providerConnectionId: id },
-        });
-      logOperationCompleted({
-        logger: dependencies.logger,
-        operation: "provider.delete",
-        context: { providerConnectionId: id },
-      });
-    });
 };
