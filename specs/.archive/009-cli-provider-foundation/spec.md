@@ -1,6 +1,6 @@
 # Specification: CLI Provider Foundation
 
-**Status**: Draft | **Created**: Sep 28, 2026
+**Status**: Archived | **Created**: Sep 28, 2026
 
 ## 1. The Problem (Why are we doing this?)
 

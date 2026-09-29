@@ -48,3 +48,5 @@ The Model Catalog ships with a bundled models.dev snapshot for offline listing. 
 - [Interfaces & Contracts](./contracts.md)
 - [ADR 0008: Use AI SDK for Description Generation](../../adr/0008-use-ai-sdk-for-description-generation.md)
 - [ADR 0009: Keep Provider Credentials Device-Local](../../adr/0009-keep-provider-credentials-device-local.md)
+- [ADR 0010: Use Catalog-Backed Provider IDs](../../adr/0010-use-catalog-backed-provider-ids.md)
+- [ADR 0011: Keep the Model Catalog Out of Provider Execution](../../adr/0011-keep-catalog-out-of-provider-execution.md)

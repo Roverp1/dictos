@@ -21,7 +21,7 @@ Represents the temporary authentication secrets.
 
 ### SyncResult
 
-Provides actionable metrics to the UI regarding the sync operation.
+Reports sync operation metrics to the UI.
 
 - `pushedLocalChanges`: `boolean`
 - `pulledRemoteChanges`: `boolean`
@@ -39,7 +39,7 @@ Provides actionable metrics to the UI regarding the sync operation.
 
 - Implements a basic CRDT distributed counter.
 - `id`: UUIDv5 generated from `${date}:${deviceId}`.
-- Drops the traditional `UNIQUE(date)` constraint. Devices write to their own isolated rows for any given date, and the UI queries them via `SUM(count) GROUP BY date`.
+- Drops the traditional `UNIQUE(date)` constraint. Devices write to separate rows for any given date, and the UI queries them via `SUM(count) GROUP BY date`.
 
 ### `sensesTable` & `descriptionsTable`
 

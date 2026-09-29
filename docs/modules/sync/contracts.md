@@ -22,7 +22,7 @@ Implemented by the HTTP adapter to provide fast-fail offline detection.
 
 Implemented by the HTTP adapter to communicate with the Central API.
 
-- `login() / register()`: Returns an `AuthResult` which separates the fat server JSON into a `User` domain object (for the synced DB) and an `AuthSession` object (for the local file system).
+- `login() / register()`: Returns an `AuthResult` that separates the server JSON into a `User` domain object (for the synced DB) and an `AuthSession` object (for the local file system).
 
 ### `SessionRepository` & `LocalStateRepository`
 
@@ -34,7 +34,7 @@ Implemented by adapters in `packages/fs-storage` to persist device state.
 ### `ProviderConnectionRepository`, `ModelCatalogStore` & `ModelCatalogPort`
 
 - `ProviderConnectionRepository` is a device-local credential boundary, not a Sync port. Its filesystem adapter stores Provider ID-keyed API keys in `<dataDir>/providers.json`. `create`, `replaceKey`, and `delete` manage one credential per Provider ID; `findAll()` exposes only safe Provider IDs, while `findByProviderId()` returns the credential only for targeted use.
-- `ModelCatalogStore` is a device-local cache boundary: `read()` returns a cached catalog, `null`, or a storage error; `replace(catalog)` persists a validated cache in `<dataDir>/model-catalog.json`. `ModelCatalogPort.get()` uses that cache when valid or the bundled snapshot; `refresh()` fetches catalog metadata and replaces the cache on success. Neither port writes to the Dictionary database.
+- `ModelCatalogStore` is a device-local cache boundary: `read()` returns a cached catalog, `null`, or a storage error; `replace(catalog)` persists a validated version 2 cache in `<dataDir>/model-catalog.json`. Version 1 lacks the derived `textGeneration` marker and falls back to the bundled snapshot without deleting the file. `ModelCatalogPort.get()` uses the cache when valid or the bundled snapshot; `refresh()` fetches catalog metadata and replaces the cache on success. Neither port writes to the Dictionary database.
 - `ModelSelectionService` uses the catalog and configured Provider Connection to validate a qualified `provider/model` ID before `LocalStateRepository.setSelectedModel()` persists it. A one-command override does not alter the saved choice; disconnecting its Provider clears a matching choice before deleting the credential. No automatic Model fallback crosses this boundary.
 
 ## Synced and Device-Local Boundaries

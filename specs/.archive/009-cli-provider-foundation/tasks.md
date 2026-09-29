@@ -73,4 +73,4 @@ _(This is the final phase. Do not archive the feature while living contracts sti
 - [x] T037 [P] [US3]: Update `docs/modules/sync/data-model.md` with `LocalState.selectedModel` and the device-local catalog cache; make clear that neither requires a synced database schema change.
 - [x] T038 [P] [US1] [US3]: Update `docs/modules/sync/contracts.md` with the Provider Connection, Selected Model, and catalog storage boundaries outside Sync and Mirroring.
 - [x] T039 [US1] [US2] [US3] [US4]: Verify the implemented vocabulary against `CONTEXT.md` and the trade-offs against ADRs 0008-0011. Reconcile any differences without rewriting current-reality docs until the code actually matches.
-- [ ] T040 [US1] [US2] [US3] [US4]: Run `/docify.absorb`, review its changes to living documentation, and archive `specs/009-cli-provider-foundation/` only after T032-T039 are complete.
+- [x] T040 [US1] [US2] [US3] [US4]: Run `/docify.absorb`, review its changes to living documentation, and archive `specs/009-cli-provider-foundation/` only after T032-T039 are complete.
