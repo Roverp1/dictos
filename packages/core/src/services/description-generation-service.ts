@@ -3,6 +3,7 @@ import {
   DescriptionGenerationError,
   type GenerationConflictError,
   InvalidGenerationResponseError,
+  type ModelCatalogError,
   NotFoundError,
   type StorageError,
   ValidationError,
@@ -12,6 +13,7 @@ import type {
   DescriptionGenerationResult,
   DescriptionType,
   GenerationSenseContext,
+  SelectedModel,
 } from "../models";
 import type {
   DescriptionGenerationPort,
@@ -22,6 +24,7 @@ import type {
   ProviderConnectionRepository,
   SenseRepository,
 } from "../ports/outbound";
+import type { ModelCatalogService } from "./model-catalog-service";
 
 export class DescriptionGenerationService {
   constructor(
@@ -29,6 +32,7 @@ export class DescriptionGenerationService {
     private entries: EntryRepository,
     private instructions: InstructionRepository,
     private connections: ProviderConnectionRepository,
+    private catalog: ModelCatalogService,
     private senses: SenseRepository,
     private generation: DescriptionGenerationPort,
     private commits: DescriptionGenerationRepository
@@ -37,13 +41,13 @@ export class DescriptionGenerationService {
   async createProposal(input: {
     sourceDescriptionId: string;
     instructionId: string;
-    providerConnectionId: string;
-    modelId: string;
+    model: SelectedModel;
     targetTypes: DescriptionType[];
   }): Promise<
     | DescriptionGenerationProposal
     | DbError
     | StorageError
+    | ModelCatalogError
     | NotFoundError
     | ValidationError
     | DescriptionGenerationError
@@ -76,14 +80,18 @@ export class DescriptionGenerationService {
         entity: "Instruction",
         id: input.instructionId,
       });
-    const connection = await this.connections.findById(
-      input.providerConnectionId
+    const selected = await this.catalog.requireEligibleModel(
+      `${input.model.providerId}/${input.model.modelId}`
+    );
+    if (selected instanceof Error) return selected;
+    const connection = await this.connections.findByProviderId(
+      selected.providerId
     );
     if (connection instanceof Error) return connection;
     if (connection === null)
       return new NotFoundError({
         entity: "Provider Connection",
-        id: input.providerConnectionId,
+        id: selected.providerId,
       });
 
     const allSenses = await this.senses.findByEntry(entry.id);
@@ -119,7 +127,7 @@ export class DescriptionGenerationService {
 
     const generated = await this.generation.generate({
       connection,
-      modelId: input.modelId,
+      modelId: selected.modelId,
       instruction: instruction.text,
       entry: { id: entry.id, text: entry.text },
       sourceDescription: {

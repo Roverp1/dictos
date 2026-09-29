@@ -15,6 +15,8 @@ in {
 
   packages = with pkgs; [bun turso turso-cli secretspec gh];
 
+  profiles.cli.module.packages = with pkgs; [grim slurp tesseract libnotify];
+
   processes = {
     turso-sync.exec = "tursodb ${serverDataDir}/sync-server.db --sync-server 0.0.0.0:8080";
     server.exec = "secretspec run -- bun run dev:server";

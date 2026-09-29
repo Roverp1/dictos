@@ -1,152 +1,97 @@
 import {
-  ModelDiscoveryError,
   NotFoundError,
   ValidationError,
+  type ModelCatalogError,
   type StorageError,
 } from "../errors";
-import type { ProviderConnection, ProviderPreset } from "../models";
+import type { ProviderConnection, ProviderId } from "../models";
 import type {
-  ModelDiscoveryPort,
+  LocalStateRepository,
   ProviderConnectionRepository,
-  ProviderPresetCatalog,
 } from "../ports/outbound";
+import { ModelCatalogService } from "./model-catalog-service";
 
 export class ProviderConnectionService {
   constructor(
-    private connections: ProviderConnectionRepository,
-    private presets: ProviderPresetCatalog,
-    private discovery: ModelDiscoveryPort
+    private readonly connections: ProviderConnectionRepository,
+    private readonly catalog: ModelCatalogService,
+    private readonly localState: LocalStateRepository
   ) {}
 
-  async createConnection(input: {
-    name: string;
-    presetId?: string;
-    baseUrl?: string;
+  async connect(input: {
+    providerId: ProviderId;
     apiKey: string;
-  }): Promise<ProviderConnection | StorageError | ValidationError> {
-    const resolved = this.resolve(input);
-    if (resolved instanceof Error) return resolved;
-    return await this.connections.save({ ...resolved, apiKey: input.apiKey });
+  }): Promise<
+    ProviderConnection | ValidationError | StorageError | ModelCatalogError
+  > {
+    if (!input.apiKey.trim())
+      return new ValidationError({
+        reason: "Provider API key cannot be empty.",
+      });
+    const providers = await this.catalog.supportedProviders();
+    if (providers instanceof Error) return providers;
+    if (!providers.some((provider) => provider.id === input.providerId))
+      return new ValidationError({ reason: "Unknown Provider ID." });
+
+    return await this.connections.create(input);
+  }
+
+  async replaceKey(input: {
+    providerId: ProviderId;
+    apiKey: string;
+  }): Promise<
+    ProviderConnection | ValidationError | NotFoundError | StorageError
+  > {
+    if (!input.apiKey.trim())
+      return new ValidationError({
+        reason: "Provider API key cannot be empty.",
+      });
+    const existing = await this.connections.findByProviderId(input.providerId);
+    if (existing instanceof Error) return existing;
+    if (existing === null)
+      return new NotFoundError({
+        entity: "Provider Connection",
+        id: "requested",
+      });
+    const replaced = await this.connections.replaceKey(input);
+    if (replaced instanceof Error) return replaced;
+    if (replaced === null)
+      return new NotFoundError({
+        entity: "Provider Connection",
+        id: "requested",
+      });
+    return replaced;
   }
 
   async getConnections(): Promise<ProviderConnection[] | StorageError> {
     return await this.connections.findAll();
   }
 
-  async updateConnection(input: {
-    id: string;
-    name?: string;
-    presetId?: string | null;
-    baseUrl?: string;
-    apiKey?: string;
-  }): Promise<ProviderConnection | StorageError | ValidationError> {
-    if (input.name !== undefined && input.name.trim() === "")
-      return new ValidationError({
-        reason: "Provider Connection name cannot be empty.",
-      });
-    if (
-      input.baseUrl !== undefined &&
-      input.presetId !== undefined &&
-      input.presetId !== null
-    )
-      return new ValidationError({
-        reason: "Choose a Provider preset or a custom endpoint, not both.",
-      });
-    const endpointError =
-      input.baseUrl === undefined
-        ? null
-        : validateProviderEndpoint(input.baseUrl);
-    if (endpointError instanceof Error) return endpointError;
-    const preset =
-      input.presetId === undefined || input.presetId === null
-        ? null
-        : this.presets.findPreset(input.presetId);
-    if (
-      input.presetId !== undefined &&
-      input.presetId !== null &&
-      preset === null
-    )
-      return new ValidationError({ reason: "Unknown Provider preset." });
-    return await this.connections.update(input.id, {
-      ...(input.name === undefined ? {} : { name: input.name }),
-      ...(input.presetId === undefined ? {} : { presetId: input.presetId }),
-      ...(preset?.baseUrl === undefined && input.baseUrl === undefined
-        ? {}
-        : { baseUrl: preset?.baseUrl ?? input.baseUrl! }),
-      ...(input.apiKey === undefined ? {} : { apiKey: input.apiKey }),
-    });
-  }
-
-  async deleteConnection(
-    id: string
-  ): Promise<ProviderConnection | StorageError> {
-    return await this.connections.delete(id);
-  }
-
-  getPresets(): readonly ProviderPreset[] {
-    return this.presets.listPresets();
-  }
-
-  async discoverModels(
-    connectionId: string
-  ): Promise<string[] | StorageError | NotFoundError | ModelDiscoveryError> {
-    const connection = await this.connections.findById(connectionId);
-    if (connection instanceof Error) return connection;
-    if (connection === null)
+  async disconnect(
+    providerId: ProviderId
+  ): Promise<ProviderConnection | NotFoundError | StorageError> {
+    const existing = await this.connections.findByProviderId(providerId);
+    if (existing instanceof Error) return existing;
+    if (existing === null)
       return new NotFoundError({
         entity: "Provider Connection",
-        id: connectionId,
+        id: "requested",
       });
-    return await this.discovery.listModels(connection);
-  }
 
-  private resolve(input: {
-    name: string;
-    presetId?: string;
-    baseUrl?: string;
-  }):
-    | { name: string; presetId: string | null; baseUrl: string }
-    | ValidationError {
-    if (input.name.trim() === "")
-      return new ValidationError({
-        reason: "Provider Connection name cannot be empty.",
-      });
-    if (input.presetId !== undefined && input.baseUrl !== undefined)
-      return new ValidationError({
-        reason: "Choose a Provider preset or a custom endpoint, not both.",
-      });
-    if (input.presetId !== undefined) {
-      const preset = this.presets.findPreset(input.presetId);
-      if (preset === null)
-        return new ValidationError({ reason: "Unknown Provider preset." });
-      return { name: input.name, presetId: preset.id, baseUrl: preset.baseUrl };
+    const state = await this.localState.getLocalState();
+    if (state instanceof Error) return state;
+    if (state.selectedModel?.providerId === providerId) {
+      const cleared = await this.localState.setSelectedModel(null);
+      if (cleared instanceof Error) return cleared;
     }
-    if (input.baseUrl === undefined || input.baseUrl.trim() === "")
-      return new ValidationError({
-        reason: "A custom Provider endpoint is required.",
+
+    const deleted = await this.connections.delete(providerId);
+    if (deleted instanceof Error) return deleted;
+    if (deleted === null)
+      return new NotFoundError({
+        entity: "Provider Connection",
+        id: "requested",
       });
-    const endpointError = validateProviderEndpoint(input.baseUrl);
-    if (endpointError instanceof Error) return endpointError;
-    return { name: input.name, presetId: null, baseUrl: input.baseUrl };
+    return deleted;
   }
-}
-
-function validateProviderEndpoint(value: string): ValidationError | null {
-  const authority = /^https?:\/\/([^/?#]*)/i.exec(value)?.[1];
-  if (authority?.includes("@"))
-    return new ValidationError({
-      reason: "Provider endpoint must not contain credentials.",
-    });
-  if (!isSecureOrLocalUrl(value))
-    return new ValidationError({
-      reason: "Provider endpoint must use HTTPS unless it is local.",
-    });
-  return null;
-}
-
-function isSecureOrLocalUrl(value: string): boolean {
-  return (
-    /^https:\/\/[^\s]+$/i.test(value) ||
-    /^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/i.test(value)
-  );
 }

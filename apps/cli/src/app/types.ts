@@ -5,6 +5,9 @@ import type {
   EntryService,
   FolderService,
   InstructionService,
+  ModelCatalogPort,
+  ModelCatalogService,
+  ModelSelectionService,
   ProviderConnectionService,
   SessionRepository,
   SenseService,
@@ -28,19 +31,24 @@ export const CliExitCode = {
 
 export type CliExitCode = (typeof CliExitCode)[keyof typeof CliExitCode];
 
-export type CliDependencies = {
+export type CliProviderDependencies = {
+  providerConnectionService: ProviderConnectionService;
+  modelCatalogService: ModelCatalogService;
+  modelSelectionService: ModelSelectionService;
+  modelCatalog: ModelCatalogPort;
+  logger: Logger;
+};
+
+export type CliDependencies = CliProviderDependencies & {
   entryService: EntryService;
   folderService: FolderService;
   descriptionService: DescriptionService;
   senseService: SenseService;
   instructionService: InstructionService;
-  providerConnectionService: ProviderConnectionService;
   descriptionGenerationService: DescriptionGenerationService;
 
   authService: AuthService;
   syncService: SyncService;
-
-  logger: Logger;
 
   sessionRepo: SessionRepository;
 };
@@ -62,8 +70,13 @@ export type CliDependencyResult =
   | CliDependencyError
   | DatabaseInUseError;
 
+export type CliProviderDependencyResult =
+  | CliProviderDependencies
+  | CliDependencyError;
+
 export type CliContext = {
   output: CliOutput;
   terminalPrompt: TerminalPrompt;
+  getProviderDependencies(): Promise<CliProviderDependencyResult>;
   getDependencies(): Promise<CliDependencyResult>;
 };

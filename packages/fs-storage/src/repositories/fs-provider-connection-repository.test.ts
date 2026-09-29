@@ -3,37 +3,35 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { StorageError } from "@dictos/core";
+import { StorageError, ValidationError } from "@dictos/core";
 import * as errore from "@dictos/errore";
-import type { Context, Logger } from "@dictos/logger";
+import type { Logger } from "@dictos/logger";
 
 import { FsProviderConnectionRepository } from "./fs-provider-connection-repository";
 
-type ErrorEvent = {
-  message: string;
-  error: unknown;
-  context: Context | undefined;
-};
-
-async function createRepository(cleanup: errore.AsyncDisposableStack) {
+async function fixture(cleanup: errore.AsyncDisposableStack) {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "dictos-providers-")
   );
   cleanup.defer(() => fs.rm(directory, { recursive: true, force: true }));
-  const errorEvents: ErrorEvent[] = [];
+  const events: unknown[] = [];
   const logger: Logger = {
     trace: () => {},
     debug: () => {},
-    info: () => {},
+    info: (...args) => {
+      events.push(args);
+    },
     warn: () => {},
-    error: (message, error, context) =>
-      errorEvents.push({ message, error, context }),
+    error: (...args) => {
+      events.push(args);
+    },
     fatal: () => {},
     child: () => logger,
   };
   return {
     directory,
-    errorEvents,
+    events,
+    logger,
     repository: new FsProviderConnectionRepository({
       dataDir: directory,
       logger,
@@ -42,97 +40,197 @@ async function createRepository(cleanup: errore.AsyncDisposableStack) {
 }
 
 describe("FsProviderConnectionRepository", () => {
-  test("persists, redacts, updates, and deletes provider connections", async () => {
+  test("creates one credential per Provider ID and returns only safe results", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
-    const { directory, repository } = await createRepository(cleanup);
-    const created = await repository.save({
-      name: "Local provider",
-      presetId: null,
-      baseUrl: "http://localhost:1234/v1",
-      apiKey: "secret-key",
+    const { directory, events, repository } = await fixture(cleanup);
+    expect(
+      await repository.create({ providerId: "google", apiKey: "secret-google" })
+    ).toEqual({ providerId: "google" });
+    expect(
+      await repository.create({ providerId: "openai", apiKey: "secret-openai" })
+    ).toEqual({ providerId: "openai" });
+    expect(await repository.findAll()).toEqual([
+      { providerId: "google" },
+      { providerId: "openai" },
+    ]);
+    expect(await repository.findByProviderId("google")).toEqual({
+      providerId: "google",
+      apiKey: "secret-google",
     });
-    if (created instanceof Error) throw created;
-
-    expect(created).toEqual({
-      id: created.id,
-      name: "Local provider",
-      presetId: null,
-      baseUrl: "http://localhost:1234/v1",
+    expect(await repository.findByProviderId("missing")).toBeNull();
+    const duplicate = await repository.create({
+      providerId: "google",
+      apiKey: "secret-other",
     });
-    expect("apiKey" in created).toBe(false);
-
-    const stored = await repository.findById(created.id);
-    if (stored instanceof Error) throw stored;
-    expect(stored).toEqual({ ...created, apiKey: "secret-key" });
-
-    const updated = await repository.update(created.id, {
-      name: "Updated provider",
-      presetId: "openai",
-      apiKey: "replacement-key",
+    expect(duplicate).toBeInstanceOf(ValidationError);
+    expect(await repository.findByProviderId("google")).toEqual({
+      providerId: "google",
+      apiKey: "secret-google",
     });
-    if (updated instanceof Error) throw updated;
-    expect(updated).toEqual({
-      ...created,
-      name: "Updated provider",
-      presetId: "openai",
+    expect(
+      await repository.replaceKey({
+        providerId: "missing",
+        apiKey: "secret-other",
+      })
+    ).toBeNull();
+    expect(
+      await repository.replaceKey({
+        providerId: "google",
+        apiKey: "secret-new",
+      })
+    ).toEqual({ providerId: "google" });
+    expect(await repository.findByProviderId("google")).toEqual({
+      providerId: "google",
+      apiKey: "secret-new",
     });
-    expect("apiKey" in updated).toBe(false);
+    expect(await repository.delete("missing")).toBeNull();
+    expect(await repository.delete("google")).toEqual({ providerId: "google" });
+    expect(await repository.findAll()).toEqual([{ providerId: "openai" }]);
+    expect(JSON.stringify([duplicate, events])).not.toContain("secret-");
+    expect(
+      JSON.parse(
+        await fs.readFile(path.join(directory, "providers.json"), "utf8")
+      )
+    ).toEqual({
+      version: 1,
+      connections: { openai: { apiKey: "secret-openai" } },
+    });
+    expect(
+      (await fs.stat(path.join(directory, "providers.json"))).mode & 0o777
+    ).toBe(0o600);
+  });
 
+  test("rejects corrupt and legacy files without overwriting credentials or leaking input", async () => {
+    for (const raw of [
+      '{"apiKey":"secret-corrupt",',
+      '{"connections":[{"apiKey":"secret-legacy"}]}',
+      '{"version":1,"connections":{"google":{"apiKey":""}}}',
+      '{"version":1,"connections":{},"apiKey":"secret-legacy"}',
+    ]) {
+      await using cleanup = new errore.AsyncDisposableStack();
+      const { directory, events, repository } = await fixture(cleanup);
+      await fs.writeFile(path.join(directory, "providers.json"), raw);
+      expect(await repository.findAll()).toBeInstanceOf(StorageError);
+      const result = await repository.create({
+        providerId: "openai",
+        apiKey: "secret-new",
+      });
+      expect(result).toBeInstanceOf(StorageError);
+      expect(
+        await fs.readFile(path.join(directory, "providers.json"), "utf8")
+      ).toBe(raw);
+      expect(JSON.stringify([result, events])).not.toContain("secret-");
+    }
+  });
+
+  test("rejects invalid Provider IDs and empty credentials without saving them", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, repository } = await fixture(cleanup);
+    expect(
+      await repository.create({ providerId: "__proto__", apiKey: "secret-key" })
+    ).toBeInstanceOf(ValidationError);
+    expect(
+      await repository.create({ providerId: "google", apiKey: "  " })
+    ).toBeInstanceOf(ValidationError);
+    expect(await repository.findAll()).toEqual([]);
+    expect(
+      (await fs.readdir(directory)).filter((name) => name === "providers.json")
+    ).toEqual([]);
+  });
+
+  test("keeps the previous file on failed replacement and cleans temporary files", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, repository } = await fixture(cleanup);
+    expect(
+      await repository.create({ providerId: "google", apiKey: "secret-old" })
+    ).toEqual({ providerId: "google" });
+    await fs.mkdir(path.join(directory, "providers.json.lock"));
+    const result = await repository.replaceKey({
+      providerId: "google",
+      apiKey: "secret-new",
+    });
+    expect(result).toBeInstanceOf(StorageError);
+    expect(await repository.findByProviderId("google")).toEqual({
+      providerId: "google",
+      apiKey: "secret-old",
+    });
+    expect(
+      (await fs.readdir(directory)).filter((name) => name.endsWith(".tmp"))
+    ).toEqual([]);
+  });
+
+  test("a failed filesystem write leaves existing credentials readable", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, repository } = await fixture(cleanup);
+    expect(
+      await repository.create({ providerId: "google", apiKey: "secret-old" })
+    ).toEqual({ providerId: "google" });
+    await fs.chmod(directory, 0o500);
+    cleanup.defer(() => fs.chmod(directory, 0o700));
+    expect(
+      await repository.replaceKey({
+        providerId: "google",
+        apiKey: "secret-new",
+      })
+    ).toBeInstanceOf(StorageError);
+    expect(await repository.findByProviderId("google")).toEqual({
+      providerId: "google",
+      apiKey: "secret-old",
+    });
+    expect(
+      (await fs.readdir(directory)).filter((name) => name.endsWith(".tmp"))
+    ).toEqual([]);
+  });
+
+  test("concurrent repository instances do not lose Provider Connections", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, repository, logger } = await fixture(cleanup);
+    const other = new FsProviderConnectionRepository({
+      dataDir: directory,
+      logger,
+    });
+    const results = await Promise.all(
+      Array.from({ length: 20 }, (_, i) =>
+        (i % 2 ? other : repository).create({
+          providerId: `provider-${i}`,
+          apiKey: `secret-${i}`,
+        })
+      )
+    );
+    for (const result of results) if (result instanceof Error) throw result;
     const listed = await repository.findAll();
     if (listed instanceof Error) throw listed;
-    expect(listed).toEqual([updated]);
-
-    const file = await fs.readFile(
-      path.join(directory, "providers.json"),
-      "utf8"
-    );
-    expect(file).toContain("replacement-key");
-
-    const deleted = await repository.delete(created.id);
-    if (deleted instanceof Error) throw deleted;
-    expect(deleted).toEqual(updated);
-    expect(await repository.findById(created.id)).toBeNull();
+    expect(listed).toHaveLength(20);
+    expect(
+      (await fs.readdir(directory)).filter((name) => name.endsWith(".lock"))
+    ).toEqual([]);
   });
 
-  test("stores provider credentials with owner-only file permissions", async () => {
+  test("separate CLI processes preserve each other's Provider Connections", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
-    const { directory, repository } = await createRepository(cleanup);
-    const created = await repository.save({
-      name: "Local provider",
-      presetId: null,
-      baseUrl: "http://localhost:1234/v1",
-      apiKey: "secret-key",
-    });
-    if (created instanceof Error) throw created;
-
-    const metadata = await fs.stat(path.join(directory, "providers.json"));
-    expect(metadata.mode & 0o777).toBe(0o600);
-  });
-
-  test("returns a storage error for corrupt provider JSON", async () => {
-    await using cleanup = new errore.AsyncDisposableStack();
-    const { directory, errorEvents, repository } =
-      await createRepository(cleanup);
-    await fs.writeFile(
-      path.join(directory, "providers.json"),
-      '{"apiKey":"top-secret-key",',
-      "utf8"
+    const { directory, repository } = await fixture(cleanup);
+    const moduleUrl = new URL(
+      "./fs-provider-connection-repository.ts",
+      import.meta.url
+    ).href;
+    const script = `import { FsProviderConnectionRepository } from ${JSON.stringify(moduleUrl)};
+      const logger = { trace(){}, debug(){}, info(){}, warn(){}, error(){}, fatal(){}, child(){ return this } };
+      const repository = new FsProviderConnectionRepository({ dataDir: process.argv[1], logger });
+      for (let i = 0; i < 5; i++) {
+        const result = await repository.create({ providerId: process.argv[2] + '-' + i, apiKey: 'secret-' + i });
+        if (result instanceof Error) process.exit(1);
+      }`;
+    const processes = Array.from({ length: 4 }, (_, i) =>
+      Bun.spawn([process.execPath, "-e", script, directory, `worker-${i}`], {
+        stdout: "pipe",
+        stderr: "pipe",
+      })
     );
-
-    const result = await repository.findAll();
-    expect(result).toBeInstanceOf(StorageError);
-    if (!(result instanceof StorageError)) return;
-    expect(result.operation).toBe("parse_provider_connections");
-    expect(errorEvents[0]).toMatchObject({
-      message: "Provider Connection storage read failed",
-      error: result,
-      context: { operation: "parse_provider_connections" },
-    });
-    expect(result.cause).toBeInstanceOf(Error);
-    if (!(result.cause instanceof Error)) return;
-    expect(result.cause.message).toBe(
-      "Provider storage JSON could not be parsed"
-    );
-    expect(JSON.stringify(errorEvents[0])).not.toContain("top-secret-key");
+    expect(
+      await Promise.all(processes.map((process) => process.exited))
+    ).toEqual([0, 0, 0, 0]);
+    const listed = await repository.findAll();
+    if (listed instanceof Error) throw listed;
+    expect(listed).toHaveLength(20);
   });
 });

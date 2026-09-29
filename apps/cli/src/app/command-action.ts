@@ -2,7 +2,12 @@ import { DbError } from "@dictos/core";
 import type { Context, Logger } from "@dictos/logger";
 
 import { DatabaseInUseError } from "./errors";
-import { CliExitCode, type CliContext, type CliDependencies } from "./types";
+import {
+  CliExitCode,
+  type CliContext,
+  type CliDependencies,
+  type CliProviderDependencies,
+} from "./types";
 
 type CliOperationLog = {
   logger: Logger;
@@ -27,6 +32,18 @@ export const getDependenciesOrExit = async (
     return null;
   }
 
+  return dependencies;
+};
+
+export const getProviderDependenciesOrExit = async (
+  context: CliContext
+): Promise<CliProviderDependencies | null> => {
+  const dependencies = await context.getProviderDependencies();
+  if (dependencies instanceof Error) {
+    context.output.writeError(dependencies.message);
+    process.exitCode = CliExitCode.UnexpectedFailure;
+    return null;
+  }
   return dependencies;
 };
 

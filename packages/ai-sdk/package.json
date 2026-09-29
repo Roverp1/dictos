@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.0",
+    "@ai-sdk/openai": "^3.0.0",
     "@ai-sdk/openai-compatible": "^2.0.0",
     "@dictos/core": "workspace:*",
     "@dictos/errore": "workspace:*",
@@ -18,6 +20,7 @@
     "ai": "^6.0.0"
   },
   "devDependencies": {
+    "@dictos/fs-storage": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^6.0.0"
   }

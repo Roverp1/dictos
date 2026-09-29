@@ -32,9 +32,25 @@ _Avoid_: Prompt, Prompt Template, Preset, Recipe, AI Instruction
 The action of creating typed Descriptions from a selected Description using an Instruction and Model.
 _Avoid_: AI Generation, LLM Generation, Definition Generation
 
+**Provider**:
+An external service with a stable provider ID that supplies Models for Description Generation.
+_Avoid_: Provider Connection (when referring to the service)
+
 **Provider Connection**:
-A device-local configuration used to access Models from an external provider.
+A device-local configuration and credential used to access a Provider's Models. It is identified by the Provider ID and is not synced.
 _Avoid_: Provider Account, Integration, LLM Configuration
+
+**Model**:
+A provider-specific text-generation model identified in Dictos by a qualified `provider/model` ID.
+_Avoid_: Provider, Provider Connection
+
+**Model Catalog**:
+Local metadata listing supported Providers and eligible text-generation Models. A listing does not prove account access or guarantee Description Generation will succeed.
+_Avoid_: Model discovery (when referring to catalog metadata)
+
+**Selected Model**:
+The device-local Model choice used for Description Generation unless a client explicitly chooses another Model.
+_Avoid_: Default Model (when referring to an automatic fallback)
 
 **Activity**:
 A daily record logging the count of actions a user has taken (e.g., adding entries) to power heatmaps and future gamification. Distinct from future "Statistics".

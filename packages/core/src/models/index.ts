@@ -4,5 +4,6 @@ export * from "./folder";
 export * from "./instruction";
 export * from "./sense";
 export * from "./provider-connection";
+export * from "./model-catalog";
 export * from "./description-generation";
 export * from "./user";

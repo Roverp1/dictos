@@ -22,14 +22,11 @@ The `instructions` table stores nullable `name`, required `text`, and lifecycle 
 
 ## Provider Connections
 
-Provider Connections are device-local and stored at `<dataDir>/providers.json`, not in the Dictionary database.
+Provider Connections are device-local and stored at `<dataDir>/providers.json`, not in the synced Dictionary database. There is at most one credential per supported Provider ID on a device.
 
 ```typescript
 interface ProviderConnection {
-  id: string;
-  name: string;
-  presetId: string | null;
-  baseUrl: string;
+  providerId: string;
 }
 
 interface ProviderConnectionWithCredential extends ProviderConnection {
@@ -37,13 +34,68 @@ interface ProviderConnectionWithCredential extends ProviderConnection {
 }
 
 interface ProviderConnectionFile {
-  connections: ProviderConnectionWithCredential[];
+  version: 1;
+  connections: Record<string, { apiKey: string }>;
 }
 ```
 
-Connection IDs use random UUIDs. The filesystem adapter validates the stored JSON shape, writes through a uniquely named same-directory temporary file, removes temporary files after failed writes, and enforces final file mode `0o600`. Normal lists use the safe `ProviderConnection` shape; only targeted internal reads for Model discovery and Description Generation receive the credential-bearing shape.
+The map key is the Provider ID; supported IDs are `deepseek`, `google`, `groq`, `openai`, and `openrouter`. The filesystem adapter validates the version and stored shape, serializes updates, writes through a uniquely named same-directory temporary file, removes temporary files after failed writes, and creates the file with owner-only mode `0o600`. Lists and mutation results use the safe `ProviderConnection` shape containing only `providerId`; targeted internal reads for Description Generation and connection management use `ProviderConnectionWithCredential`. Credentials are not included in normal output.
 
-Provider presets are static endpoint metadata. A Provider Connection stores the selected `presetId` and resolved `baseUrl`, while Models are discovered at runtime or supplied manually and are not stored as a default selection.
+## Selected Model
+
+The device-local `<dataDir>/local-state.json` stores the Selected Model alongside the existing device identity:
+
+```typescript
+interface SelectedModel {
+  providerId: string;
+  modelId: string;
+}
+
+interface LocalState {
+  deviceId: string;
+  selectedModel: SelectedModel | null;
+}
+```
+
+The selected pair is represented externally as `provider/model`; Model IDs may contain further slashes. A missing state file initializes a new `deviceId` with `selectedModel: null`. An existing file with a valid `deviceId` but no `selectedModel` is treated as unselected. Selection updates preserve `deviceId`; only an explicit local-state reset replaces it and clears the selection. No Model is chosen automatically. A per-command Model override does not change the saved choice.
+
+## Model Catalog
+
+`@dictos/ai-sdk` bundles a filtered models.dev snapshot for offline use. A validated cache at `<dataDir>/model-catalog.json` takes precedence; an absent or invalid cache falls back to the bundled snapshot. Normal catalog reads do not fetch. Explicit refresh validates and atomically replaces the cache; failure leaves the previous cache intact.
+
+```typescript
+interface CatalogProvider {
+  id: string;
+  name: string;
+}
+
+interface CatalogModel {
+  providerId: string;
+  modelId: string;
+  name: string;
+  textGeneration: true;
+  status: "active" | "alpha" | "beta";
+  inputModalities: string[];
+  outputModalities: string[];
+  cost?: { input: number; output: number };
+  protocol?: string;
+}
+
+interface ModelCatalog {
+  source: "bundled" | "cache";
+  fetchedAt: string;
+  providers: CatalogProvider[];
+  models: CatalogModel[];
+}
+
+interface ModelCatalogCacheFile extends Omit<ModelCatalog, "source"> {
+  version: 2;
+}
+```
+
+`source` identifies the active catalog in memory; the cache file stores `version`, `fetchedAt`, `providers`, and `models`, but not `source`. `fetchedAt` is the snapshot retrieval date or the refresh timestamp, not proof of live Provider access. The `textGeneration: true` marker is derived from upstream data only after checking text input, text-only output, a non-deprecated status, a generation signal (`temperature`, `tool_call`, or `structured_output`), and no model-specific protocol override. The bundled snapshot and refresh use the same predicate. Text modalities alone are insufficient because models.dev includes embedding-only Models. Version 1 caches have no such marker and fall back to the bundled snapshot with a warning; an explicit successful refresh replaces them with version 2. Only eligible Models from configured Providers are listed for selection. Catalog metadata does not prove account access or guarantee Description Generation will succeed.
+
+No synced database table, Drizzle schema, or Sync record changes for Provider Connections, the Selected Model, or the Model Catalog.
 
 ## Ephemeral Proposals
 
