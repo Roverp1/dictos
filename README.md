@@ -192,6 +192,7 @@ For the full architecture, read [`docs/system-overview.md`](./docs/system-overvi
 ## Documentation
 
 - [`docs/system-overview.md`](./docs/system-overview.md) - Purpose, architecture, stack, and codebase map.
+- [`apps/cli/README.md`](./apps/cli/README.md) - CLI usage and Linux screen-region Entry hotkey setup.
 - [`CONTEXT.md`](./CONTEXT.md) - Project terminology.
 - [`docs/testing.md`](./docs/testing.md) - Testing strategy and rules.
 - [`docs/adr`](./docs/adr) - Architecture decisions.
