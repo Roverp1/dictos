@@ -15,6 +15,7 @@
     "test": "bun turbo test",
     "typecheck": "bun turbo typecheck",
     "format": "prettier --write --ignore-path .gitignore .",
+    "dev:cli": "bun --cwd apps/cli start --",
     "dev:tui": "bun --cwd apps/tui/ dev",
     "dev:web": "bun --cwd apps/web dev",
     "dev:server": "bun --cwd apps/server/ dev"
