@@ -46,7 +46,11 @@ const model = (id: string, overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 const upstream = (models: Record<string, unknown>) => ({
+  deepseek: { id: "deepseek", name: "DeepSeek", models: {} },
   google: { id: "google", name: "Google", models },
+  groq: { id: "groq", name: "Groq", models: {} },
+  openai: { id: "openai", name: "OpenAI", models: {} },
+  openrouter: { id: "openrouter", name: "OpenRouter", models: {} },
   unknown: {
     id: "unknown",
     name: "Unknown",
@@ -164,7 +168,7 @@ describe("ModelCatalogAdapter", () => {
     }
   });
 
-  test("a partial refresh does not hide a supported Provider with an existing connection", async () => {
+  test("a refresh retains supported Providers with no eligible Models", async () => {
     const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-catalog-"));
     try {
       const { adapter } = fixture(dataDir, async () =>
@@ -325,6 +329,32 @@ describe("ModelCatalogAdapter", () => {
       expect(result).toBeInstanceOf(ModelCatalogError);
       expect(JSON.stringify(result)).not.toContain("key-in-response");
       expect(await failing.adapter.get()).toEqual(saved);
+    } finally {
+      await fs.rm(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  test("a refresh missing a supported Provider keeps the last good catalog", async () => {
+    const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-catalog-"));
+    try {
+      const first = fixture(dataDir, async () =>
+        Response.json(upstream({ stable: model("stable") }))
+      );
+      const saved = await first.adapter.refresh();
+      if (saved instanceof Error) throw saved;
+
+      const partial = fixture(dataDir, async () =>
+        Response.json({
+          google: {
+            id: "google",
+            name: "Google",
+            models: { replacement: model("replacement") },
+          },
+        })
+      );
+      const result = await partial.adapter.refresh();
+      expect(result).toBeInstanceOf(ModelCatalogError);
+      expect(await partial.adapter.get()).toEqual(saved);
     } finally {
       await fs.rm(dataDir, { recursive: true, force: true });
     }

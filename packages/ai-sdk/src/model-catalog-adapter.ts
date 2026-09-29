@@ -1,4 +1,4 @@
-import * as errore from "errore";
+import * as errore from "@dictos/errore";
 import {
   ModelCatalogError,
   type CatalogModel,
@@ -129,7 +129,10 @@ function fromUpstream(value: unknown): ModelCatalog | ModelCatalogError {
       !safeText(provider.name) ||
       !record(provider.models)
     )
-      continue;
+      return fail(
+        "validate",
+        "Catalog response is missing a supported Provider"
+      );
     providers.push({ id, name: provider.name });
     for (const [modelId, candidate] of Object.entries(provider.models)) {
       if (

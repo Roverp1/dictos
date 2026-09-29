@@ -136,6 +136,7 @@ test("refresh saves eligible Models and verbose offline listing shows validated 
   globalThis.fetch = (async () =>
     new Response(
       JSON.stringify({
+        deepseek: { id: "deepseek", name: "DeepSeek", models: {} },
         google: {
           id: "google",
           name: "Google",
@@ -167,6 +168,9 @@ test("refresh saves eligible Models and verbose offline listing shows validated 
             },
           },
         },
+        groq: { id: "groq", name: "Groq", models: {} },
+        openai: { id: "openai", name: "OpenAI", models: {} },
+        openrouter: { id: "openrouter", name: "OpenRouter", models: {} },
       }),
       { status: 200 }
     )) as unknown as typeof fetch;

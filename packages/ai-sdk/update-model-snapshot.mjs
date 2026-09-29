@@ -2,6 +2,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import prettier from "prettier";
+import * as errore from "@dictos/errore";
 import { isTextGenerationCandidate } from "./src/model-catalog-eligibility.ts";
 
 const [inputPath, expectedSha256] = process.argv.slice(2);
@@ -27,7 +28,18 @@ if (sourceHash !== expectedSha256) {
   process.exit(1);
 }
 
-const source = JSON.parse(raw.toString("utf8"));
+const source = errore.try(
+  () => JSON.parse(raw.toString("utf8")),
+  (cause) => new Error("Source contains invalid JSON", { cause })
+);
+if (source instanceof Error) {
+  console.error(source.message);
+  process.exit(1);
+}
+if (source === null || typeof source !== "object" || Array.isArray(source)) {
+  console.error("Source must contain Provider data");
+  process.exit(1);
+}
 const providerIds = ["deepseek", "google", "groq", "openai", "openrouter"];
 const safe = (value) =>
   typeof value === "string" &&

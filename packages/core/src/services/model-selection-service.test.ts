@@ -25,6 +25,10 @@ const logger: Logger = {
 
 const catalogResponse = (models: Record<string, unknown>) =>
   Response.json({
+    deepseek: { id: "deepseek", name: "DeepSeek", models: {} },
+    google: { id: "google", name: "Google", models: {} },
+    groq: { id: "groq", name: "Groq", models: {} },
+    openai: { id: "openai", name: "OpenAI", models: {} },
     openrouter: { id: "openrouter", name: "OpenRouter", models },
   });
 const model = (id: string, changes: Record<string, unknown> = {}) => ({

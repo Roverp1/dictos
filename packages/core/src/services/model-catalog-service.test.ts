@@ -55,11 +55,14 @@ const model = (id: string, changes: Record<string, unknown> = {}) => ({
 });
 
 const upstream = () => ({
+  deepseek: { id: "deepseek", name: "DeepSeek", models: {} },
   google: {
     id: "google",
     name: "Google",
     models: { zebra: model("zebra"), alpha: model("alpha") },
   },
+  groq: { id: "groq", name: "Groq", models: {} },
+  openai: { id: "openai", name: "OpenAI", models: {} },
   openrouter: {
     id: "openrouter",
     name: "OpenRouter",
@@ -163,6 +166,7 @@ describe("ModelCatalogService", () => {
     let updated = false;
     const { service, connections } = await fixture(cleanup, async () =>
       Response.json({
+        ...upstream(),
         google: {
           id: "google",
           name: "Google",
