@@ -29,6 +29,7 @@ interface CatalogModel {
   providerId: ProviderId;
   modelId: ModelId;
   name: string;
+  textGeneration: true;
   status: "active" | "alpha" | "beta";
   inputModalities: string[];
   outputModalities: string[];
@@ -43,7 +44,7 @@ interface ModelCatalog {
 }
 ```
 
-`parseQualifiedModelId(value)` returns `SelectedModel | ValidationError`, splitting at the first `/` so the Model ID may contain slashes. `ModelCatalogService` requires a supported catalog Provider and a listed Model with text input/output, an active/alpha/beta status, and no model-specific protocol override. It does not check account entitlement.
+`parseQualifiedModelId(value)` returns `SelectedModel | ValidationError`, splitting at the first `/` so the Model ID may contain slashes. `ModelCatalogService` requires a supported catalog Provider and a listed Model marked `textGeneration: true`, with text input, text output, an active/alpha/beta status, and no model-specific protocol override. The marker is derived during snapshot extraction or refresh; external catalog data cannot assert it directly. It does not check account entitlement.
 
 ```ts
 interface ModelCatalogPort {
@@ -68,7 +69,7 @@ class ModelCatalogService {
 }
 ```
 
-`ModelCatalogAdapter` reads a validated cache or falls back to its bundled models.dev snapshot (warning on a bad cache). Normal listing makes no network request. Explicit refresh fetches the fixed `https://models.dev/api.json` URL with time and size limits, filters to the five supported Providers and eligible text Models, validates display fields, and replaces the cache only on success. `FsModelCatalogStore` reads/writes `<dataDir>/model-catalog.json` with a versioned shape and same-directory temporary-file rename. Failed refresh leaves the prior cache intact.
+`ModelCatalogAdapter` reads a validated cache or falls back to its bundled models.dev snapshot (warning on a bad cache). Normal listing makes no network request. Explicit refresh fetches the fixed `https://models.dev/api.json` URL with time and size limits, filters to the five supported Providers and eligible text-generation Models, validates display fields, and replaces the cache only on success. The reviewed snapshot updater and runtime refresh use one upstream eligibility predicate: text input, text-only output, at least one generation signal (`temperature`, `tool_call`, or `structured_output`), a supported status, and no model-specific provider override. `FsModelCatalogStore` atomically reads/writes a validated version 2 cache at `<dataDir>/model-catalog.json`; version 1 lacks text-generation proof and falls back to the bundled snapshot without deleting the file. Failed refresh leaves the prior cache intact.
 
 ```ts
 interface ProviderConnectionRepository {

@@ -73,6 +73,7 @@ interface CatalogModel {
   providerId: string;
   modelId: string;
   name: string;
+  textGeneration: true;
   status: "active" | "alpha" | "beta";
   inputModalities: string[];
   outputModalities: string[];
@@ -88,11 +89,11 @@ interface ModelCatalog {
 }
 
 interface ModelCatalogCacheFile extends Omit<ModelCatalog, "source"> {
-  version: 1;
+  version: 2;
 }
 ```
 
-`source` identifies the active catalog in memory; the cache file stores `version`, `fetchedAt`, `providers`, and `models`, but not `source`. `fetchedAt` is the snapshot retrieval date or the refresh timestamp, not proof of live Provider access. Eligible Models belong to a supported Provider, have `active`, `alpha`, or `beta` status, support text input and output, and have no unsupported protocol override. Only eligible Models from configured Providers are listed for selection. Catalog metadata does not prove account access or guarantee Description Generation will succeed.
+`source` identifies the active catalog in memory; the cache file stores `version`, `fetchedAt`, `providers`, and `models`, but not `source`. `fetchedAt` is the snapshot retrieval date or the refresh timestamp, not proof of live Provider access. The `textGeneration: true` marker is derived from upstream data only after checking text input, text-only output, a non-deprecated status, a generation signal (`temperature`, `tool_call`, or `structured_output`), and no model-specific protocol override. The bundled snapshot and refresh use the same predicate. Text modalities alone are insufficient because models.dev includes embedding-only Models. Version 1 caches have no such marker and fall back to the bundled snapshot with a warning; an explicit successful refresh replaces them with version 2. Only eligible Models from configured Providers are listed for selection. Catalog metadata does not prove account access or guarantee Description Generation will succeed.
 
 No synced database table, Drizzle schema, or Sync record changes for Provider Connections, the Selected Model, or the Model Catalog.
 

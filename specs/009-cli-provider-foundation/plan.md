@@ -43,6 +43,7 @@ interface CatalogModel {
   providerId: ProviderId;
   modelId: ModelId;
   name: string;
+  textGeneration: true;
   status: "active" | "alpha" | "beta";
   inputModalities: string[];
   outputModalities: string[];
@@ -57,7 +58,7 @@ interface ModelCatalog {
 }
 ```
 
-`parseQualifiedModelId(value)` splits at the first slash, rejects empty parts and control characters, and returns `SelectedModel | ValidationError`. A Model is eligible only when its catalog record is not deprecated, has text input and output, and the Dictos-owned routing table supports its Provider and any required model-specific protocol. Do not use `structured_output` alone as an eligibility gate: catalog flags may be missing, and local validation is still required. Treat missing modalities or an unsupported model-level protocol override as ineligible. Never turn a Model ID missing from the local catalog into an unchecked provider request. A newly cataloged Model becomes eligible after refresh without editing a built-in Model list.
+`parseQualifiedModelId(value)` splits at the first slash, rejects empty parts and control characters, and returns `SelectedModel | ValidationError`. A Model is eligible only when its catalog record is not deprecated, has text input and text-only output, and the Dictos-owned routing table supports its Provider and any required model-specific protocol. models.dev also lists embedding-only Models as text-in/text-out, so snapshot extraction and refresh share a predicate that requires at least one upstream generation signal (`temperature`, `tool_call`, or `structured_output`) before deriving `textGeneration: true`. No single flag alone is required; a Model with no positive generation signal is excluded, and local proposal validation is still required. Treat missing modalities or an unsupported model-level protocol override as ineligible. Never turn a Model ID missing from the local catalog into an unchecked provider request. A newly cataloged Model becomes eligible after refresh without editing a built-in Model list.
 
 ### Device-Local Files
 
@@ -75,7 +76,7 @@ type LocalState = {
 };
 
 type ModelCatalogCacheFile = {
-  version: 1;
+  version: 2;
   fetchedAt: string;
   providers: CatalogProvider[];
   models: CatalogModel[];
@@ -84,7 +85,7 @@ type ModelCatalogCacheFile = {
 
 Store the credential map in `<dataDir>/providers.json` with owner-only `0o600` permissions. Safe list, connect, replace, and disconnect results contain only `providerId`; only targeted generation reads receive `apiKey`. Keep the Selected Model in `<dataDir>/local-state.json` alongside the existing `deviceId`; selection updates must preserve that ID. A missing state file initializes `{ deviceId, selectedModel: null }`. Treat an existing file with a valid `deviceId` and no `selectedModel` as an unselected device, without changing its ID; genuinely malformed files return `StorageError` rather than silently regenerating `deviceId`. `resetLocalState()` remains an explicit device-identity reset and clears the selection. Existing provider test files can be deleted and recreated; no provider credential migration is added.
 
-Store the filtered snapshot as a bundled asset in `@dictos/ai-sdk` and the downloaded cache at `<dataDir>/model-catalog.json`. Record its upstream URL, snapshot retrieval date and hash, and required models.dev MIT notice (any mit/licence notes should be put in a dedicated `THIRD_PARTY_NOTICES.md` file, instead of being written in every single code file). Prefer a validated cache over the bundled snapshot; if the cache cannot be read or validated, log a sanitized warning and use the snapshot without deleting it. Normal reads do not fetch. Refresh uses a bounded timeout and response size, validates the supported slice before writing, and replaces a same-directory temporary file atomically. On failure it leaves the previous cache intact and returns a tagged `ModelCatalogError`. Validate IDs and sanitize catalog-supplied names and other displayed text before storing or printing them so control sequences cannot change terminal output. Provider and local-state read-modify-write operations must serialize concurrent CLI processes to prevent lost credentials or a changed `deviceId`; failed lock acquisition returns an Error value rather than overwriting another writer's work.
+Store the filtered snapshot as a bundled asset in `@dictos/ai-sdk` and the downloaded cache at `<dataDir>/model-catalog.json`. Version 2 replaces the initially planned version 1 cache because version 1 cannot prove text generation and may include embedding-only Models; a version 1 file is retained but ignored with a warning until an explicit refresh replaces it. Record the snapshot's upstream URL, retrieval date and hash, and required models.dev MIT notice (any mit/licence notes should be put in a dedicated `THIRD_PARTY_NOTICES.md` file, instead of being written in every single code file). Prefer a validated cache over the bundled snapshot; if the cache cannot be read or validated, log a sanitized warning and use the snapshot without deleting it. Normal reads do not fetch. Refresh uses a bounded timeout and response size, validates the supported slice before writing, and replaces a same-directory temporary file atomically. On failure it leaves the previous cache intact and returns a tagged `ModelCatalogError`. Validate IDs and sanitize catalog-supplied names and other displayed text before storing or printing them so control sequences cannot change terminal output. Provider and local-state read-modify-write operations must serialize concurrent CLI processes to prevent lost credentials or a changed `deviceId`; failed lock acquisition returns an Error value rather than overwriting another writer's work.
 
 Credential deletion and clearing `selectedModel` span two files, not one transaction. On disconnect, first clear a matching selection, then delete the credential. If clearing fails, retain the credential and return the storage failure. If deletion fails afterward, report it and leave the credential configured but unselected; do not silently choose another Model. Any stale selection found later is rejected before a provider request.
 

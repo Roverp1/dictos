@@ -55,5 +55,5 @@ Provides actionable metrics to the UI regarding the sync operation.
 ### Device-Local Provider Connections and Model Catalog
 
 - Provider Connections are keyed by stable Provider ID; `<dataDir>/providers.json` stores one API key per configured Provider ID. Each device needs its own credentials. This file is not part of Sync or Mirroring.
-- The Model Catalog has a bundled snapshot and an optional validated device-local cache at `<dataDir>/model-catalog.json` (`version`, `fetchedAt`, supported Providers, and eligible Models). The cache is metadata for local Model browsing, not proof of account access; it is not part of Sync or Mirroring. The Selected Model in `local-state.json` is also neither synced nor mirrored.
+- The Model Catalog has a bundled snapshot and an optional validated device-local version 2 cache at `<dataDir>/model-catalog.json` (`version`, `fetchedAt`, supported Providers, and Models with a derived `textGeneration: true` marker). A version 1 cache falls back to the bundled snapshot until explicitly refreshed. The cache is metadata for local Model browsing, not proof of account access; it is not part of Sync or Mirroring. The Selected Model in `local-state.json` is also neither synced nor mirrored.
 - None of these device-local records adds a table or column to the shared SQLite/Drizzle schema or requires a synced database migration.
