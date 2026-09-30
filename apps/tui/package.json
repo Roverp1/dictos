@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^6",
+    "typescript": "^7.0.2",
     "@types/react": "^19.2.14"
   },
   "dependencies": {
@@ -22,11 +22,11 @@
     "@dictos/pino-logger": "workspace:*",
     "@dictos/react": "workspace:*",
     "@dictos/opentui-toast": "workspace:*",
-    "@opentui/core": "^0.1.103",
-    "@opentui/react": "^0.1.103",
-    "react": "^19.2.4",
-    "react-router-dom": "^7.15.1",
-    "zustand": "^5.0.13",
+    "@opentui/core": "0.5.12",
+    "@opentui/react": "0.5.12",
+    "react": "19.3.0",
+    "react-router": "8.4.0",
+    "zustand": "^5.0.15",
     "pino": "^10.3.1"
   }
 }
