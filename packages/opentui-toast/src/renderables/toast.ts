@@ -433,7 +433,7 @@ export class ToastRenderable extends BoxRenderable {
       }
     }
 
-    // A loading Notification can acquire or lose a description when its result arrives.
+    // An outcome reuses the loading Notification, including its description slot.
     const description =
       typeof toast.description === "function"
         ? toast.description()
