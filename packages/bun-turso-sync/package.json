@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^6.0.0"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "@dictos/core": "workspace:*",
@@ -20,6 +20,6 @@
     "@dictos/logger": "workspace:*",
     "@dictos/db-core": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "@tursodatabase/sync": "^0.6.1"
+    "@tursodatabase/sync": "0.8.0"
   }
 }

@@ -4,7 +4,7 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
-  "packageManager": "bun@1.3.3",
+  "packageManager": "bun@1.4.2",
   "workspaces": [
     "packages/*",
     "packages/db/*",
@@ -12,17 +12,18 @@
     "apps/*"
   ],
   "scripts": {
-    "test": "bun turbo test",
-    "typecheck": "bun turbo typecheck",
-    "format": "prettier --write --ignore-path .gitignore .",
+    "test": "bun turbo test --filter='!@dictos/web' --filter='!@dictos/wasm-turso-sync' --filter='!@dictos/local-storage'",
+    "typecheck": "bun turbo typecheck --filter='!@dictos/web' --filter='!@dictos/wasm-turso-sync' --filter='!@dictos/local-storage'",
+    "format": "prettier --write --ignore-path .gitignore --ignore-path .prettierignore .",
     "dev:cli": "bun --cwd apps/cli start --",
     "dev:tui": "bun --cwd apps/tui/ dev",
     "dev:web": "bun --cwd apps/web dev",
     "dev:server": "bun --cwd apps/server/ dev"
   },
   "devDependencies": {
-    "@socketsecurity/bun-security-scanner": "^1.1.2",
-    "prettier": "^3.8.3",
-    "turbo": "^2.9.14"
-  }
+    "@socketsecurity/bun-security-scanner": "1.1.3",
+    "prettier": "^3.9.8",
+    "turbo": "^2.11.2"
+  },
+  "trustedDependencies": ["esbuild"]
 }

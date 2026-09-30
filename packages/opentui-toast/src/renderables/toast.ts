@@ -433,15 +433,26 @@ export class ToastRenderable extends BoxRenderable {
       }
     }
 
-    // Update description
-    if (this._descriptionText) {
-      const description =
-        typeof toast.description === "function"
-          ? toast.description()
-          : toast.description;
-      if (description) {
-        this._descriptionText.content = description;
-      }
+    // An outcome reuses the loading Notification, including its description slot.
+    const description =
+      typeof toast.description === "function"
+        ? toast.description()
+        : toast.description;
+    if (description && this._descriptionText) {
+      this._descriptionText.content = description;
+      this._descriptionText.fg = computedStyle.mutedColor;
+    } else if (description && this._contentBox) {
+      this._descriptionText = new TextRenderable(this.ctx, {
+        id: `${this.id}-description`,
+        content: description,
+        fg: computedStyle.mutedColor,
+        wrapMode: "word",
+      });
+      this._contentBox.add(this._descriptionText);
+    } else if (!description && this._descriptionText && this._contentBox) {
+      this._contentBox.remove(this._descriptionText);
+      this._descriptionText.destroy();
+      this._descriptionText = null;
     }
 
     // Handle spinner state changes

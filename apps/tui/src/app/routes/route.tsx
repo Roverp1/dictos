@@ -1,4 +1,4 @@
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { Route } from "react-router";
 
 import { DictionaryPage } from "@pages/dictionary";
 import { AuthPage } from "@pages/auth";

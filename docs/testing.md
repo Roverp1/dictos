@@ -109,7 +109,9 @@ Shared contracts export runner-neutral scenario cases from the package that owns
 - Adapter packages create a fresh real-infrastructure harness per case and bind cases to their native test runner.
 - Harness cleanup is local to each test. Do not use module-global cleanup collections.
 
-Package-specific documentation can declare an adapter exception. `@dictos/wasm-turso-sync` does not run package-local contracts because its OPFS behavior requires a real browser application environment. Its migration and compatibility coverage belongs in cross-platform browser E2E tests. The package README and `AGENTS.md` are authoritative for that boundary.
+Package-specific documentation can declare an adapter exception. `@dictos/wasm-turso-sync` does not run package-local contracts because testing OPFS requires a real browser application environment. The Web client is broken and unmaintained, and there are no active Web/browser E2E tests.
+
+Root `bun run test` and `bun run typecheck` exclude browser workspaces. Passing them does not verify Web, WASM migration, OPFS persistence, or Bun/WASM compatibility. When Web support resumes, these behaviors need cross-platform browser E2E tests. The package README and `AGENTS.md` rule out a package-local WASM runner under the current strategy.
 
 ### D. Testing Turso Sync Locally
 

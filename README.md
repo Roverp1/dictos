@@ -4,7 +4,7 @@
 
 Dictos is an open-source app for building and managing personal dictionaries while reading, learning, and collecting language material. It stores your data locally first, keeps the interface fast, and is designed to sync across devices without making the network the source of truth.
 
-The project is still early. The Terminal UI is the main ~usable~ client today, with a Web client and central server under development.
+The project is still early. The Terminal UI is the primary client, and the central server is under development. The Web client code remains in the repo, but the app is broken and unmaintained.
 
 ## Quick Start
 
@@ -20,10 +20,9 @@ secretspec check
 
 bun install
 devenv up
-bun run dev:tui
 ```
 
-This starts fully local Terminal UI.
+`devenv up` starts the local sync server and central server. In another terminal, run `bun run dev:tui` to start the Terminal UI.
 
 ## What It Does
 
@@ -45,7 +44,7 @@ Dictos is intended to become a serious open-source app for outside users, but it
 Current state:
 
 - Terminal UI is the primary client.
-- Web client exists and is being developed.
+- Web client code remains in the repo, but the app is broken, unmaintained, and unsupported. Routine checks do not cover it.
 - Central server exists for auth, sync setup, and future social features.
 - Mobile is part of the longer-term architecture, not the current product surface.
 - APIs, storage details, and UX can still change hard.
@@ -73,8 +72,8 @@ Provided by `devenv shell`:
 - SecretSpec
 - GitHub CLI
 - Development environment variables
-- Local process wiring for the Web client, server, and sync server
-- Additional file strcture setup
+- Local process wiring for the central server and sync server
+- Additional local directory setup
 
 Manual setup is possible, but you must recreate the work that devenv automates. That means installing the tools above, setting the environment variables, configuring secrets, creating expected local data directories, running the local sync server, and starting each process yourself.
 
@@ -98,7 +97,7 @@ Run the Terminal UI:
 bun run dev:tui
 ```
 
-Run the Web client:
+The Web client has a manual development command, but is currently broken and unsupported:
 
 ```bash
 bun run dev:web
@@ -110,13 +109,13 @@ Run the central server:
 bun run dev:server
 ```
 
-Run the full local Web/server/sync stack managed by devenv:
+Run the local server/sync stack managed by devenv:
 
 ```bash
 devenv up
 ```
 
-Typecheck the monorepo:
+Typecheck the maintained workspaces (browser workspaces are excluded from the root command):
 
 ```bash
 bun run typecheck
@@ -165,7 +164,7 @@ Without devenv:
 
 ```text
 apps/tui/                 Terminal UI client using OpenTUI + React
-apps/web/                 Web client using Vite + React Router
+apps/web/                 Retained, unsupported Web client (Vite + React Router)
 apps/server/              ElysiaJS central server
 packages/core/            Pure domain logic, ports, and services
 packages/react/           Headless shared UI state and actions
@@ -185,7 +184,7 @@ Dictos uses a hexagonal architecture.
 
 The core domain lives in `packages/core` and must not depend on React, UI frameworks, database drivers, logging implementations, or platform APIs. Infrastructure details are pushed into adapters and injected through ports.
 
-`@dictos/react` is a headless controller shared by clients. It owns cross-platform Dictionary interaction state such as browse mode, entry mode, preview content, cursors, selection, and context-menu targets. The TUI and Web clients decide how that state is rendered and how input is bound.
+`@dictos/react` is a headless controller for Dictionary interaction state: browse mode, entry mode, preview content, cursors, selection, and context-menu targets. The TUI uses it today. The retained Web client was built around it but is broken and unmaintained.
 
 For the full architecture, read [`docs/system-overview.md`](./docs/system-overview.md).
 
@@ -214,9 +213,9 @@ secretspec config init
 secretspec check
 ```
 
-### Web sync requests fail locally
+### Web client does not work locally
 
-The Web client proxies sync endpoints to `http://localhost:8080`. Start the local sync server with `devenv up`.
+The Web client is currently broken and unmaintained. `devenv up` starts the sync server and central server, but does not start or verify the Web client. Its browser/WASM flows have no active E2E coverage; see [`docs/testing.md`](./docs/testing.md).
 
 ## Contributing
 

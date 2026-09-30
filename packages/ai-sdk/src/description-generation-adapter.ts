@@ -1,7 +1,7 @@
-import { createGoogleGenerativeAI as createGoogle } from "@ai-sdk/google";
+import { createGoogle } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { generateText, jsonSchema, Output } from "ai";
+import { generateText, jsonSchema, NoObjectGeneratedError, Output } from "ai";
 import * as errore from "@dictos/errore";
 import type { Logger } from "@dictos/logger";
 
@@ -125,7 +125,7 @@ export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationP
           proposalSchema(request.target.kind === "new") as never
         ),
       }),
-      system:
+      instructions:
         "Return only valid JSON using exactly the JSON shape shown in the example. Do not use Markdown or add extra keys.",
       prompt: JSON.stringify({
         instruction: request.instruction,
@@ -140,6 +140,22 @@ export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationP
         },
       }),
     }).catch((cause) => {
+      if (NoObjectGeneratedError.isInstance(cause)) {
+        const error = new InvalidGenerationResponseError({
+          reason: "Provider returned invalid JSON. Try again or use another Model.",
+          cause: sanitizedOutputCause(cause),
+        });
+        this.logger.error(
+          "Description Generation provider response failed validation",
+          error,
+          {
+            ...logContext,
+            phase: "decode",
+            durationMs: Math.round(performance.now() - startedAt),
+          }
+        );
+        return error;
+      }
       const details = getAiSdkFailureDetails(cause);
       const error = new DescriptionGenerationError({
         operation: "request",
@@ -160,7 +176,7 @@ export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationP
       );
       return error;
     });
-    if (result instanceof DescriptionGenerationError) return result;
+    if (result instanceof Error) return result;
     const output = errore.try(
       () => result.output,
       (cause) =>

@@ -20,7 +20,6 @@ in {
   processes = {
     turso-sync.exec = "tursodb ${serverDataDir}/sync-server.db --sync-server 0.0.0.0:8080";
     server.exec = "secretspec run -- bun run dev:server";
-    web.exec = "secretspec run -- bun run dev:web";
   };
 
   tasks = {
@@ -49,7 +48,7 @@ in {
       echo "====================================="
       echo -e "🚀 Dictos Dev Environment Loaded"
       echo "Bun: $(bun --version)"
-      echo "Turso: $(turso --version)"
+      echo "Turso sync server: $(tursodb --version)"
       echo "====================================="
       echo ""
 
@@ -86,7 +85,7 @@ in {
         return
       fi
 
-      echo "Run 'devenv up' to start the Server and Web UI."
+      echo "Run 'devenv up' to start the Server and local sync server."
       echo "Run 'bun run dev:tui' to start the Terminal UI."
 
       echo ""
