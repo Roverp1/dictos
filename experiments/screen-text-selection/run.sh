@@ -27,6 +27,10 @@ done
 for tool in bun grim hyprctl qs magick tesseract; do
   command -v "$tool" >/dev/null 2>&1 || { printf 'Missing tool: %s\n' "$tool" >&2; exit 1; }
 done
+if [[ -n "${DICTOS_OCR_NATIVE_HELPER:-}" && ! -x "$DICTOS_OCR_NATIVE_HELPER" ]]; then
+  printf 'Native OCR helper is not executable: %s\n' "$DICTOS_OCR_NATIVE_HELPER" >&2
+  exit 1
+fi
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 if [[ -z "$output" ]]; then

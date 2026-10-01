@@ -13,8 +13,10 @@ ShellRoot {
     readonly property string imagePath: Quickshell.env("DICTOS_OCR_IMAGE") || ""
     readonly property string outputName: Quickshell.env("DICTOS_OCR_OUTPUT") || ""
     readonly property string helperPath: Quickshell.env("DICTOS_OCR_HELPER") || ""
+    readonly property string nativeHelper: Quickshell.env("DICTOS_OCR_NATIVE_HELPER") || ""
     readonly property string language: Quickshell.env("DICTOS_OCR_LANG") || "eng+pol"
     readonly property string psm: Quickshell.env("DICTOS_OCR_FULL_PSM") || "3"
+    readonly property string retryPsm: Quickshell.env("DICTOS_OCR_RETRY_PSM") || "6"
 
     Variants {
         model: Quickshell.screens
@@ -24,13 +26,28 @@ ShellRoot {
 
             required property var modelData
             readonly property bool target: modelData.name === shell.outputName
-            property var words: []
-            property int entryStart: -1
-            property int entryEnd: -1
-            property int contextStart: -1
-            property int contextEnd: -1
+            property var fullWords: []
+            property var retryWords: []
+            property bool usingRetry: false
+            readonly property var words: usingRetry ? retryWords : fullWords
             property int dragStart: -1
             property int dragEnd: -1
+            property var entryRange: null
+            property var contextRange: null
+            property var entrySelectionWords: []
+            property var contextSelectionWords: []
+            property var dragRange: null
+            property var dragAnchor: null
+            property bool preciseDrag: false
+            property bool cropping: false
+            property var cropStart: null
+            property var cropEnd: null
+            property bool retryLoading: false
+            property int retryElapsedMs: 0
+            readonly property var entryBoxes: Selection.highlightBoxes(activeField === "Entry" && dragRange ? words : entrySelectionWords, activeField === "Entry" && dragRange ? dragRange : entryRange)
+            readonly property var contextBoxes: Selection.highlightBoxes(activeField === "Context" && dragRange ? words : contextSelectionWords, activeField === "Context" && dragRange ? dragRange : contextRange)
+            readonly property var activeRange: activeField === "Entry" ? entryRange : contextRange
+            readonly property var activeSelectionWords: activeField === "Entry" ? entrySelectionWords : contextSelectionWords
             property string activeField: "Entry"
             property bool loading: false
             property bool requested: false
@@ -46,22 +63,39 @@ ShellRoot {
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
             WlrLayershell.namespace: "dictos-screen-text-selection-full"
 
-            function indexAt(localX, localY) {
-                if (screenshot.status !== Image.Ready || words.length === 0 ||
+            function pixelAt(localX, localY) {
+                if (screenshot.status !== Image.Ready ||
                     screenshot.sourceSize.width <= 0 || screenshot.sourceSize.height <= 0 ||
                     screenshot.paintedWidth <= 0 || screenshot.paintedHeight <= 0)
-                    return -1
+                    return null
 
                 const left = (screenshot.width - screenshot.paintedWidth) / 2
                 const top = (screenshot.height - screenshot.paintedHeight) / 2
                 if (localX < left || localY < top ||
                     localX >= left + screenshot.paintedWidth ||
                     localY >= top + screenshot.paintedHeight)
-                    return -1
+                    return null
 
                 const pixelX = (localX - left) * screenshot.sourceSize.width / screenshot.paintedWidth
                 const pixelY = (localY - top) * screenshot.sourceSize.height / screenshot.paintedHeight
-                return Selection.hit(words, pixelX, pixelY)
+                return { x: pixelX, y: pixelY }
+            }
+
+            function applyRange(range, sourceWords) {
+                if (!range) return
+                const selectedWords = sourceWords || words
+                const text = Selection.textForSelection(selectedWords, range)
+                if (activeField === "Entry") {
+                    entrySelectionWords = selectedWords
+                    entryRange = range
+                    entryInput.text = text
+                    entryInput.forceActiveFocus()
+                } else {
+                    contextSelectionWords = selectedWords
+                    contextRange = range
+                    contextInput.text = text
+                    contextInput.forceActiveFocus()
+                }
             }
 
             function finishSelection() {
@@ -71,39 +105,51 @@ ShellRoot {
                     return
                 }
 
-                const text = Selection.textForRange(words, dragStart, dragEnd)
-                if (activeField === "Entry") {
-                    entryStart = dragStart
-                    entryEnd = dragEnd
-                    entryInput.text = text
-                    entryInput.forceActiveFocus()
-                } else {
-                    contextStart = dragStart
-                    contextEnd = dragEnd
-                    contextInput.text = text
-                    contextInput.forceActiveFocus()
-                }
+                applyRange(dragRange, words)
                 dragStart = -1
                 dragEnd = -1
+                dragRange = null
+                dragAnchor = null
             }
 
             function clearActive() {
                 if (activeField === "Entry") {
-                    entryStart = -1
-                    entryEnd = -1
+                    entryRange = null
+                    entrySelectionWords = []
                     entryInput.text = ""
                     entryInput.forceActiveFocus()
                 } else {
-                    contextStart = -1
-                    contextEnd = -1
+                    contextRange = null
+                    contextSelectionWords = []
                     contextInput.text = ""
                     contextInput.forceActiveFocus()
                 }
             }
 
+            function finishCrop() {
+                cropping = false
+                if (!cropStart || !cropEnd || retryLoading) return
+                const x = Math.floor(Math.min(cropStart.x, cropEnd.x))
+                const y = Math.floor(Math.min(cropStart.y, cropEnd.y))
+                const right = Math.ceil(Math.max(cropStart.x, cropEnd.x))
+                const bottom = Math.ceil(Math.max(cropStart.y, cropEnd.y))
+                cropStart = null
+                cropEnd = null
+                if (right - x < 8 || bottom - y < 8) {
+                    errorText = "Drag a larger area for the OCR retry."
+                    return
+                }
+                retryLoading = true
+                errorText = ""
+                retryOcr.command = ["bun", shell.helperPath, shell.imagePath, shell.language,
+                                    shell.retryPsm, String(x), String(y), String(right - x), String(bottom - y)]
+                retryOcr.running = true
+            }
+
             Process {
                 id: ocr
-                command: ["bun", shell.helperPath, shell.imagePath, shell.language, shell.psm]
+                command: shell.nativeHelper ? [shell.nativeHelper, shell.imagePath, shell.language, shell.psm] :
+                                              ["bun", shell.helperPath, shell.imagePath, shell.language, shell.psm]
 
                 stdout: StdioCollector {
                     onStreamFinished: {
@@ -131,7 +177,7 @@ ShellRoot {
                             panel.errorText = "OCR returned an invalid result."
                             return
                         }
-                        panel.words = result.words
+                        panel.fullWords = result.words
                         panel.elapsedMs = Number(result.elapsedMs) || 0
                     }
                 }
@@ -140,6 +186,44 @@ ShellRoot {
                     if (exitCode !== 0 && panel.loading) {
                         panel.loading = false
                         panel.errorText = "OCR failed (exit " + exitCode + ")."
+                    }
+                }
+            }
+
+            Process {
+                id: retryOcr
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        let result
+                        try {
+                            result = JSON.parse(text.trim())
+                        } catch (error) {
+                            panel.retryLoading = false
+                            panel.errorText = "Invalid OCR retry response."
+                            return
+                        }
+                        panel.retryLoading = false
+                        if (result.error || !Array.isArray(result.words) || !result.region) {
+                            panel.errorText = result.error || "Invalid OCR retry result."
+                            return
+                        }
+                        if (result.words.length === 0) {
+                            panel.errorText = "No text recognized in that area."
+                            return
+                        }
+                        panel.retryWords = result.words.map(word => Object.assign({}, word, {
+                            x: word.x + result.region.x,
+                            y: word.y + result.region.y
+                        }))
+                        panel.retryElapsedMs = Number(result.elapsedMs) || 0
+                        panel.usingRetry = true
+                        panel.errorText = ""
+                    }
+                }
+                onExited: (exitCode, exitStatus) => {
+                    if (exitCode !== 0 && panel.retryLoading) {
+                        panel.retryLoading = false
+                        panel.errorText = "OCR retry failed (exit " + exitCode + ")."
                     }
                 }
             }
@@ -179,7 +263,7 @@ ShellRoot {
                             return
                         }
                         if (status !== Image.Ready) return
-                        if (!shell.helperPath || !shell.imagePath) {
+                        if ((!shell.nativeHelper && !shell.helperPath) || !shell.imagePath) {
                             panel.errorText = "Missing OCR image or helper path."
                             return
                         }
@@ -194,24 +278,42 @@ ShellRoot {
                     }
 
                     Repeater {
-                        model: panel.words.length
-
+                        model: panel.usingRetry ? panel.retryWords : []
                         Rectangle {
-                            required property int index
-                            readonly property var word: panel.words[index]
-                            readonly property bool entryMarked: Selection.contains(index, panel.entryStart, panel.entryEnd) ||
-                                                                 (panel.activeField === "Entry" && Selection.contains(index, panel.dragStart, panel.dragEnd))
-                            readonly property bool contextMarked: Selection.contains(index, panel.contextStart, panel.contextEnd) ||
-                                                                   (panel.activeField === "Context" && Selection.contains(index, panel.dragStart, panel.dragEnd))
-
-                            x: (screenshot.width - screenshot.paintedWidth) / 2 + word.x * screenshot.paintedWidth / screenshot.sourceSize.width
-                            y: (screenshot.height - screenshot.paintedHeight) / 2 + word.y * screenshot.paintedHeight / screenshot.sourceSize.height
-                            width: word.width * screenshot.paintedWidth / screenshot.sourceSize.width
-                            height: word.height * screenshot.paintedHeight / screenshot.sourceSize.height
-                            visible: entryMarked || contextMarked
-                            color: entryMarked && contextMarked ? "#a0ad8add" : entryMarked ? "#806bb8ff" : "#80ffb66d"
-                            border.color: entryMarked && contextMarked ? "#d9c2ee" : entryMarked ? "#b9d9ff" : "#ffe0b1"
+                            required property var modelData
+                            x: (screenshot.width - screenshot.paintedWidth) / 2 + modelData.x * screenshot.paintedWidth / screenshot.sourceSize.width
+                            y: (screenshot.height - screenshot.paintedHeight) / 2 + modelData.y * screenshot.paintedHeight / screenshot.sourceSize.height
+                            width: modelData.width * screenshot.paintedWidth / screenshot.sourceSize.width
+                            height: modelData.height * screenshot.paintedHeight / screenshot.sourceSize.height
+                            color: "transparent"
+                            border.color: "#80cbdbee"
                             border.width: 1
+                        }
+                    }
+
+                    Repeater {
+                        model: panel.contextBoxes
+                        Rectangle {
+                            required property var modelData
+                            x: (screenshot.width - screenshot.paintedWidth) / 2 + modelData.x * screenshot.paintedWidth / screenshot.sourceSize.width
+                            y: (screenshot.height - screenshot.paintedHeight) / 2 + modelData.y * screenshot.paintedHeight / screenshot.sourceSize.height
+                            width: modelData.width * screenshot.paintedWidth / screenshot.sourceSize.width
+                            height: modelData.height * screenshot.paintedHeight / screenshot.sourceSize.height
+                            color: "#80ffb66d"
+                            border.color: "#ffe0b1"
+                            radius: 2
+                        }
+                    }
+                    Repeater {
+                        model: panel.entryBoxes
+                        Rectangle {
+                            required property var modelData
+                            x: (screenshot.width - screenshot.paintedWidth) / 2 + modelData.x * screenshot.paintedWidth / screenshot.sourceSize.width
+                            y: (screenshot.height - screenshot.paintedHeight) / 2 + modelData.y * screenshot.paintedHeight / screenshot.sourceSize.height
+                            width: modelData.width * screenshot.paintedWidth / screenshot.sourceSize.width
+                            height: modelData.height * screenshot.paintedHeight / screenshot.sourceSize.height
+                            color: "#806bb8ff"
+                            border.color: "#b9d9ff"
                             radius: 2
                         }
                     }
@@ -221,19 +323,94 @@ ShellRoot {
                         hoverEnabled: false
                         cursorShape: Qt.IBeamCursor
                         onPressed: mouse => {
-                            const found = panel.indexAt(mouse.x, mouse.y)
+                            const pixel = panel.pixelAt(mouse.x, mouse.y)
+                            if ((mouse.modifiers & Qt.AltModifier) !== 0 && pixel) {
+                                panel.cropping = true
+                                panel.cropStart = pixel
+                                panel.cropEnd = pixel
+                                panel.dragRange = null
+                                panel.dragStart = -1
+                                panel.dragEnd = -1
+                                return
+                            }
+                            const found = pixel ? Selection.hit(panel.words, pixel.x, pixel.y) : -1
                             panel.dragStart = found
                             panel.dragEnd = found
+                            panel.dragAnchor = pixel
+                            panel.preciseDrag = (mouse.modifiers & Qt.ControlModifier) !== 0
+                            panel.dragRange = found < 0 ? null : Selection.rangeAt(panel.words, pixel, pixel, panel.preciseDrag)
                         }
                         onPositionChanged: mouse => {
+                            if (panel.cropping) {
+                                const pixel = panel.pixelAt(mouse.x, mouse.y)
+                                if (pixel) panel.cropEnd = pixel
+                                return
+                            }
                             if (panel.dragStart < 0) return
-                            const found = panel.indexAt(mouse.x, mouse.y)
-                            if (found >= 0) panel.dragEnd = found
+                            const pixel = panel.pixelAt(mouse.x, mouse.y)
+                            if (!pixel) return
+                            const found = Selection.hit(panel.words, pixel.x, pixel.y)
+                            if (found >= 0) {
+                                panel.dragEnd = found
+                                panel.dragRange = Selection.rangeAt(panel.words, panel.dragAnchor, pixel, panel.preciseDrag)
+                            }
                         }
-                        onReleased: panel.finishSelection()
+                        onReleased: mouse => {
+                            if (panel.cropping) {
+                                const pixel = panel.pixelAt(mouse.x, mouse.y)
+                                if (pixel) panel.cropEnd = pixel
+                                panel.finishCrop()
+                                return
+                            }
+                            panel.finishSelection()
+                        }
                         onCanceled: {
+                            panel.cropping = false
+                            panel.cropStart = null
+                            panel.cropEnd = null
                             panel.dragStart = -1
                             panel.dragEnd = -1
+                            panel.dragRange = null
+                            panel.dragAnchor = null
+                        }
+                    }
+
+                    Rectangle {
+                        visible: panel.cropping && panel.cropStart && panel.cropEnd
+                        x: (screenshot.width - screenshot.paintedWidth) / 2 + Math.min(panel.cropStart?.x ?? 0, panel.cropEnd?.x ?? 0) * screenshot.paintedWidth / screenshot.sourceSize.width
+                        y: (screenshot.height - screenshot.paintedHeight) / 2 + Math.min(panel.cropStart?.y ?? 0, panel.cropEnd?.y ?? 0) * screenshot.paintedHeight / screenshot.sourceSize.height
+                        width: Math.abs((panel.cropStart?.x ?? 0) - (panel.cropEnd?.x ?? 0)) * screenshot.paintedWidth / screenshot.sourceSize.width
+                        height: Math.abs((panel.cropStart?.y ?? 0) - (panel.cropEnd?.y ?? 0)) * screenshot.paintedHeight / screenshot.sourceSize.height
+                        color: "#3349baf0"
+                        border.color: "#a8d9ff"
+                        border.width: 2
+                    }
+
+                    Repeater {
+                        model: panel.activeRange && !panel.dragRange ? 2 : 0
+                        Rectangle {
+                            id: handle
+                            required property int index
+                            readonly property string side: index === 0 ? "start" : "end"
+                            readonly property var edge: Selection.handleBox(panel.activeSelectionWords, panel.activeRange, side)
+                            x: (screenshot.width - screenshot.paintedWidth) / 2 + edge.x * screenshot.paintedWidth / screenshot.sourceSize.width - width / 2
+                            y: (screenshot.height - screenshot.paintedHeight) / 2 + (edge.y + (index === 0 ? 0 : edge.height)) * screenshot.paintedHeight / screenshot.sourceSize.height - height / 2
+                            width: 18
+                            height: 18
+                            radius: 9
+                            color: panel.activeField === "Entry" ? "#b9d9ff" : "#ffe0b1"
+                            border.color: "#1a2435"
+                            border.width: 2
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.SizeHorCursor
+                                onPositionChanged: mouse => {
+                                    if (!pressed) return
+                                    const point = mapToItem(screenshot, mouse.x, mouse.y)
+                                    const pixel = panel.pixelAt(point.x, point.y)
+                                    if (pixel) panel.applyRange(Selection.moveHandle(panel.activeSelectionWords, panel.activeRange, handle.side, pixel.x, pixel.y), panel.activeSelectionWords)
+                                }
+                            }
                         }
                     }
                 }
@@ -252,7 +429,7 @@ ShellRoot {
                     Text {
                         id: hintText
                         anchors.centerIn: parent
-                        text: "Drag across text to fill " + panel.activeField + "  ·  Switch fields below  ·  Esc to close"
+                        text: "Drag words · Ctrl+drag symbols · Alt+drag OCR retry · Esc to close"
                         color: "#f7f9ff"
                         font.pixelSize: 14
                         elide: Text.ElideRight
@@ -291,8 +468,9 @@ ShellRoot {
                             }
 
                             Text {
-                                text: panel.errorText ? panel.errorText : panel.loading ? "Recognizing text…" :
-                                      panel.words.length ? panel.words.length + " words · " + panel.elapsedMs + " ms" : "No text detected"
+                                text: panel.errorText ? panel.errorText : panel.retryLoading ? "Retrying OCR…" : panel.loading ? "Recognizing text…" :
+                                      panel.usingRetry ? "Retry: " + panel.retryWords.length + " words · " + panel.retryElapsedMs + " ms" :
+                                      panel.fullWords.length ? panel.fullWords.length + " words · " + panel.elapsedMs + " ms" : "No text detected"
                                 color: panel.errorText ? "#ff9999" : "#bac7d7"
                                 font.pixelSize: 13
                                 elide: Text.ElideRight
@@ -383,9 +561,21 @@ ShellRoot {
                                 text: "Edit either field directly. Clear resets the active field."
                                 color: "#bac7d7"
                                 font.pixelSize: 12
-                                width: Math.max(0, parent.width - 160)
+                                width: Math.max(0, parent.width - 242)
                                 elide: Text.ElideRight
                                 anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Rectangle {
+                                width: 82
+                                height: parent.height
+                                radius: 7
+                                color: panel.retryWords.length ? "#425d77" : "#303c4d"
+                                Text { anchors.centerIn: parent; text: panel.usingRetry ? "Full OCR" : "Retry OCR"; color: "white" }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: panel.retryWords.length > 0
+                                    onClicked: panel.usingRetry = !panel.usingRetry
+                                }
                             }
                             Rectangle {
                                 width: 70
