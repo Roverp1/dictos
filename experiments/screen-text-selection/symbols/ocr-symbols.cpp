@@ -2,7 +2,9 @@
 #include <tesseract/baseapi.h>
 #include <tesseract/resultiterator.h>
 
+#include <algorithm>
 #include <chrono>
+#include <cerrno>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -128,8 +130,8 @@ void jsonWords(std::ostream& out, const std::vector<Word>& words) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc != 4) {
-    std::cerr << "Usage: ocr-symbols IMAGE.png LANG PSM (3, 6, or 11)\n";
+  if (argc != 4 && argc != 8) {
+    std::cerr << "Usage: ocr-symbols IMAGE.png LANG PSM [X Y WIDTH HEIGHT]\n";
     return 2;
   }
   char* end = nullptr;
@@ -145,6 +147,34 @@ int main(int argc, char** argv) {
     std::cerr << "Could not read image: " << argv[1] << '\n';
     return 1;
   }
+  const int imageWidth = pixGetWidth(image.get());
+  const int imageHeight = pixGetHeight(image.get());
+  Bounds region{};
+  if (argc == 8) {
+    long long values[4]{};
+    for (int i = 0; i < 4; ++i) {
+      char* rest = nullptr;
+      errno = 0;
+      values[i] = std::strtoll(argv[i + 4], &rest, 10);
+      if (errno || rest == argv[i + 4] || *rest) {
+        std::cerr << "Invalid OCR region\n";
+        return 2;
+      }
+    }
+    const long long x = values[0], y = values[1], width = values[2], height = values[3];
+    if (x < 0 || y < 0 || x >= imageWidth || y >= imageHeight || width <= 0 || height <= 0 ||
+        width > imageWidth - x || height > imageHeight - y) {
+      std::cerr << "OCR region is outside the screenshot\n";
+      return 2;
+    }
+    constexpr long long margin = 20;
+    const long long left = std::max(0LL, x - margin);
+    const long long top = std::max(0LL, y - margin);
+    const long long right = std::min(static_cast<long long>(imageWidth), x + width + margin);
+    const long long bottom = std::min(static_cast<long long>(imageHeight), y + height + margin);
+    region = {static_cast<int>(left), static_cast<int>(top), static_cast<int>(right - left),
+              static_cast<int>(bottom - top)};
+  }
   tesseract::TessBaseAPI api;
   if (api.Init(nullptr, argv[2])) {
     std::cerr << "Could not initialize Tesseract for language: " << argv[2] << '\n';
@@ -152,6 +182,8 @@ int main(int argc, char** argv) {
   }
   api.SetPageSegMode(static_cast<tesseract::PageSegMode>(psm));
   api.SetImage(image.get());
+  if (argc == 8)
+    api.SetRectangle(region.x, region.y, region.width, region.height);
   if (api.Recognize(nullptr)) {
     std::cerr << "Tesseract recognition failed\n";
     return 1;
@@ -197,8 +229,13 @@ int main(int argc, char** argv) {
   const auto elapsed = std::chrono::duration<double, std::milli>(
       std::chrono::steady_clock::now() - started).count();
   std::ostringstream output;
-  output << "{\"elapsedMs\":" << elapsed << ",\"width\":" << pixGetWidth(image.get())
-         << ",\"height\":" << pixGetHeight(image.get()) << ",\"symbolCount\":" << symbolCount
+  output << "{\"elapsedMs\":" << elapsed << ",\"width\":" << imageWidth
+         << ",\"height\":" << imageHeight << ",\"symbolCount\":" << symbolCount;
+  if (argc == 8)
+    output << ",\"coordinateSpace\":\"screenshot\",\"region\":{"
+           << "\"x\":" << region.x << ",\"y\":" << region.y
+           << ",\"width\":" << region.width << ",\"height\":" << region.height << '}';
+  output
          << ",\"words\":";
   jsonWords(output, words);
   output << "}\n";
