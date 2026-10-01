@@ -217,3 +217,31 @@ function handleBox(words, range, side) {
     height: symbol.height,
   };
 }
+
+function replacementText(sourceWords, range, updatedWords) {
+  const selected = highlightBoxes(sourceWords, range);
+  if (!selected.length || !updatedWords.length) return null;
+
+  const intersecting = updatedWords.filter((word) =>
+    selected.some((box) => {
+      const width = Math.max(
+        0,
+        Math.min(box.x + box.width, word.x + word.width) -
+          Math.max(box.x, word.x)
+      );
+      const height = Math.max(
+        0,
+        Math.min(box.y + box.height, word.y + word.height) -
+          Math.max(box.y, word.y)
+      );
+      const smallerArea = Math.min(
+        box.width * box.height,
+        word.width * word.height
+      );
+      return smallerArea > 0 && (width * height) / smallerArea >= 0.3;
+    })
+  );
+  return intersecting.length
+    ? textForRange(intersecting, 0, intersecting.length - 1)
+    : null;
+}

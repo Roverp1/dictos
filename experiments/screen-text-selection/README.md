@@ -34,8 +34,9 @@ Hold Alt and drag a rough rectangle inside the full-screen mode to re-run OCR
 on that area of the **same screenshot**. The retry uses a padded crop and PSM 6
 by default (`DICTOS_OCR_RETRY_PSM=11` is also available). The new word boxes
 are selectable without changing either editable field; **Full OCR** returns
-to the original recognition. Precise symbol boundaries are currently only
-available from the original full-screen recognition, not from a crop retry.
+to the original recognition. When the native helper is selected, crop retries
+also return symbol boundaries for Ctrl+drag and end handles. The CLI fallback
+still returns only whole-word boxes.
 
 To compare both modes on exactly the same image, supply a PNG with `--image`:
 

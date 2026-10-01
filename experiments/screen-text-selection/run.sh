@@ -31,6 +31,10 @@ if [[ -n "${DICTOS_OCR_NATIVE_HELPER:-}" && ! -x "$DICTOS_OCR_NATIVE_HELPER" ]];
   printf 'Native OCR helper is not executable: %s\n' "$DICTOS_OCR_NATIVE_HELPER" >&2
   exit 1
 fi
+if [[ -n "${DICTOS_OCR_PP_HELPER:-}" && ( ! -f "$DICTOS_OCR_PP_HELPER" || ! -x "${DICTOS_OCR_PP_PYTHON:-}" ) ]]; then
+  printf 'PP-OCRv6 helper or isolated Python is unavailable.\n' >&2
+  exit 1
+fi
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 if [[ -z "$output" ]]; then

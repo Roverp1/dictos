@@ -14,6 +14,10 @@ ShellRoot {
     readonly property string outputName: Quickshell.env("DICTOS_OCR_OUTPUT") || ""
     readonly property string helperPath: Quickshell.env("DICTOS_OCR_HELPER") || ""
     readonly property string nativeHelper: Quickshell.env("DICTOS_OCR_NATIVE_HELPER") || ""
+    readonly property string ppocrHelper: Quickshell.env("DICTOS_OCR_PP_HELPER") || ""
+    readonly property string ppocrPython: Quickshell.env("DICTOS_OCR_PP_PYTHON") || ""
+    readonly property string ppocrTier: Quickshell.env("DICTOS_OCR_PP_TIER") || "tiny"
+    readonly property bool progressive: Quickshell.env("DICTOS_OCR_PROGRESSIVE") === "1"
     readonly property string language: Quickshell.env("DICTOS_OCR_LANG") || "eng+pol"
     readonly property string psm: Quickshell.env("DICTOS_OCR_FULL_PSM") || "3"
     readonly property string retryPsm: Quickshell.env("DICTOS_OCR_RETRY_PSM") || "6"
@@ -27,15 +31,22 @@ ShellRoot {
             required property var modelData
             readonly property bool target: modelData.name === shell.outputName
             property var fullWords: []
+            property var refinedWords: []
             property var retryWords: []
             property bool usingRetry: false
-            readonly property var words: usingRetry ? retryWords : fullWords
+            property bool usingRefined: false
+            readonly property var words: usingRetry ? retryWords : usingRefined ? refinedWords : fullWords
             property int dragStart: -1
             property int dragEnd: -1
             property var entryRange: null
             property var contextRange: null
             property var entrySelectionWords: []
             property var contextSelectionWords: []
+            property bool entryEdited: false
+            property bool contextEdited: false
+            property bool settingFieldText: false
+            property int refinedFieldUpdates: 0
+            property int unmatchedRefinements: 0
             property var dragRange: null
             property var dragAnchor: null
             property bool preciseDrag: false
@@ -44,6 +55,9 @@ ShellRoot {
             property var cropEnd: null
             property bool retryLoading: false
             property int retryElapsedMs: 0
+            property bool refineRequested: false
+            property bool refining: false
+            property int refineElapsedMs: 0
             readonly property var entryBoxes: Selection.highlightBoxes(activeField === "Entry" && dragRange ? words : entrySelectionWords, activeField === "Entry" && dragRange ? dragRange : entryRange)
             readonly property var contextBoxes: Selection.highlightBoxes(activeField === "Context" && dragRange ? words : contextSelectionWords, activeField === "Context" && dragRange ? dragRange : contextRange)
             readonly property var activeRange: activeField === "Entry" ? entryRange : contextRange
@@ -85,16 +99,43 @@ ShellRoot {
                 if (!range) return
                 const selectedWords = sourceWords || words
                 const text = Selection.textForSelection(selectedWords, range)
+                settingFieldText = true
                 if (activeField === "Entry") {
                     entrySelectionWords = selectedWords
                     entryRange = range
                     entryInput.text = text
+                    entryEdited = false
                     entryInput.forceActiveFocus()
                 } else {
                     contextSelectionWords = selectedWords
                     contextRange = range
                     contextInput.text = text
+                    contextEdited = false
                     contextInput.forceActiveFocus()
+                }
+                settingFieldText = false
+            }
+
+            function upgradeUneditedFields(updatedWords) {
+                if (entryRange && !entryEdited && entrySelectionWords === fullWords) {
+                    const proposal = Selection.replacementText(entrySelectionWords, entryRange, updatedWords)
+                    if (proposal === null) unmatchedRefinements++
+                    else if (proposal !== entryInput.text) {
+                        settingFieldText = true
+                        entryInput.text = proposal
+                        settingFieldText = false
+                        refinedFieldUpdates++
+                    }
+                }
+                if (contextRange && !contextEdited && contextSelectionWords === fullWords) {
+                    const proposal = Selection.replacementText(contextSelectionWords, contextRange, updatedWords)
+                    if (proposal === null) unmatchedRefinements++
+                    else if (proposal !== contextInput.text) {
+                        settingFieldText = true
+                        contextInput.text = proposal
+                        settingFieldText = false
+                        refinedFieldUpdates++
+                    }
                 }
             }
 
@@ -106,10 +147,14 @@ ShellRoot {
                 }
 
                 applyRange(dragRange, words)
+                if (shell.progressive && refinedWords.length && !usingRetry)
+                    upgradeUneditedFields(refinedWords)
                 dragStart = -1
                 dragEnd = -1
                 dragRange = null
                 dragAnchor = null
+                if (shell.progressive && refinedWords.length && !usingRetry)
+                    usingRefined = true
             }
 
             function clearActive() {
@@ -141,14 +186,18 @@ ShellRoot {
                 }
                 retryLoading = true
                 errorText = ""
-                retryOcr.command = ["bun", shell.helperPath, shell.imagePath, shell.language,
-                                    shell.retryPsm, String(x), String(y), String(right - x), String(bottom - y)]
+                retryOcr.command = shell.nativeHelper
+                    ? [shell.nativeHelper, shell.imagePath, shell.language, shell.retryPsm,
+                       String(x), String(y), String(right - x), String(bottom - y)]
+                    : ["bun", shell.helperPath, shell.imagePath, shell.language, shell.retryPsm,
+                       String(x), String(y), String(right - x), String(bottom - y)]
                 retryOcr.running = true
             }
 
             Process {
                 id: ocr
-                command: shell.nativeHelper ? [shell.nativeHelper, shell.imagePath, shell.language, shell.psm] :
+                command: shell.ppocrHelper ? [shell.ppocrPython, shell.ppocrHelper, shell.imagePath, shell.ppocrTier] :
+                         shell.nativeHelper ? [shell.nativeHelper, shell.imagePath, shell.language, shell.psm] :
                                               ["bun", shell.helperPath, shell.imagePath, shell.language, shell.psm]
 
                 stdout: StdioCollector {
@@ -179,6 +228,11 @@ ShellRoot {
                         }
                         panel.fullWords = result.words
                         panel.elapsedMs = Number(result.elapsedMs) || 0
+                        if (shell.progressive && shell.nativeHelper && !panel.refineRequested) {
+                            panel.refineRequested = true
+                            panel.refining = true
+                            refineOcr.running = true
+                        }
                     }
                 }
 
@@ -186,6 +240,40 @@ ShellRoot {
                     if (exitCode !== 0 && panel.loading) {
                         panel.loading = false
                         panel.errorText = "OCR failed (exit " + exitCode + ")."
+                    }
+                }
+            }
+
+            Process {
+                id: refineOcr
+                command: [shell.nativeHelper, shell.imagePath, shell.language, shell.psm]
+                stdout: StdioCollector {
+                    onStreamFinished: {
+                        let result
+                        try {
+                            result = JSON.parse(text.trim())
+                        } catch (error) {
+                            panel.refining = false
+                            panel.errorText = "Invalid second OCR response."
+                            return
+                        }
+                        panel.refining = false
+                        if (result.error || !Array.isArray(result.words)) {
+                            panel.errorText = result.error || "Invalid second OCR result."
+                            return
+                        }
+                        panel.refinedWords = result.words
+                        panel.refineElapsedMs = Number(result.elapsedMs) || 0
+                        if (panel.dragStart < 0 && !panel.cropping) {
+                            panel.upgradeUneditedFields(result.words)
+                            if (result.words.length) panel.usingRefined = true
+                        }
+                    }
+                }
+                onExited: (exitCode, exitStatus) => {
+                    if (exitCode !== 0 && panel.refining) {
+                        panel.refining = false
+                        panel.errorText = "Second OCR failed (exit " + exitCode + ")."
                     }
                 }
             }
@@ -211,10 +299,11 @@ ShellRoot {
                             panel.errorText = "No text recognized in that area."
                             return
                         }
-                        panel.retryWords = result.words.map(word => Object.assign({}, word, {
-                            x: word.x + result.region.x,
-                            y: word.y + result.region.y
-                        }))
+                        panel.retryWords = result.coordinateSpace === "screenshot" ? result.words :
+                            result.words.map(word => Object.assign({}, word, {
+                                x: word.x + result.region.x,
+                                y: word.y + result.region.y
+                            }))
                         panel.retryElapsedMs = Number(result.elapsedMs) || 0
                         panel.usingRetry = true
                         panel.errorText = ""
@@ -263,7 +352,8 @@ ShellRoot {
                             return
                         }
                         if (status !== Image.Ready) return
-                        if ((!shell.nativeHelper && !shell.helperPath) || !shell.imagePath) {
+                        if ((!shell.ppocrHelper && !shell.nativeHelper && !shell.helperPath) ||
+                            (shell.progressive && (!shell.ppocrHelper || !shell.nativeHelper)) || !shell.imagePath) {
                             panel.errorText = "Missing OCR image or helper path."
                             return
                         }
@@ -429,7 +519,9 @@ ShellRoot {
                     Text {
                         id: hintText
                         anchors.centerIn: parent
-                        text: "Drag words · Ctrl+drag symbols · Alt+drag OCR retry · Esc to close"
+                        text: shell.progressive ? "PP words first · Tesseract refines input · Ctrl precise after refinement" :
+                              shell.ppocrHelper ? "PP-OCRv6 word selection · Alt+drag Tesseract retry · Esc to close" :
+                                                  "Drag words · Ctrl+drag symbols · Alt+drag OCR retry · Esc to close"
                         color: "#f7f9ff"
                         font.pixelSize: 14
                         elide: Text.ElideRight
@@ -469,7 +561,9 @@ ShellRoot {
 
                             Text {
                                 text: panel.errorText ? panel.errorText : panel.retryLoading ? "Retrying OCR…" : panel.loading ? "Recognizing text…" :
+                                      panel.refining ? panel.fullWords.length + " quick words · refining…" :
                                       panel.usingRetry ? "Retry: " + panel.retryWords.length + " words · " + panel.retryElapsedMs + " ms" :
+                                      shell.progressive && panel.refinedWords.length ? panel.refinedWords.length + " refined words · " + panel.refineElapsedMs + " ms · " + panel.refinedFieldUpdates + " input updates · " + panel.unmatchedRefinements + " unmatched" :
                                       panel.fullWords.length ? panel.fullWords.length + " words · " + panel.elapsedMs + " ms" : "No text detected"
                                 color: panel.errorText ? "#ff9999" : "#bac7d7"
                                 font.pixelSize: 13
@@ -510,6 +604,7 @@ ShellRoot {
                                     selectedTextColor: "white"
                                     font.pixelSize: 15
                                     clip: true
+                                    onTextChanged: if (!panel.settingFieldText) panel.entryEdited = true
                                     onActiveFocusChanged: if (activeFocus) panel.activeField = "Entry"
                                 }
                             }
@@ -547,6 +642,7 @@ ShellRoot {
                                     font.pixelSize: 15
                                     wrapMode: TextEdit.Wrap
                                     clip: true
+                                    onTextChanged: if (!panel.settingFieldText) panel.contextEdited = true
                                     onActiveFocusChanged: if (activeFocus) panel.activeField = "Context"
                                 }
                             }
