@@ -8,6 +8,8 @@ export * from "./model-catalog-port";
 export * from "./model-catalog-store";
 export * from "./description-generation-port";
 export * from "./description-generation-repository";
+export * from "./screen-entry-generation-port";
+export * from "./screen-entry-save-repository";
 export * from "./session-repository";
 export * from "./local-state-repository";
 export * from "./user-repository";
