@@ -1,18 +1,18 @@
-import { v5 as uuidv5 } from "uuid";
-
 import {
   type Entry,
   type EntryRepository,
   type NewEntry,
   DbError,
 } from "@dictos/core";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import * as schema from "../schema/schema";
+import {
+  incrementEntrySaveActivity,
+  insertOrReuseEntry,
+  withEntryWriteTransaction,
+} from "./entry-write";
 import type { SqliteTursoDrizzleProxy } from "./types";
-
-const ENTRY_NAMESPACE = "604605f1-8982-4520-b13a-67b9bc799681";
-const ACTIVITY_NAMESPACE = "29450149-2bd6-420b-bb01-a6c36d3e94a5";
 
 export class SqliteEntryRepository implements EntryRepository {
   constructor(
@@ -21,75 +21,15 @@ export class SqliteEntryRepository implements EntryRepository {
   ) {}
 
   async save(entry: NewEntry): Promise<Entry | DbError> {
-    const entryIdString = `${entry.text}:${entry.folderId}`;
-    const entryId = uuidv5(entryIdString, ENTRY_NAMESPACE);
+    return withEntryWriteTransaction(this.db, "save_entry", async (tx) => {
+      const savedEntry = await insertOrReuseEntry(tx, entry);
+      if (savedEntry instanceof Error) return savedEntry;
 
-    const savedEntry = await this.db.transaction(async (tx) => {
-      const result = await tx
-        .insert(schema.entriesTable)
-        .values({
-          id: entryId,
-          text: entry.text,
-          folderId: entry.folderId,
-        })
-        .onConflictDoNothing()
-        .returning()
-        .catch(
-          (e) =>
-            new DbError({
-              operation: "insert_entry",
-              reason: "Exception",
-              cause: e,
-            })
-        );
-
-      if (result instanceof Error) return result;
-
-      let savedEntry = result[0];
-      if (savedEntry === undefined) {
-        const existing = await tx
-          .select()
-          .from(schema.entriesTable)
-          .where(eq(schema.entriesTable.id, entryId));
-
-        savedEntry = existing[0];
-      }
-      if (savedEntry === undefined)
-        return new DbError({
-          operation: "insert_entry",
-          reason: "No row returned",
-        });
-
-      const today = new Date().toISOString().split("T")[0]!;
-      const deterministicString = `${today}:${this.deviceId}`;
-      const activityId = uuidv5(deterministicString, ACTIVITY_NAMESPACE);
-
-      const activityRes = await tx
-        .insert(schema.activitiesTable)
-        .values({
-          id: activityId,
-          date: today,
-          count: 1,
-        })
-        .onConflictDoUpdate({
-          target: schema.activitiesTable.id,
-          set: { count: sql`${schema.activitiesTable.count} + 1` },
-        })
-        .catch(
-          (e) =>
-            new DbError({
-              operation: "activity_upsert",
-              reason: "Exception",
-              cause: e,
-            })
-        );
-
-      if (activityRes instanceof Error) return activityRes;
+      const activity = await incrementEntrySaveActivity(tx, this.deviceId);
+      if (activity instanceof Error) return activity;
 
       return savedEntry;
     });
-
-    return savedEntry;
   }
 
   async findById(id: string): Promise<Entry | DbError | null> {
