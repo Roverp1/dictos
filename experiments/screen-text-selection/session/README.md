@@ -1,4 +1,30 @@
-# Session-scoped Tesseract timing probe
+# Session-scoped Tesseract OCR and timing probe
+
+## Warm overlay launcher
+
+Build the runnable helper from the repository root using official Tesseract/Leptonica packages:
+
+```sh
+nix-shell -p tesseract leptonica pkg-config --run 'c++ -std=c++17 -O2 -Wall -Wextra experiments/screen-text-selection/session/ocr-server.cpp -o experiments/screen-text-selection/session/ocr-server $(pkg-config --cflags --libs tesseract lept)'
+bash experiments/screen-text-selection/run-warm.sh full
+# Or avoid screen capture for a fixture:
+bash experiments/screen-text-selection/run-warm.sh full --image /path/to/fixture.png --output YOUR_MONITOR
+```
+
+The second launcher starts `TessBaseAPI` initialization before calling `grim`, so model loading and PNG capture overlap. It waits for both to finish before showing the full overlay. OCR starts once the overlay loads that image. Alt+drag retries a padded crop with the same API and decoded image; all word/symbol boxes are screenshot-relative. Each request uses one Unix socket connection and returns one JSON line through the Bun client. A private session directory owns the socket and optional screenshot. Closing the overlay reaps the helper and removes those files; a supplied fixture is never deleted. `DICTOS_OCR_LANG` (default `eng+pol`), `DICTOS_OCR_FULL_PSM` (default `3`), and `DICTOS_OCR_RETRY_PSM` (default `6`) work as in the regular launcher. The helper executable may be overridden via `DICTOS_OCR_WARM_SERVER`.
+
+On a generated 800×300 English-text fixture on this host, `eng+pol` initialization measured 250 ms; the same session's FULL (PSM 3), CROP (PSM 6), FULL took 10.3, 7.9, 10.2 ms inside the helper. Fixture OCR timings do not predict dense-screen OCR or overlay/capture latency. Fixture-mode overlay startup reported 260 ms initialization; the overlay loaded before an 8-second timeout closed it.
+
+One live launch measured **209 ms** for `grim` capture and **263 ms** for `eng+pol` model initialization. Initialization ran during capture, leaving **61 ms** of waiting after capture. The helper was ready about **270 ms** after launch, rather than paying capture and initialization sequentially. These are one-run timings, not a latency guarantee; full-screen recognition still runs after that and dominates dense screens. The temporary capture and OCR process were both removed when the test overlay exited. The sanitized record is in [`../benchmarks/stages-results.jsonl`](../benchmarks/stages-results.jsonl).
+
+Verify the real helper, transport, crop coordinates and reuse with a generated image (requires `magick`, `bun`, and the built helper):
+
+```sh
+python3 -m unittest discover -s experiments/screen-text-selection/session -p 'test_ocr_server.py' -v
+bash -n experiments/screen-text-selection/run-warm.sh
+```
+
+## Timing-only probe
 
 Build from the repository root with official libtesseract and Leptonica headers:
 

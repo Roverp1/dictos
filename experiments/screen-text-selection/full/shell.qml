@@ -13,6 +13,8 @@ ShellRoot {
     readonly property string imagePath: Quickshell.env("DICTOS_OCR_IMAGE") || ""
     readonly property string outputName: Quickshell.env("DICTOS_OCR_OUTPUT") || ""
     readonly property string helperPath: Quickshell.env("DICTOS_OCR_HELPER") || ""
+    readonly property string warmSocket: Quickshell.env("DICTOS_OCR_SOCKET") || ""
+    readonly property string warmClient: Quickshell.env("DICTOS_OCR_WARM_CLIENT") || ""
     readonly property string nativeHelper: Quickshell.env("DICTOS_OCR_NATIVE_HELPER") || ""
     readonly property string ppocrHelper: Quickshell.env("DICTOS_OCR_PP_HELPER") || ""
     readonly property string ppocrPython: Quickshell.env("DICTOS_OCR_PP_PYTHON") || ""
@@ -186,7 +188,10 @@ ShellRoot {
                 }
                 retryLoading = true
                 errorText = ""
-                retryOcr.command = shell.nativeHelper
+                retryOcr.command = shell.warmSocket
+                    ? ["bun", shell.warmClient, shell.warmSocket, "crop",
+                       String(x), String(y), String(right - x), String(bottom - y), shell.retryPsm]
+                    : shell.nativeHelper
                     ? [shell.nativeHelper, shell.imagePath, shell.language, shell.retryPsm,
                        String(x), String(y), String(right - x), String(bottom - y)]
                     : ["bun", shell.helperPath, shell.imagePath, shell.language, shell.retryPsm,
@@ -196,7 +201,8 @@ ShellRoot {
 
             Process {
                 id: ocr
-                command: shell.ppocrHelper ? [shell.ppocrPython, shell.ppocrHelper, shell.imagePath, shell.ppocrTier] :
+                command: shell.warmSocket ? ["bun", shell.warmClient, shell.warmSocket, "full", shell.psm] :
+                         shell.ppocrHelper ? [shell.ppocrPython, shell.ppocrHelper, shell.imagePath, shell.ppocrTier] :
                          shell.nativeHelper ? [shell.nativeHelper, shell.imagePath, shell.language, shell.psm] :
                                               ["bun", shell.helperPath, shell.imagePath, shell.language, shell.psm]
 
@@ -352,7 +358,8 @@ ShellRoot {
                             return
                         }
                         if (status !== Image.Ready) return
-                        if ((!shell.ppocrHelper && !shell.nativeHelper && !shell.helperPath) ||
+                        if ((shell.warmSocket && !shell.warmClient) ||
+                            (!shell.warmSocket && !shell.ppocrHelper && !shell.nativeHelper && !shell.helperPath) ||
                             (shell.progressive && (!shell.ppocrHelper || !shell.nativeHelper)) || !shell.imagePath) {
                             panel.errorText = "Missing OCR image or helper path."
                             return

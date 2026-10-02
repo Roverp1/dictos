@@ -12,6 +12,14 @@ bash experiments/screen-text-selection/run.sh full
 bash experiments/screen-text-selection/run.sh region
 ```
 
+An experimental Tesseract launcher that initializes the model while capturing
+the screen and keeps it for Alt retries is documented in
+[`session/README.md`](./session/README.md):
+
+```sh
+bash experiments/screen-text-selection/run-warm.sh full
+```
+
 The first command OCRs the entire captured monitor, then lets you drag from the
 first to the last recognized word. The second opens immediately: drag a rough
 rectangle to OCR it, then drag across the recognized words to refine it. Select
