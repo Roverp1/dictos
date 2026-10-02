@@ -26,6 +26,7 @@ Run focused checks with `bun test experiments/screen-text-selection/benchmarks`.
 Additional experiments use the same saved screenshots but separate records:
 
 - [`ppocr/results.jsonl`](./ppocr/results.jsonl) compares PP-OCRv6 tiny, small, and medium, both with line-only output and with estimated word boxes. Its `wordGrouping=whitespace-v1` records report reconstructed whole-word counts; older `returnWordBox=true` records without that field count raw recognition fragments. [`ppocr/comparison.jsonl`](./ppocr/comparison.jsonl) records text-and-box overlap against the Tesseract baseline, not ground-truth accuracy.
+- [`rapidocr/results.jsonl`](./rapidocr/results.jsonl) records the bounded ONNX CPU comparison using RapidOCR 3.9.2's bundled PP-OCRv6 small models. Only corrected native word-result counts are retained; the earlier fragment-regrouping attempt was invalid. This run did not use a GPU.
 - [`session-results.jsonl`](./session-results.jsonl) times fresh and reused Tesseract instances, separating decode, model initialization, recognition, and word/symbol extraction. Its center-screen crop is only a timing sample.
 - [`stages-results.jsonl`](./stages-results.jsonl) records three `grim` captures to memory without saving or revealing their images. These capture timings were not run concurrently with OCR.
 
