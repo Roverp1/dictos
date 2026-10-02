@@ -1,13 +1,26 @@
 # OCR benchmarks
 
-Run from the repository root. Supply an existing image in the ignored `tmp/screeshoots/` directory. This runner does not capture or save screenshots. It launches a fresh process for every repetition and appends one JSON object per attempt to `benchmarks/results.jsonl` by default. stdout prints the same sanitized records.
+Run from the repository root with an existing image from the ignored
+`tmp/screeshoots/` directory. The runner does not capture or save screenshots.
+It starts a fresh process for each repetition and appends one sanitized JSON
+record per attempt to `benchmarks/results.jsonl`. stdout prints the same records.
 
 ```sh
 bun experiments/screen-text-selection/benchmarks/run.ts --image tmp/screeshoots/500-words.png --sample-id dense-500 --engine cli --language eng+pol --psm 3 --repeat 2
 bun experiments/screen-text-selection/benchmarks/run.ts --image tmp/screeshoots/the-witcher-screenshoots/swappy-20260930_230506.png --sample-id witcher-1 --engine native --language eng+pol --psm 3 --repeat 2 --omp-thread-limit 4 --model-label installed-default
 ```
 
-`cli` runs the existing `ocr.ts` through Bun; `native` runs the existing `symbols/ocr-symbols` binary (build instructions in `../symbols/README.md`). Both need Tesseract language data; `cli` and dimension lookup also need ImageMagick (`magick`). Accepted PSM values: 3, 6, 11. Repeat: 1–100; optional OMP thread limit: 1–256. The optional model label is a **user-supplied identifier**, not an automatically detected model/version. IDs and labels accept only short alphanumeric strings with limited punctuation; do not put sensitive names in them. Optional `--output experiments/screen-text-selection/benchmarks/other.jsonl` must name a `.jsonl` file in an existing repository directory. Failed OCR attempts are recorded and later repetitions continue; setup or write failures stop the run.
+`cli` runs `ocr.ts` through Bun. `native` uses the `symbols/ocr-symbols`
+binary; see [`../symbols/README.md`](../symbols/README.md) to build it. Both
+need Tesseract language data. The CLI and image-dimension lookup also need
+ImageMagick (`magick`). PSM can be 3, 6, or 11. Repetitions range from 1 to 100;
+the optional OMP thread limit ranges from 1 to 256.
+
+The optional model label is supplied by the user; the runner does not detect
+model versions. IDs and labels accept short alphanumeric strings with limited
+punctuation. Do not put sensitive names in them. `--output` must name a `.jsonl`
+file in an existing repository directory. Failed OCR attempts are recorded and
+the runner continues; setup and write errors stop it.
 
 ## JSONL schema v1
 
@@ -19,15 +32,23 @@ bun experiments/screen-text-selection/benchmarks/run.ts --image tmp/screeshoots/
 - `wordCount`, `symbolCount`: recognized counts; CLI does not report symbols.
 - `exitCode`, `status`, `failureKind`: exit status and fixed failure category, without raw OCR errors.
 
-No OCR words, transcripts, stderr, raw image paths, or unsanitized engine messages are written. Image hashes may still identify known public images. Keep result files in a suitable location for your data. To compare later models, use a distinct validated `--model-label` and retain the same sample image, ID, language, and PSM. `engineElapsedMs` is reported by the helpers and may use different timing boundaries; compare wall times for the full invocation.
+Records contain no OCR words, transcripts, stderr, raw image paths, or
+unsanitized engine messages. Image hashes may still identify known public
+images, so store the results accordingly. For model comparisons, use a distinct
+`--model-label` and keep the image, sample ID, language, and PSM fixed. Helpers
+may measure `engineElapsedMs` differently; use wall time to compare complete
+invocations.
 
 Run focused checks with `bun test experiments/screen-text-selection/benchmarks`.
 
-Additional experiments use the same saved screenshots but separate records:
+Other experiments use the same saved screenshots and write separate records:
 
-- [`ppocr/results.jsonl`](./ppocr/results.jsonl) compares PP-OCRv6 tiny, small, and medium, both with line-only output and with estimated word boxes. Its `wordGrouping=whitespace-v1` records report reconstructed whole-word counts; older `returnWordBox=true` records without that field count raw recognition fragments. [`ppocr/comparison.jsonl`](./ppocr/comparison.jsonl) records text-and-box overlap against the Tesseract baseline, not ground-truth accuracy.
-- [`rapidocr/results.jsonl`](./rapidocr/results.jsonl) records the bounded ONNX CPU comparison using RapidOCR 3.9.2's bundled PP-OCRv6 small models. Only corrected native word-result counts are retained; the earlier fragment-regrouping attempt was invalid. This run did not use a GPU.
-- [`session-results.jsonl`](./session-results.jsonl) times fresh and reused Tesseract instances, separating decode, model initialization, recognition, and word/symbol extraction. Its center-screen crop is only a timing sample.
-- [`stages-results.jsonl`](./stages-results.jsonl) records three `grim` captures to memory without saving or revealing their images. These capture timings were not run concurrently with OCR.
+- [`ppocr/results.jsonl`](./ppocr/results.jsonl) compares PP-OCRv6 tiny, small, and medium, with line output and estimated word boxes. Records marked `wordGrouping=whitespace-v1` count reconstructed words. Older `returnWordBox=true` records without that field count raw recognition fragments. [`ppocr/comparison.jsonl`](./ppocr/comparison.jsonl) compares text and box overlap with Tesseract; it does not measure ground-truth accuracy.
+- [`rapidocr/results.jsonl`](./rapidocr/results.jsonl) contains the RapidOCR 3.9.2 comparison using its bundled PP-OCRv6 small models through ONNX Runtime CPU. It did not use a GPU.
+- [`session-results.jsonl`](./session-results.jsonl) separates fresh and reused Tesseract timings for image decode, model initialization, recognition, and word/symbol extraction. The center-screen crop is a timing sample, not a tuned text crop.
+- [`stages-results.jsonl`](./stages-results.jsonl) records standalone `grim` captures and one live warm-launch run with model initialization overlapping capture. It stores no screenshot or OCR transcript.
 
-Prediction time, time until the first selectable **word**, process initialization, and image capture are distinct numbers. Compare the same field and image hash across models before drawing a speed conclusion. PP-OCRv6 word boxes are estimated and do not provide the symbol geometry used by precise Ctrl+drag.
+Prediction time, time to the first selectable word, process startup, and capture
+measure different parts of the flow. Compare the same timing field and image
+hash across models. PP-OCRv6 estimates word boxes; it does not provide the symbol
+boxes used for precise Ctrl+drag.
