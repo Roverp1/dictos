@@ -1,5 +1,6 @@
 import type { Command } from "commander";
-import type { CliContext } from "../app/types";
+import { CliExitCode, type CliContext } from "../app/types";
+import { serializeOverlayJsonResponse } from "../app/overlay-json";
 import {
   getProviderDependenciesOrExit,
   handleExpectedError,
@@ -38,24 +39,58 @@ export const registerModelCommands = (
       });
     });
 
-  model.command("current").action(async () => {
-    const dependencies = await getProviderDependenciesOrExit(context);
-    if (dependencies === null) return;
-    const selected = await dependencies.modelSelectionService.current();
-    if (selected instanceof Error)
-      return handleExpectedError(context, selected, {
+  model
+    .command("current")
+    .option("--json", "Output one JSON envelope")
+    .action(async (options: { json?: boolean }) => {
+      const dependencies = options.json
+        ? await context.getProviderDependencies()
+        : await getProviderDependenciesOrExit(context);
+      if (dependencies instanceof Error) {
+        context.output.writeData(
+          serializeOverlayJsonResponse(dependencies).slice(0, -1)
+        );
+        context.output.writeError("Operation failed");
+        process.exitCode = CliExitCode.UnexpectedFailure;
+        return;
+      }
+      if (dependencies === null) return;
+      const selected = await dependencies.modelSelectionService.current();
+      if (selected instanceof Error && options.json) {
+        context.output.writeData(
+          serializeOverlayJsonResponse(selected, "MODEL_UNAVAILABLE").slice(
+            0,
+            -1
+          )
+        );
+        context.output.writeError("Selected Model is unavailable");
+        process.exitCode = CliExitCode.ExpectedFailure;
+        return;
+      }
+      if (selected instanceof Error)
+        return handleExpectedError(context, selected, {
+          logger: dependencies.logger,
+          operation: "model.current",
+        });
+      if (options.json) {
+        context.output.writeData(
+          serializeOverlayJsonResponse(
+            selected === null
+              ? null
+              : { id: `${selected.providerId}/${selected.modelId}` }
+          ).slice(0, -1)
+        );
+      } else {
+        context.output.writeData(
+          selected === null
+            ? "No Model selected."
+            : sanitizeTerminalText(`${selected.providerId}/${selected.modelId}`)
+        );
+      }
+      logOperationCompleted({
         logger: dependencies.logger,
         operation: "model.current",
+        context: { selected: selected !== null },
       });
-    context.output.writeData(
-      selected === null
-        ? "No Model selected."
-        : sanitizeTerminalText(`${selected.providerId}/${selected.modelId}`)
-    );
-    logOperationCompleted({
-      logger: dependencies.logger,
-      operation: "model.current",
-      context: { selected: selected !== null },
     });
-  });
 };

@@ -1,6 +1,8 @@
 import type { Command } from "commander";
 import { ValidationError } from "@dictos/core";
-import type { CliContext } from "../app/types";
+import { CliExitCode, type CliContext } from "../app/types";
+import { DatabaseInUseError } from "../app/errors";
+import { serializeOverlayJsonResponse } from "../app/overlay-json";
 import {
   getDependenciesOrExit,
   handleExpectedError,
@@ -36,24 +38,65 @@ export const registerInstructionCommands = (
         context: { instructionId: created.id, hasName: created.name !== null },
       });
     });
-  instruction.command("list").action(async () => {
-    const dependencies = await getDependenciesOrExit(context);
-    if (dependencies === null) return;
-    const instructions =
-      await dependencies.instructionService.getInstructions();
-    if (instructions instanceof Error)
-      return handleExpectedError(context, instructions, {
+  instruction
+    .command("list")
+    .option("--json", "Output one JSON envelope")
+    .action(async (options: { json?: boolean }) => {
+      const dependencies = options.json
+        ? await context.getDependencies()
+        : await getDependenciesOrExit(context);
+      if (dependencies instanceof Error) {
+        const databaseInUse = dependencies instanceof DatabaseInUseError;
+        context.output.writeData(
+          serializeOverlayJsonResponse(
+            dependencies,
+            databaseInUse ? "DATABASE_IN_USE" : "OPERATION_FAILED"
+          ).slice(0, -1)
+        );
+        context.output.writeError(
+          databaseInUse
+            ? "Dictos database is already open by another process"
+            : "Operation failed"
+        );
+        process.exitCode = databaseInUse
+          ? CliExitCode.DatabaseInUse
+          : CliExitCode.UnexpectedFailure;
+        return;
+      }
+      if (dependencies === null) return;
+      const instructions =
+        await dependencies.instructionService.getInstructions();
+      if (instructions instanceof Error && options.json) {
+        context.output.writeData(
+          serializeOverlayJsonResponse(instructions).slice(0, -1)
+        );
+        context.output.writeError("Operation failed");
+        process.exitCode = CliExitCode.ExpectedFailure;
+        return;
+      }
+      if (instructions instanceof Error)
+        return handleExpectedError(context, instructions, {
+          logger: dependencies.logger,
+          operation: "instruction.list",
+        });
+      if (options.json) {
+        context.output.writeData(
+          serializeOverlayJsonResponse(
+            instructions.map(({ id, name, text }) => ({ id, name, text }))
+          ).slice(0, -1)
+        );
+      } else {
+        for (const item of instructions)
+          context.output.writeData(
+            `${item.id}\t${item.name ?? ""}\t${item.text}`
+          );
+      }
+      logOperationCompleted({
         logger: dependencies.logger,
         operation: "instruction.list",
+        context: { instructionCount: instructions.length },
       });
-    for (const item of instructions)
-      context.output.writeData(`${item.id}\t${item.name ?? ""}\t${item.text}`);
-    logOperationCompleted({
-      logger: dependencies.logger,
-      operation: "instruction.list",
-      context: { instructionCount: instructions.length },
     });
-  });
   instruction
     .command("update")
     .argument("<instruction-id>", "Instruction ID")

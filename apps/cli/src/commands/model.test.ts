@@ -90,6 +90,20 @@ test("model current reports an unselected device without opening the Dictionary"
   }
 });
 
+test("model current --json returns null when no Model is selected", async () => {
+  const f = await fixture();
+  try {
+    expect(await f.run(["current", "--json"])).toEqual({
+      stdout: [JSON.stringify({ ok: true, data: null })],
+      stderr: [],
+      exitCode: 0,
+    });
+    expect(await fs.readdir(f.dataDir)).not.toContain("dictos.db");
+  } finally {
+    await f.cleanup();
+  }
+});
+
 test("model select persists a safe qualified ID across CLI invocations", async () => {
   const f = await fixture();
   try {
@@ -110,6 +124,42 @@ test("model select persists a safe qualified ID across CLI invocations", async (
       "utf8"
     );
     expect(state).not.toContain(f.secret);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("model current --json reports the device-local selection and handles a stale selection", async () => {
+  const f = await fixture();
+  try {
+    await f.connect();
+    expect((await f.run(["select", f.id])).exitCode).toBe(0);
+    expect(await f.run(["current", "--json"])).toEqual({
+      stdout: [JSON.stringify({ ok: true, data: { id: f.id } })],
+      stderr: [],
+      exitCode: 0,
+    });
+    const removed = await new FsProviderConnectionRepository({
+      dataDir: f.dataDir,
+      logger: f.dependencies.logger,
+    }).delete("google");
+    if (removed instanceof Error) throw removed;
+    const stale = await f.run(["current", "--json"]);
+    expect(stale).toEqual({
+      stdout: [
+        JSON.stringify({
+          ok: false,
+          error: {
+            code: "MODEL_UNAVAILABLE",
+            message: "Selected Model is unavailable",
+          },
+        }),
+      ],
+      stderr: ["Selected Model is unavailable"],
+      exitCode: CliExitCode.ExpectedFailure,
+    });
+    expect(JSON.stringify(stale)).not.toContain(f.secret);
+    expect(await fs.readdir(f.dataDir)).not.toContain("dictos.db");
   } finally {
     await f.cleanup();
   }
