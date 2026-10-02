@@ -71,9 +71,9 @@ On the dense image, tiny produced 503 reconstructed word groups. Of Tesseract's 
 
 For a trial of the user's **untouched-input replacement rule**, selecting each of tiny's 503 dense word groups individually found a geometrically overlapping Tesseract word for 493. The transcript would change in **37** of those fields, and **10** had no matching candidate. On the Witcher frame, tiny's five correctly read words had no matching word in the full-screen Tesseract output, so they would remain untouched. The comparison uses overlap, not confidence gating; a changed field is not necessarily an improved field.
 
-For an opt-in broad-selection check in the actual overlay, run `bash experiments/screen-text-selection/benchmarks/ppocr/try-overlay.sh --image tmp/screeshoots/500-words.png`. It uses tiny by default; `DICTOS_OCR_PP_TIER=small` or `medium` switches models. Without a native helper, Alt retries still use the word-only Tesseract CLI. PP-OCRv6 provides no symbol boxes, so Ctrl+drag and handles fall back to whole-word boundaries in this mode. A brief Wayland launch loaded the QML config, but the user must judge selection feel on the real desktop.
+For an opt-in broad-selection check in the actual overlay, run `bash experiments/screen-text-selection/benchmarks/ppocr/try-overlay.sh --image tmp/screeshoots/500-words.png`. It now uses **small** by default to compare with Tesseract; `DICTOS_OCR_PP_TIER=tiny` or `medium` overrides it. Without a native helper, Alt retries still use the word-only Tesseract CLI. PP-OCRv6 provides no symbol boxes, so Ctrl+drag and handles fall back to whole-word boundaries in this mode. A brief Wayland launch loaded the QML config, but the user must judge selection feel on the real desktop.
 
-An opt-in **two-pass interaction experiment** starts PP-OCRv6 tiny, then runs the native Tesseract full-screen pass after PP returns:
+An opt-in **two-pass interaction experiment** starts PP-OCRv6 small by default, then runs the native Tesseract full-screen pass after PP returns. Set `DICTOS_OCR_PP_TIER=tiny` to repeat the earlier fast-first-pass experiment:
 
 ```sh
 bash experiments/screen-text-selection/benchmarks/ppocr/try-progressive.sh --image tmp/screeshoots/500-words.png

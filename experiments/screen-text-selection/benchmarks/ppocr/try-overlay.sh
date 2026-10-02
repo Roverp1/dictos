@@ -21,6 +21,6 @@ export OMP_NUM_THREADS=4
 export LD_LIBRARY_PATH="$(nix-instantiate --eval --raw -E '(import <nixpkgs> {}).stdenv.cc.cc.lib.outPath')/lib:$(nix-instantiate --eval --raw -E '(import <nixpkgs> {}).libglvnd.outPath')/lib:$(nix-instantiate --eval --raw -E '(import <nixpkgs> {}).glib.out.outPath')/lib"
 export DICTOS_OCR_PP_PYTHON="$env_dir/venv/bin/python"
 export DICTOS_OCR_PP_HELPER="$script_dir/ocr_words.py"
-export DICTOS_OCR_PP_TIER="${DICTOS_OCR_PP_TIER:-tiny}"
+export DICTOS_OCR_PP_TIER="${DICTOS_OCR_PP_TIER:-small}"
 
 exec bash "$repo_dir/experiments/screen-text-selection/run.sh" full "$@"

@@ -12,5 +12,5 @@ native="$repo_dir/experiments/screen-text-selection/symbols/ocr-symbols"
 
 export DICTOS_OCR_PROGRESSIVE=1
 export DICTOS_OCR_NATIVE_HELPER="$native"
-export DICTOS_OCR_PP_TIER=tiny
+export DICTOS_OCR_PP_TIER="${DICTOS_OCR_PP_TIER:-small}"
 exec bash "$script_dir/try-overlay.sh" "$@"
