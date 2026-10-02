@@ -1,0 +1,82 @@
+# Specification: Screen Entry and Description Generation
+
+**Status**: Draft | **Created**: Oct 2, 2026
+
+## 1. The Problem (Why are we doing this?)
+
+Dictos can recognize a selected screen region and save its text as an Entry, but the shortcut saves immediately. Users cannot check the OCR, select a separate Description, or prepare Descriptions before leaving the screen. OCR mistakes can become saved Entries.
+
+Description Generation currently requires a saved Description. To generate definitions or translations for a new Entry, users must first go through an unrelated Description. They should be able to select and correct text on a frozen screen, optionally use another passage for context, and review the results before saving to the Dictionary. Generation from a saved Description must remain available.
+
+## 2. The Solution (What are we building?)
+
+A keyboard shortcut opens a persistent overlay on a frozen image of the focused screen. Left-drag selects an Entry; right-drag selects a separate Description. Both selections stay highlighted and editable. A compact bar shows the active field, and an edge-attached bottom drawer expands into an editor styled and animated after Caelestia shell.
+
+The drawer always shows the Entry, selected Description, and generation controls in the center, with Sense and typed Description editors on the right. Users can write their own Sense and Descriptions or request suggestions and generation. A third column of Sense suggestions appears on the left only when requested. Clicking a suggestion fills the Sense field and starts generation. Generation fills drafts for review without changing the Dictionary.
+
+Separate Save actions handle the Entry and captured Description, or a Sense with reviewed typed Descriptions, optionally including the captured Description. The overlay closes only after a successful save. Failures preserve drafts for correction or another attempt. Error placement and error appearance will be decided after the drawer is visually reviewed.
+
+## 3. User Experience (How does it work?)
+
+### Core Workflows
+
+- **Scenario: Select text from one frozen screen.** The shortcut captures the focused monitor once and recognizes its text. Left-drag fills the Entry field; right-drag fills the Description field from the same image, including multiline passages. The highlights remain independent. Selection snaps to recognized words, with the prototype's precise symbol selection and draggable end handles where reliable symbol boxes exist. Alt-drag retries OCR on a padded part of the same image without clearing either field; the user can return to the full-screen result. Both fields remain editable when OCR is wrong or missing.
+
+- **Scenario: Work in the compact bar.** The active field slides in the bottom-center bar: selecting a Description moves from Entry toward Description; selecting an Entry reverses the motion. A label identifies the visible field, and selection focuses its input for immediate correction. `Ctrl+h` and `Ctrl+l` switch the visible, editable field. Left-double-clicking the image clears only the Entry highlight; right-double-clicking clears only the Description highlight. Neither clears the field's text.
+
+- **Scenario: Open and navigate the drawer.** Moving the pointer to the bottom-center edge temporarily reveals the drawer; leaving the drawer bounds collapses it unless the user has interacted with it. Clicking inside or pressing `Ctrl+k` pins it open. Clicking outside or pressing `Ctrl+j` collapses it. Expansion ends text editing and starts keyboard navigation (enters 'normal mode') at the field active in the compact bar. The center and right columns are visible from the start and attached to the screen edge. A scrollable Senses column grows to the left only after suggestions are requested. The center contains Entry, Description, Instruction, a Selected Model picker, Description Types to generate, and a compact two-by-two action grid: Save Entry, Cancel, Suggest Senses, Generate.
+
+- **Scenario: Use mouse and keyboard together.** In the expanded drawer, `h/j/k/l` navigate controls spatially and `Ctrl+h/l` move between available columns. Pointer movement moves the navigation highlight; a stationary pointer does not steal it during animation. Enter activates the highlighted control, `i` edits a text field, and Escape leaves editing or closes a popup before backing out of the drawer. Tab and Shift+Tab remain available. Typing and editor shortcuts work normally in edit mode. The Instruction dropdown opens on click or Enter, never hover. Choosing a saved Instruction copies its text into the input; edits do not change the saved Instruction. The Model picker lists available eligible Models without a free-text Model input.
+
+- **Scenario: Start again with the last Instruction.** On the next launch, the Instruction input loads its last text from overlay-local state, including edits to a dropdown choice. If none was stored, it starts empty. The text is remembered even if the overlay is cancelled without saving an Entry. The last selected Description Types also return. Neither action creates or updates a database Instruction.
+
+- **Scenario: Suggest Senses.** With an Entry selected or typed, Suggest Senses uses the optional Description, current Instruction text, and Selected Model to offer up to 20 distinct, plausible Senses. Each card shows a Sense name and a short `definition` preview. Candidates favor the captured Description when present, or common plausible interpretations when absent; the list does not claim to be exhaustive. Clicking a card fills the editable Sense field on the right and immediately generates Descriptions for the selected Types. Previews help users choose a Sense and are not automatically saved as Descriptions.
+
+- **Scenario: Write or generate typed Descriptions.** The right column starts with an editable Sense field and empty Description editors in a stable Type order. Users can fill them without choosing a Model or Instruction. The center Type controls govern generation, not which manual text can be saved. Generate uses the Entry, optional captured Description, current Sense, other nonempty draft Descriptions, Instruction input, and Selected Model. If the Sense is empty, it proposes one. Generated text fills empty requested Type slots without replacing user-written text; multiple Descriptions of one Type remain possible. This workflow has no individual regeneration or result context menu.
+
+- **Scenario: Change the proposed Sense or clear a draft.** Choosing another suggested Sense replaces the right-column Sense and clears its Descriptions before generating again, without confirmation. The switch is one undoable action: undo restores the prior Sense and all its drafts; redo restores the new state without repeating a generation request whose result has arrived. Late results for an inactive Sense cannot overwrite restored drafts. In navigation mode, `d` or Backspace clears the highlighted right-column Description; right-clicking an input clears its text outside edit mode. `u` or `Ctrl+z` undoes draft actions; `Ctrl+Shift+z` or `Ctrl+r` redoes them. In text-edit mode, editor undo and redo work normally. Empty Description fields are never saved.
+
+- **Scenario: Save only the Entry and captured Description.** Center Save Entry saves the edited Entry in the root Folder and, if present, the selected Description as an unassigned `misc` Description. It ignores the Sense and all right-column drafts, even when filled. Only a successful save discards those drafts and closes the overlay. Cancelling leaves the Dictionary unchanged; the last Instruction input text stays in overlay-local state.
+
+- **Scenario: Save a Sense and reviewed Descriptions.** The right column has two compact, distinguishable Save actions. Both save the Entry in the root Folder, the named Sense, and every nonempty right-column Description under its displayed Type, whether manually written or generated. The ordinary action excludes the captured Description even if generation used it. The other also saves that text as a `misc` Description under the chosen Sense. Both require a valid Sense and at least one nonempty right-column Description. Selecting a Sense or generating writes nothing to the Dictionary. A successful Save writes the selected records together, then closes the overlay.
+
+- **Scenario: An operation fails.** The overlay stays open with drafts intact while Save runs. If it fails, the user can see the failure and try the same action again. Duplicate submissions are blocked while saving. OCR, suggestion, generation, local-state, and Save failures show readable feedback without erasing text or exposing credentials. Copy drafts puts labeled Entry, captured Description, Instruction, Sense, and nonempty typed Descriptions on the system clipboard. There is no separate Retry button. Error placement remains provisional until the two- and three-column drawer is visually reviewed; it must not force an early drawer redesign.
+
+- **Scenario: Use Dictos through the Command Client.** The overlay uses three provisional machine-readable Command Client operations: suggest Senses, generate unsaved drafts, and atomically save reviewed text. Structured input carries multiline text without shell arguments; the overlay can display structured results and handled errors. Existing human-facing generation from a saved Description retains its current save behavior.
+
+## 4. Feature Boundaries (What is OUT of scope?)
+
+- [ ] No Folder picker; all new Entries saved through this overlay go to the root Folder in this iteration.
+- [ ] No creation, editing, or automatic saving of database Instructions from the overlay. The dropdown only reads saved Instructions; overlay-local Instruction text is not a reusable Instruction record.
+- [ ] No general preferences system, persisted undo history, or Sync of overlay-local state. Only the last Instruction input text and selected Description Types are remembered locally.
+- [ ] No wholesale Command Client redesign or replacement of the existing saved-Description generation command. The three provisional overlay-facing operations can be revisited during the planned CLI rewrite.
+- [ ] No new OCR engine or redesign of the existing whole-screen selection, highlights, handles, or same-image OCR retry mechanics. Rework the UI around them.
+- [ ] No individual Description regeneration, result right-click menu, or automatic overwrite of nonempty manually edited results.
+- [ ] Error placement and size stay undecided until the drawer is built and visually reviewed. Showing failures and copying drafts remain in scope.
+- [ ] No TUI, Web, Mobile, or central-server generation interface changes; no changes to Provider credential setup or supported Model routes.
+- [ ] No saving screenshots, raw provider responses, credentials, or draft generation history in the Dictionary.
+- [ ] No Folder, Export, Sync, or existing Description Type redesign. Description Types remain `misc`, `translation`, `definition`, and `example`.
+
+## 5. Success Criteria (How do we know we are done?)
+
+- [ ] A user can select and separately correct an Entry and a multiline Description from one frozen screen. Both highlights survive field switching and an OCR crop retry. Double-clicking a selection clears only its highlight.
+- [ ] The compact bar focuses the active input, switches with `Ctrl+h/l`, and opens into an edge-attached center-and-right drawer. The suggestions column appears only when requested. Hover, pin, outside-click, and keyboard collapse preserve drafts.
+- [ ] Drawer controls for selection, editing, generation, clearing, undo, redo, and saving work with mouse and keyboard. Navigation does not type `hjkl` into an editor; edit mode allows ordinary typing.
+- [ ] The Instruction field reopens with the exact text last entered, or empty if none was stored, even after cancellation. Choosing or editing dropdown text never changes a saved Instruction. Previously selected Description Types also return.
+- [ ] A user can request up to 20 Sense candidates with short `definition` previews and choose one to fill the Sense field and start generation. They can also generate directly from an Entry without first saving a Description. Neither action writes Dictionary records.
+- [ ] Switching suggested Senses clears old right-column Descriptions. Undo and redo preserve edits without re-requesting an available result. Late responses for an earlier Sense cannot overwrite the active drafts.
+- [ ] A user can write and save a Sense and typed Descriptions without configuring a Model or database Instruction. Generation leaves nonempty manual text intact; Save omits empty Description slots.
+- [ ] Center Save writes only the Entry and optional unassigned `misc` Description in the root Folder, then discards right-column drafts on success. Right Save writes the Entry, Sense, and nonempty typed Descriptions; its inclusive variant also assigns the captured `misc` Description to that Sense.
+- [ ] Save failures leave no partial new Entry, Sense, or Description set. Drafts remain available and the error is visible before exit. A successful save closes the overlay and removes its temporary screenshot.
+- [ ] After a failure, the user can copy all draft text with field and Description Type labels, correct the problem, and invoke the same action again. The error display works before its final layout is chosen.
+- [ ] Existing Command Client generation from a saved Description still works. Three provisional overlay-facing operations return suggestions, unsaved generated drafts, and an atomic reviewed save through machine-readable input and output.
+
+## 6. Assumptions
+
+- [ ] The first overlay-specific implementation targets the existing Wayland/Hyprland screenshot-selection workflow. Caelestia shell is the drawer's visual and motion reference. Reused source retains applicable license notices; separately licensed assets are checked.
+- [ ] The existing Selected Model stays device-local and is required for suggestions or generation, but not for manual editing and saving. A blank Instruction adds no user directive and does not prevent a first-time user from generating with built-in task guidance.
+- [ ] The overlay uses its own device-local state/history file for the last Instruction input text and Description Type choices. Empty text clears the remembered Instruction. If no Type choice has been stored, `definition` starts selected. Choosing a saved Instruction copies its text into the field without linking edits to the record.
+- [ ] The right column displays `definition`, `translation`, `example`, then `misc`. Center Type controls affect only generation. Short `definition` previews help distinguish suggested Senses; they are not automatically saved or duplicated in the right column.
+- [ ] Sense names are editable and need not be unique. Saving reuses an Entry already present in the root Folder under its existing identity. A matching name does not silently select an existing Sense.
+- [ ] Undo and redo cover unsaved drawer actions in the current overlay session, including clearing fields and switching Senses. They cannot reverse a successful Dictionary save. A pending old request may finish, but its result cannot change the current draft.
+- [ ] Technical planning will decide the Command Client's exact command names and flags. The provisional overlay-facing calls exchange structured multiline requests and results, preserve the existing human-facing command, and save reviewed text atomically without chaining independent create commands.
