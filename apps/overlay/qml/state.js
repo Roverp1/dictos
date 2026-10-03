@@ -70,6 +70,7 @@ function chooseSense(current, name) {
     after: snapshot(state),
     requestRevision: state.generationRevision,
     generated: null,
+    resultApplied: false,
   });
   state.redo = [];
   return state;
@@ -111,6 +112,7 @@ function receiveGeneration(current, revision, generated) {
   action.after = snapshot(after);
   if (state.activeGenerationActionRevision === revision) {
     applyGenerated(state, generated);
+    action.resultApplied = true;
     state.activeGenerationActionRevision = null;
   }
   return state;
@@ -119,6 +121,7 @@ function undoDraft(current) {
   var state = copy(current);
   var action = state.undo.pop();
   if (!action) return state;
+  if (!action.generated || action.resultApplied) action.after = snapshot(state);
   restore(state, action.before);
   state.redo.push(action);
   state.generationRevision++;
@@ -130,6 +133,7 @@ function redoDraft(current) {
   var action = state.redo.pop();
   if (!action) return state;
   restore(state, action.after);
+  if (action.generated) action.resultApplied = true;
   state.undo.push(action);
   state.generationRevision++;
   state.activeGenerationActionRevision = action.generated
@@ -171,13 +175,21 @@ function changeText(current, field, text, remember) {
 }
 function beginGeneration(current) {
   var state = copy(current);
+  var before = snapshot(state);
+  state.descriptions.forEach(function (description) {
+    if (state.selectedTypes.includes(description.type)) {
+      description.text = "";
+      description.edited = false;
+    }
+  });
   state.generationRevision++;
   state.activeGenerationActionRevision = state.generationRevision;
   state.undo.push({
-    before: snapshot(state),
+    before: before,
     after: snapshot(state),
     requestRevision: state.generationRevision,
     generated: null,
+    resultApplied: false,
   });
   state.redo = [];
   return state;
@@ -202,4 +214,35 @@ function savePayload(state, mode) {
       return { type: item.type, text: item.text };
     });
   return base;
+}
+function validSaveReceipt(data, payload) {
+  function id(value) {
+    return typeof value === "string" && value.trim().length > 0;
+  }
+  if (
+    !data ||
+    typeof data !== "object" ||
+    !payload ||
+    !id(data.entryId) ||
+    (data.senseId !== null && !id(data.senseId)) ||
+    (data.capturedDescriptionId !== null && !id(data.capturedDescriptionId)) ||
+    !Array.isArray(data.descriptionIds) ||
+    !data.descriptionIds.every(id) ||
+    new Set(data.descriptionIds).size !== data.descriptionIds.length ||
+    data.descriptionIds.includes(data.capturedDescriptionId)
+  )
+    return false;
+  var captured =
+    !!payload.descriptionText?.trim() &&
+    (payload.kind === "entry" || payload.includeDescription);
+  if (captured !== (data.capturedDescriptionId !== null)) return false;
+  if (payload.kind === "entry")
+    return data.senseId === null && data.descriptionIds.length === 0;
+  return (
+    id(data.senseId) &&
+    data.descriptionIds.length ===
+      payload.descriptions.filter(function (d) {
+        return d.text.trim();
+      }).length
+  );
 }

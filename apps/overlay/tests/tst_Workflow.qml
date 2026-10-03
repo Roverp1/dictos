@@ -14,6 +14,11 @@ Item {
         imageUrl: Qt.resolvedUrl("fixture.png")
     }
     property var requests: []
+    SignalSpy {
+        id: exitSpy
+        target: capture
+        signalName: "exitRequested"
+    }
     Connections {
         target: capture
         function onCommandRequested(key, args, data, revision) {
@@ -36,6 +41,8 @@ Item {
             capture.cropping = false;
             capture.generationLoading = false;
             capture.suggestionLoading = false;
+            capture.pendingModel = "";
+            capture.modelTouched = false;
             capture.activeField = "entry";
             capture.notification = "";
             capture.saving = false;
@@ -46,6 +53,7 @@ Item {
             capture.stateWriteFailed = false;
             capture.closing = false;
             requests = [];
+            exitSpy.clear();
             capture.closeDrawer();
         }
         function test_drawer_starts_navigation_on_the_compact_field() {
@@ -373,6 +381,157 @@ Item {
             compare(capture.usingRetry, false);
             compare(capture.words[0].text, "read");
             verify(capture.notification.length > 0);
+        }
+        function test_clicking_a_drawer_divider_pins_without_selecting_screen_text() {
+            capture.updateText("entry", "Original Entry", false);
+            capture.openDrawer(false);
+            wait(550);
+            var center = findChild(capture, "config-column");
+            var point = center.mapToItem(capture, center.width + 16, 12);
+            capture.fullWords = [
+                {
+                    text: "Accidental",
+                    x: point.x - 5,
+                    y: point.y - 5,
+                    width: 30,
+                    height: 30,
+                    symbols: []
+                }
+            ];
+            mouseClick(capture, point.x, point.y);
+            compare(capture.drawerMode, "pinned");
+            compare(capture.draft.entry.text, "Original Entry");
+        }
+        function test_generate_can_replace_filled_types_and_restore_them_with_undo() {
+            capture.selectedModel = "openai/test";
+            capture.updateText("entry", "read", false);
+            capture.updateText("sense", "reading", false);
+            capture.updateText("definition-0", "My manual definition", false);
+            capture.updateText("translation-0", "Keep translation", false);
+            capture.openDrawer(true);
+            verify(capture.canGenerate);
+            capture.selectNode("generate");
+            keyClick(Qt.Key_Return);
+            var request = requests[requests.length - 1];
+            compare(request.key, "generate");
+            compare(request.data.descriptions[0].text, "My manual definition");
+            compare(capture.draft.descriptions[0].text, "");
+            capture.commandFinished("generate", {
+                ok: true,
+                data: {
+                    senseName: "reading",
+                    descriptions: [
+                        {
+                            type: "definition",
+                            text: "New definition"
+                        }
+                    ]
+                }
+            }, request.revision);
+            compare(capture.draft.descriptions[0].text, "New definition");
+            compare(capture.draft.descriptions[1].text, "Keep translation");
+            keyClick(Qt.Key_Z, Qt.ControlModifier);
+            compare(capture.draft.descriptions[0].text, "My manual definition");
+        }
+        function test_malformed_save_success_does_not_discard_the_draft() {
+            capture.updateText("entry", "Reviewed Entry", false);
+            var replies = [
+                {
+                    ok: true
+                },
+                {
+                    ok: "false",
+                    data: {
+                        entryId: "entry",
+                        senseId: null,
+                        capturedDescriptionId: null,
+                        descriptionIds: []
+                    }
+                },
+                {
+                    ok: true,
+                    data: {
+                        entryId: "entry",
+                        senseId: null,
+                        capturedDescriptionId: null,
+                        descriptionIds: "bad"
+                    }
+                }
+            ];
+            for (var response of replies) {
+                capture.savedAlready = false;
+                capture.closing = false;
+                capture.save("entry");
+                capture.commandFinished("save", response, 0);
+                compare(capture.savedAlready, false);
+                compare(capture.closing, false);
+                compare(capture.draft.entry.text, "Reviewed Entry");
+                verify(capture.notification.length > 0);
+            }
+        }
+        function test_model_selection_is_serialized_and_late_startup_data_is_ignored() {
+            capture.models = [
+                {
+                    id: "openai/A"
+                },
+                {
+                    id: "openai/B"
+                }
+            ];
+            capture.openPicker("model");
+            capture.choosePopup(0);
+            capture.openPicker("model");
+            capture.choosePopup(1);
+            compare(requests.filter(function (r) {
+                return r.key === "model-select";
+            }).length, 1);
+            capture.commandFinished("model-select", {
+                ok: true,
+                data: null
+            }, 0);
+            compare(capture.selectedModel, "openai/A");
+            capture.commandFinished("model", {
+                ok: true,
+                data: {
+                    id: "old choice"
+                }
+            }, 0);
+            compare(capture.selectedModel, "openai/A");
+        }
+        function test_confirmed_save_receipt_closes_only_after_success() {
+            capture.updateText("entry", "Reviewed Entry", false);
+            capture.updateText("description", "Captured text", false);
+            capture.save("entry");
+            compare(exitSpy.count, 0);
+            capture.commandFinished("save", {
+                ok: true,
+                data: {
+                    entryId: "entry",
+                    senseId: null,
+                    capturedDescriptionId: "captured",
+                    descriptionIds: []
+                }
+            }, 0);
+            compare(capture.savedAlready, true);
+            compare(exitSpy.count, 1);
+        }
+        function test_save_all_rejects_a_receipt_reusing_the_captured_description_id() {
+            capture.updateText("entry", "Reviewed Entry", false);
+            capture.updateText("description", "Captured text", false);
+            capture.updateText("sense", "Sense", false);
+            capture.updateText("definition-0", "Definition", false);
+            capture.save("sense-all");
+            capture.commandFinished("save", {
+                ok: true,
+                data: {
+                    entryId: "entry",
+                    senseId: "sense",
+                    capturedDescriptionId: "same-id",
+                    descriptionIds: ["same-id"]
+                }
+            }, 0);
+            compare(capture.savedAlready, false);
+            compare(exitSpy.count, 0);
         }
         function test_independent_drag_selections_and_double_click_only_clear_geometry() {
             capture.fullWords = [

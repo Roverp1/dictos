@@ -68,3 +68,56 @@ test("editing the Entry invalidates a pending reply and center Save excludes rig
     descriptions: [{ type: "definition", text: "Write text." }],
   });
 });
+
+test("redo preserves corrections made after a Sense was generated", async () => {
+  const m = await model();
+  let state = m.newOverlayState();
+  state.entry.text = "read";
+  state = m.chooseSense(state, "reading");
+  state = m.receiveGeneration(state, state.activeGenerationActionRevision, {
+    senseName: "reading",
+    descriptions: [{ type: "definition", text: "Generated text" }],
+  });
+  state = m.changeText(state, "definition-0", "My corrected definition", false);
+  state = m.undoDraft(state);
+  state = m.redoDraft(state);
+  expect(state.descriptions[0].text).toBe("My corrected definition");
+});
+
+test("Generate replaces selected Types, preserves unchecked text, and is undoable", async () => {
+  const m = await model();
+  let state = m.newOverlayState();
+  state.entry.text = "read";
+  state.senseName = "reading";
+  state.descriptions[0].text = "Manual definition";
+  state.descriptions[1].text = "Keep this translation";
+  state = m.beginGeneration(state);
+  expect(state.descriptions[0].text).toBe("");
+  expect(state.descriptions[1].text).toBe("Keep this translation");
+  state = m.receiveGeneration(state, state.activeGenerationActionRevision, {
+    senseName: "reading",
+    descriptions: [{ type: "definition", text: "New generated definition" }],
+  });
+  state = m.undoDraft(state);
+  expect(state.descriptions[0].text).toBe("Manual definition");
+  state = m.redoDraft(state);
+  expect(state.descriptions[0].text).toBe("New generated definition");
+});
+
+test("undoing two pending Sense switches retains an inactive cached result for redo", async () => {
+  const m = await model();
+  let state = m.newOverlayState();
+  state.entry.text = "read";
+  state = m.chooseSense(state, "B");
+  const revision = state.activeGenerationActionRevision;
+  state = m.chooseSense(state, "C");
+  state = m.receiveGeneration(state, revision, {
+    senseName: "B",
+    descriptions: [{ type: "definition", text: "Cached B definition" }],
+  });
+  state = m.undoDraft(state);
+  state = m.undoDraft(state);
+  state = m.redoDraft(state);
+  expect(state.senseName).toBe("B");
+  expect(state.descriptions[0].text).toBe("Cached B definition");
+});

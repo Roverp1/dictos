@@ -36,7 +36,7 @@ Process {
                         ok: true,
                         data: response
                     };
-                if (response.ok === undefined || (exitCode !== 0 && response.ok))
+                if (typeof response.ok !== "boolean" || (response.ok && !("data" in response)) || (exitCode !== 0 && response.ok))
                     throw new Error("Invalid command outcome");
             } catch (error) {
                 response = {

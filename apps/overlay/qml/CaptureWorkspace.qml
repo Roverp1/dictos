@@ -42,23 +42,21 @@ Item {
     property var models: []
     property string selectedModel: ""
     property string pendingModel: ""
+    property bool modelTouched: false
     property string notification: ""
     property bool ocrLoading: true
     property bool generationLoading: false
     property int loadingGenerationRevision: -1
     property bool suggestionLoading: false
     property bool saving: false
+    property var pendingSave: null
     property bool savedAlready: false
     property bool stateDirty: false
     property bool stateTouched: false
     property bool stateWriteFailed: false
     property bool stateWritePending: false
     property bool closing: false
-    readonly property bool canGenerate: !!draft.entry.text.trim() && !!selectedModel && draft.selectedTypes.some(function (type) {
-        return !draft.descriptions.some(function (d) {
-            return d.type === type && d.text.trim();
-        });
-    })
+    readonly property bool canGenerate: !!draft.entry.text.trim() && !!selectedModel && !pendingModel && draft.selectedTypes.length > 0
     readonly property bool canSaveSense: !!draft.entry.text.trim() && !!draft.senseName.trim() && draft.descriptions.some(function (d) {
         return !!d.text.trim();
     })
@@ -245,6 +243,14 @@ Item {
         if (!canGenerate || saving)
             return;
         drawerMode = "pinned";
+        var contextDescriptions = draft.descriptions.filter(function (d) {
+            return d.text.trim();
+        }).map(function (d) {
+            return {
+                type: d.type,
+                text: d.text
+            };
+        });
         if (!alreadyStarted)
             draft = State.beginGeneration(draft);
         generationLoading = true;
@@ -254,14 +260,7 @@ Item {
             descriptionText: draft.capturedDescription.text || null,
             instructionText: draft.instructionText,
             senseName: draft.senseName || null,
-            descriptions: draft.descriptions.filter(function (d) {
-                return d.text.trim();
-            }).map(function (d) {
-                return {
-                    type: d.type,
-                    text: d.text
-                };
-            }),
+            descriptions: contextDescriptions,
             targetTypes: draft.selectedTypes
         }, draft.activeGenerationActionRevision);
     }
@@ -275,6 +274,8 @@ Item {
         }, draft.generationRevision);
     }
     function chooseSense(name) {
+        if (pendingModel || saving)
+            return;
         draft = State.chooseSense(draft, name);
         generate(true);
     }
@@ -286,9 +287,12 @@ Item {
         editingNodeId = "";
         saving = true;
         notification = "";
-        commandRequested("save", ["overlay", "save", "--json"], State.savePayload(draft, kind), 0);
+        pendingSave = State.savePayload(draft, kind);
+        commandRequested("save", ["overlay", "save", "--json"], pendingSave, 0);
     }
     function openPicker(kind) {
+        if (kind === "model" && pendingModel)
+            return;
         popupKind = kind;
         popupIndex = 0;
         mode = "popup";
@@ -296,6 +300,8 @@ Item {
         keys.forceActiveFocus();
     }
     function choosePopup(index) {
+        if (!popupKind || (popupKind === "model" && pendingModel))
+            return;
         var items = popupKind === "instruction" ? instructions : models;
         var selected = items[index];
         if (!selected)
@@ -304,6 +310,7 @@ Item {
             updateText("instruction", selected.text, true);
         else {
             pendingModel = selected.id;
+            modelTouched = true;
             commandRequested("model-select", ["model", "select", selected.id], null, 0);
         }
         popupKind = "";
@@ -316,6 +323,17 @@ Item {
             openDrawer(true);
     }
     function commandFinished(key, response, revision) {
+        if (key === "model" && modelTouched)
+            return;
+        if (key === "model-select") {
+            var chosen = pendingModel;
+            pendingModel = "";
+            if (response.ok === true)
+                selectedModel = chosen;
+            else
+                error(key, response);
+            return;
+        }
         if (key === "state-write") {
             stateWritePending = false;
             if (!response.ok) {
@@ -332,11 +350,17 @@ Item {
         }
         if (key === "save") {
             saving = false;
-            if (response.ok) {
+            if (response.ok === true && State.validSaveReceipt(response.data, pendingSave)) {
                 savedAlready = true;
                 requestExit();
-            } else
+            } else if (response.ok === false)
                 error(key, response);
+            else
+                error(key, {
+                    error: {
+                        message: "Save returned no valid receipt. Its outcome is unknown; your draft is still here."
+                    }
+                });
             return;
         }
         if (key === "generate") {
@@ -370,8 +394,6 @@ Item {
             models = response.data;
         else if (key === "model")
             selectedModel = response.data?.id || "";
-        else if (key === "model-select")
-            selectedModel = pendingModel;
         else if (key === "state-read" && !stateTouched) {
             var nextState = State.copy(draft);
             nextState.instructionText = response.data.instructionText;
@@ -880,6 +902,19 @@ Item {
         x: Math.max(8, Math.min(workspace.width - width - 8, (workspace.width - configWidth) / 2 - leftExtent - padding))
         y: workspace.height - height
         padding: 16
+        MouseArea {
+            anchors.fill: parent
+            anchors.margins: -drawer.padding
+            acceptedButtons: Qt.AllButtons
+            onPressed: {
+                workspace.drawerMode = "pinned";
+                if (workspace.mode === "navigation")
+                    keys.forceActiveFocus();
+            }
+            onWheel: wheel => {
+                wheel.accepted = true;
+            }
+        }
         Row {
             anchors.fill: parent
             spacing: 16
@@ -931,7 +966,7 @@ Item {
                                 color: Tokens.surfaceVariantText
                             }
                         }
-                        enabled: !workspace.saving && !!workspace.selectedModel && workspace.draft.selectedTypes.length > 0
+                        enabled: !workspace.saving && !workspace.pendingModel && !!workspace.selectedModel && workspace.draft.selectedTypes.length > 0
                         onPerform: workspace.chooseSense(modelData.name)
                     }
                 }
@@ -987,7 +1022,8 @@ Item {
                     WorkflowButton {
                         nodeId: "model"
                         width: parent.width
-                        text: workspace.selectedModel || "Choose a Model"
+                        text: workspace.pendingModel ? "Selecting Model…" : workspace.selectedModel || "Choose a Model"
+                        enabled: !workspace.saving && !workspace.pendingModel
                         onPerform: workspace.openPicker("model")
                     }
                     Text {
@@ -1032,7 +1068,7 @@ Item {
                         nodeId: "suggest"
                         width: (parent.width - 8) / 2
                         text: "Suggest Senses"
-                        enabled: !!workspace.draft.entry.text.trim() && !!workspace.selectedModel && !workspace.suggestionLoading && !workspace.saving
+                        enabled: !!workspace.draft.entry.text.trim() && !!workspace.selectedModel && !workspace.pendingModel && !workspace.suggestionLoading && !workspace.saving
                         onPerform: workspace.suggest()
                     }
                     WorkflowButton {
