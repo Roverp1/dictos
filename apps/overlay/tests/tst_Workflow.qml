@@ -30,6 +30,12 @@ Item {
         function init() {
             capture.draft = State.newOverlayState();
             capture.fullWords = [];
+            capture.retryWords = [];
+            capture.usingRetry = false;
+            capture.selecting = false;
+            capture.cropping = false;
+            capture.generationLoading = false;
+            capture.suggestionLoading = false;
             capture.activeField = "entry";
             capture.notification = "";
             capture.saving = false;
@@ -182,6 +188,191 @@ Item {
             keyClick(Qt.Key_Return);
             compare(capture.draft.instructionText, "Second instruction");
             compare(capture.instructions[1].text, "Second instruction");
+        }
+        function test_equal_columns_grow_only_from_center_content() {
+            capture.openDrawer(true);
+            var next = State.copy(capture.draft);
+            next.suggestions = [
+                {
+                    name: "Квітковий інтерфейс",
+                    definition: "Програмний інтерфейс для швидкого передавання даних між об'єктами. Використовується для побудови гнучких графічних застосунків і зручної взаємодії з користувачем."
+                }
+            ];
+            capture.draft = next;
+            wait(550);
+            var drawer = findChild(capture, "capture-drawer");
+            var center = findChild(capture, "config-column");
+            compare(findChild(capture, "senses-column").width, center.width);
+            compare(findChild(capture, "results-column").width, center.width);
+            var height = drawer.height;
+            capture.updateText("instruction", "A long Instruction.\n".repeat(12), false);
+            wait(50);
+            verify(drawer.height > height);
+            height = drawer.height;
+            capture.updateText("definition-0", "A long definition.\n".repeat(30), false);
+            wait(50);
+            compare(drawer.height, height);
+            compare(findChild(capture, "suggestion-0").contentItem.truncated, false);
+        }
+        function test_single_click_selects_a_whole_word_for_each_field() {
+            capture.fullWords = [
+                {
+                    text: "read",
+                    x: 110,
+                    y: 92,
+                    width: 60,
+                    height: 30,
+                    symbols: []
+                },
+                {
+                    text: "book.",
+                    x: 218,
+                    y: 92,
+                    width: 78,
+                    height: 30,
+                    symbols: []
+                }
+            ];
+            wait(550);
+            mouseClick(capture, 140, 105, Qt.LeftButton);
+            compare(capture.draft.entry.text, "read");
+            verify(capture.draft.entry.selection !== null);
+            mouseClick(capture, 250, 105, Qt.RightButton);
+            compare(capture.draft.capturedDescription.text, "book.");
+            compare(capture.draft.entry.text, "read");
+            mouseDoubleClickSequence(capture, 250, 105, Qt.LeftButton);
+            compare(capture.draft.entry.text, "read");
+            compare(capture.draft.entry.selection, null);
+            verify(capture.draft.capturedDescription.selection !== null);
+            mouseDoubleClickSequence(capture, 140, 105, Qt.RightButton);
+            compare(capture.draft.capturedDescription.text, "book.");
+            compare(capture.draft.capturedDescription.selection, null);
+        }
+        function test_keyboard_navigation_survives_adding_a_description_and_reopening() {
+            capture.openDrawer(true);
+            wait(550);
+            capture.selectNode("add-definition");
+            keyClick(Qt.Key_Return);
+            compare(capture.draft.descriptions.length, 5);
+            wait(20);
+            var add = findChild(capture, "add-definition");
+            var save = findChild(capture, "save-sense");
+            verify(add.mapToItem(capture, 0, 0).y + add.height <= save.mapToItem(capture, 0, 0).y);
+            keyClick(Qt.Key_H, Qt.ControlModifier);
+            verify(capture.activeNodeId !== "add-definition");
+            keyClick(Qt.Key_J, Qt.ControlModifier);
+            keyClick(Qt.Key_K, Qt.ControlModifier);
+            keyClick(Qt.Key_L, Qt.ControlModifier);
+            verify(capture.activeNodeId !== "entry");
+            keyClick(Qt.Key_I);
+            var field = findChild(capture, capture.activeNodeId);
+            verify(field !== null);
+            tryCompare(field.editor, "activeFocus", true);
+        }
+        function test_only_crop_results_outline_recognized_words() {
+            var words = [
+                {
+                    text: "read",
+                    x: 110,
+                    y: 92,
+                    width: 60,
+                    height: 30,
+                    symbols: []
+                }
+            ];
+            capture.ocrFinished("full", {
+                ok: true,
+                data: {
+                    words: words
+                }
+            });
+            verify(findChild(capture, "recognized-word-0") === null);
+            capture.ocrFinished("crop", {
+                ok: true,
+                data: {
+                    words: words
+                }
+            });
+            tryVerify(function () {
+                return findChild(capture, "recognized-word-0") !== null;
+            });
+            var guide = findChild(capture, "recognized-word-0");
+            compare(guide.border.width, 1);
+            verify(guide.border.color.a > 0 && guide.border.color.a < 0.75);
+            var toggle = findChild(capture, "ocr-view-toggle");
+            mouseClick(toggle);
+            compare(capture.usingRetry, false);
+            tryVerify(function () {
+                return findChild(capture, "recognized-word-0") === null;
+            });
+        }
+        function test_crop_reply_during_a_drag_keeps_the_original_word_source() {
+            capture.usingRetry = false;
+            capture.fullWords = [
+                {
+                    text: "another",
+                    x: 10,
+                    y: 92,
+                    width: 60,
+                    height: 30,
+                    symbols: []
+                },
+                {
+                    text: "read",
+                    x: 110,
+                    y: 92,
+                    width: 60,
+                    height: 30,
+                    symbols: []
+                }
+            ];
+            wait(550);
+            mousePress(capture, 120, 105, Qt.LeftButton);
+            mouseMove(capture, 155, 105);
+            capture.ocrFinished("crop", {
+                ok: true,
+                data: {
+                    words: [
+                        {
+                            text: "different",
+                            x: 400,
+                            y: 300,
+                            width: 60,
+                            height: 30,
+                            symbols: []
+                        }
+                    ]
+                }
+            });
+            mouseRelease(capture, 155, 105, Qt.LeftButton);
+            compare(capture.draft.entry.text, "read");
+            compare(capture.selecting, false);
+        }
+        function test_empty_crop_preserves_the_last_selectable_ocr_result() {
+            capture.ocrFinished("full", {
+                ok: true,
+                data: {
+                    words: [
+                        {
+                            text: "read",
+                            x: 110,
+                            y: 92,
+                            width: 60,
+                            height: 30,
+                            symbols: []
+                        }
+                    ]
+                }
+            });
+            capture.ocrFinished("crop", {
+                ok: true,
+                data: {
+                    words: []
+                }
+            });
+            compare(capture.usingRetry, false);
+            compare(capture.words[0].text, "read");
+            verify(capture.notification.length > 0);
         }
         function test_independent_drag_selections_and_double_click_only_clear_geometry() {
             capture.fullWords = [

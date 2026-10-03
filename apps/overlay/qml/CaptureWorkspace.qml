@@ -29,7 +29,11 @@ Item {
     property var dragAnchor: null
     property var dragFocus: null
     property var pressLocal: null
+    property string pressedBeforeText: ""
+    property var completedClick: null
+    property bool suppressRelease: false
     property var dragRange: null
+    property var dragWords: []
     property bool precise: false
     property var nodes: []
     property string popupKind: ""
@@ -78,9 +82,9 @@ Item {
             }
         ]);
     }
-    function unregisterNode(id) {
+    function unregisterNode(id, owner) {
         nodes = nodes.filter(function (n) {
-            return n.id !== id;
+            return n.id !== id || (owner && n.item !== owner);
         });
     }
     function nodeGeometry() {
@@ -381,6 +385,14 @@ Item {
             error("OCR", response);
             return;
         }
+        if (kind === "crop" && response.data.words.length === 0) {
+            error("OCR", {
+                error: {
+                    message: "No text recognized in this crop. The previous OCR result is still available."
+                }
+            });
+            return;
+        }
         if (kind === "full")
             fullWords = response.data.words;
         else {
@@ -574,6 +586,7 @@ Item {
             var p = workspace.pixelAt(mouse.x, mouse.y);
             workspace.dragAnchor = p;
             workspace.dragFocus = p;
+            workspace.dragWords = workspace.words;
             workspace.pressLocal = {
                 x: mouse.x,
                 y: mouse.y
@@ -581,8 +594,10 @@ Item {
             workspace.cropping = !!p && !!(mouse.modifiers & Qt.AltModifier);
             workspace.selecting = !!p && !workspace.cropping;
             workspace.activeField = mouse.button === Qt.RightButton ? "description" : "entry";
+            workspace.pressedBeforeText = workspace.activeField === "entry" ? workspace.draft.entry.text : workspace.draft.capturedDescription.text;
+            workspace.suppressRelease = false;
             workspace.precise = !!(mouse.modifiers & Qt.ControlModifier);
-            workspace.dragRange = p && !workspace.cropping ? Selection.rangeAt(workspace.words, p, p, workspace.precise) : null;
+            workspace.dragRange = p && !workspace.cropping ? Selection.rangeAt(workspace.dragWords, p, p, workspace.precise) : null;
         }
         onPositionChanged: mouse => {
             var p = workspace.pixelAt(mouse.x, mouse.y);
@@ -590,10 +605,12 @@ Item {
                 return;
             workspace.dragFocus = p;
             if (workspace.selecting)
-                workspace.dragRange = Selection.rangeAt(workspace.words, workspace.dragAnchor, p, workspace.precise);
+                workspace.dragRange = Selection.rangeAt(workspace.dragWords, workspace.dragAnchor, p, workspace.precise);
         }
         onReleased: mouse => {
-            if (workspace.cropping && workspace.dragAnchor && workspace.dragFocus) {
+            if (workspace.suppressRelease) {
+                workspace.suppressRelease = false;
+            } else if (workspace.cropping && workspace.dragAnchor && workspace.dragFocus) {
                 var a = workspace.dragAnchor, b = workspace.dragFocus;
                 var x = Math.floor(Math.min(a.x, b.x)), y = Math.floor(Math.min(a.y, b.y));
                 var w = Math.ceil(Math.max(a.x, b.x)) - x, h = Math.ceil(Math.max(a.y, b.y)) - y;
@@ -601,15 +618,28 @@ Item {
                     workspace.ocrLoading = true;
                     workspace.ocrRequested("crop", [String(x), String(y), String(w), String(h), workspace.retryPsm]);
                 }
-            } else if (workspace.dragRange && workspace.pressLocal && Math.hypot(mouse.x - workspace.pressLocal.x, mouse.y - workspace.pressLocal.y) >= 4)
-                workspace.setSelection(workspace.dragRange, workspace.words);
+            } else if (workspace.dragRange) {
+                workspace.setSelection(workspace.dragRange, workspace.dragWords);
+                workspace.completedClick = workspace.pressLocal && Math.hypot(mouse.x - workspace.pressLocal.x, mouse.y - workspace.pressLocal.y) < 4 ? {
+                    field: workspace.activeField,
+                    beforeText: workspace.pressedBeforeText
+                } : null;
+            } else
+                workspace.completedClick = null;
             workspace.cropping = false;
             workspace.selecting = false;
             workspace.dragRange = null;
             workspace.dragAnchor = null;
             workspace.closeDrawer();
         }
-        onDoubleClicked: mouse => workspace.clearHighlight(mouse.button === Qt.RightButton ? "description" : "entry")
+        onDoubleClicked: mouse => {
+            var field = mouse.button === Qt.RightButton ? "description" : "entry";
+            if (workspace.completedClick?.field === field)
+                workspace.updateText(field, workspace.completedClick.beforeText, false);
+            workspace.clearHighlight(field);
+            workspace.suppressRelease = true;
+            workspace.completedClick = null;
+        }
         onCanceled: {
             workspace.selecting = false;
             workspace.cropping = false;
@@ -618,12 +648,27 @@ Item {
         }
     }
     Repeater {
+        model: workspace.usingRetry ? workspace.retryWords : []
+        Rectangle {
+            required property var modelData
+            required property int index
+            objectName: "recognized-word-" + index
+            x: workspace.screenX(modelData.x)
+            y: workspace.screenY(modelData.y)
+            width: modelData.width * image.paintedWidth / image.sourceSize.width
+            height: modelData.height * image.paintedHeight / image.sourceSize.height
+            color: "transparent"
+            border.color: "#80cbdbee"
+            border.width: 1
+        }
+    }
+    Repeater {
         model: ["entry", "description"]
         Item {
             id: selectionGroup
             required property string modelData
             readonly property var selected: modelData === "entry" ? workspace.draft.entry : workspace.draft.capturedDescription
-            readonly property var boxes: Selection.highlightBoxes(workspace.selecting && workspace.activeField === modelData ? workspace.words : selected.sourceWords, workspace.selecting && workspace.activeField === modelData ? workspace.dragRange : selected.selection)
+            readonly property var boxes: Selection.highlightBoxes(workspace.selecting && workspace.activeField === modelData ? workspace.dragWords : selected.sourceWords, workspace.selecting && workspace.activeField === modelData ? workspace.dragRange : selected.selection)
             Repeater {
                 model: selectionGroup.boxes
                 Rectangle {
@@ -691,6 +736,7 @@ Item {
         }
     }
     CaptureButton {
+        objectName: "ocr-view-toggle"
         visible: workspace.retryWords.length > 0 && !workspace.expanded
         anchors.top: parent.top
         anchors.topMargin: 60
@@ -747,9 +793,9 @@ Item {
         property string section: "config"
         objectName: nodeId
         property string registeredId: ""
+        property bool retired: false
         active: workspace.activeNodeId === nodeId
         editing: workspace.mode === "editing" && workspace.editingNodeId === nodeId
-        implicitHeight: 92
         onEdited: text => workspace.updateText(nodeId, text, false)
         onRequestActivate: {
             workspace.drawerMode = "pinned";
@@ -759,8 +805,10 @@ Item {
         onRequestEdit: workspace.edit(nodeId)
         onClearRequested: workspace.clear(nodeId)
         function register() {
+            if (retired)
+                return;
             if (registeredId)
-                workspace.unregisterNode(registeredId);
+                workspace.unregisterNode(registeredId, field);
             registeredId = nodeId;
             editor.Keys.forwardTo = [keys];
             workspace.registerNode(nodeId, section, field, function () {
@@ -777,12 +825,18 @@ Item {
                 register();
         }
         Component.onCompleted: register()
-        Component.onDestruction: workspace.unregisterNode(nodeId)
+        Component.onDestruction: {
+            // Repeater bindings can still change while a delegate is being removed.
+            retired = true;
+            workspace.unregisterNode(registeredId, field);
+        }
     }
     component WorkflowButton: CaptureButton {
         id: button
         property string nodeId
         property string section: "config"
+        property string registeredId: ""
+        property bool retired: false
         objectName: nodeId
         signal perform
         active: workspace.activeNodeId === nodeId
@@ -792,28 +846,47 @@ Item {
             perform();
             keys.forceActiveFocus();
         }
-        Component.onCompleted: workspace.registerNode(nodeId, section, button, function () {
-            button.perform();
-        }, null, null)
-        Component.onDestruction: workspace.unregisterNode(nodeId)
+        function register() {
+            if (retired)
+                return;
+            if (registeredId)
+                workspace.unregisterNode(registeredId, button);
+            registeredId = nodeId;
+            workspace.registerNode(nodeId, section, button, function () {
+                button.perform();
+            }, null, null);
+        }
+        onNodeIdChanged: {
+            if (registeredId)
+                register();
+        }
+        Component.onCompleted: register()
+        Component.onDestruction: {
+            retired = true;
+            workspace.unregisterNode(registeredId, button);
+        }
     }
     BottomSurface {
         id: drawer
+        objectName: "capture-drawer"
         expanded: workspace.expanded
-        readonly property real senseWidth: workspace.draft.suggestions.length || workspace.suggestionLoading ? Math.min(260, workspace.width * 0.23) : 0
-        readonly property real configWidth: Math.min(380, (workspace.width - senseWidth - 80) / 2)
-        readonly property real resultsWidth: Math.min(450, (workspace.width - senseWidth - 80) / 2)
-        width: senseWidth + configWidth + resultsWidth + 48
-        height: Math.min(580, workspace.height - 120)
-        x: Math.max(8, Math.min(workspace.width - width - 8, (workspace.width - configWidth) / 2 - senseWidth - 16))
+        readonly property real columnWidth: 460
+        readonly property real senseWidth: workspace.draft.suggestions.length || workspace.suggestionLoading ? columnWidth : 0
+        readonly property real leftExtent: senseWidth > 0 ? columnWidth + 33 : 0
+        readonly property real configWidth: columnWidth
+        readonly property real resultsWidth: columnWidth
+        width: columnWidth * 2 + 65 + leftExtent
+        height: configColumn.implicitHeight + padding * 2
+        x: Math.max(8, Math.min(workspace.width - width - 8, (workspace.width - configWidth) / 2 - leftExtent - padding))
         y: workspace.height - height
         padding: 16
         Row {
             anchors.fill: parent
             spacing: 16
             Column {
+                objectName: "senses-column"
                 visible: drawer.senseWidth > 0
-                width: drawer.senseWidth ? drawer.senseWidth - 16 : 0
+                width: drawer.columnWidth
                 height: parent.height
                 spacing: 12
                 Text {
@@ -828,97 +901,111 @@ Item {
                     spacing: 8
                     model: workspace.draft.suggestions
                     delegate: WorkflowButton {
+                        id: senseCard
                         required property var modelData
                         required property int index
                         width: senseList.width
-                        height: 90
+                        height: Math.max(80, contentItem.implicitHeight + topPadding + bottomPadding + 12)
                         nodeId: "suggestion-" + index
                         section: "senses"
                         text: modelData.name + "\n" + modelData.definition
-                        contentItem: Text {
-                            text: modelData.name + "\n" + modelData.definition
-                            wrapMode: Text.Wrap
-                            font: Tokens.body
-                            color: Tokens.surfaceText
-                            elide: Text.ElideRight
-                            maximumLineCount: 4
+                        contentItem: Column {
+                            spacing: 6
+                            readonly property bool truncated: senseNameText.truncated || senseDefinitionText.truncated
+                            Text {
+                                id: senseNameText
+                                width: parent.width
+                                text: senseCard.modelData.name
+                                textFormat: Text.PlainText
+                                wrapMode: Text.Wrap
+                                font: Tokens.title
+                                color: Tokens.surfaceText
+                            }
+                            Text {
+                                id: senseDefinitionText
+                                width: parent.width
+                                text: senseCard.modelData.definition
+                                textFormat: Text.PlainText
+                                wrapMode: Text.Wrap
+                                font: Tokens.body
+                                color: Tokens.surfaceVariantText
+                            }
                         }
                         enabled: !workspace.saving && !!workspace.selectedModel && workspace.draft.selectedTypes.length > 0
                         onPerform: workspace.chooseSense(modelData.name)
                     }
                 }
             }
-            Column {
-                width: drawer.configWidth
+            Rectangle {
+                visible: drawer.senseWidth > 0
+                width: 1
                 height: parent.height
+                color: Tokens.outlineVariant
+            }
+            Column {
+                id: configColumn
+                objectName: "config-column"
+                width: drawer.configWidth
                 spacing: 12
-                Flickable {
-                    id: configScroll
+                Column {
+                    id: configContent
                     width: parent.width
-                    height: parent.height - 96
-                    contentHeight: configContent.height
-                    clip: true
-                    ScrollBar.vertical: ScrollBar {}
-                    Column {
-                        id: configContent
-                        width: configScroll.width
-                        spacing: 8
-                        WorkflowField {
-                            nodeId: "entry"
-                            label: "Entry"
-                            width: parent.width
-                            height: 78
-                            text: workspace.draft.entry.text
-                            enabled: !workspace.saving && !workspace.savedAlready
+                    spacing: 8
+                    WorkflowField {
+                        nodeId: "entry"
+                        label: "Entry"
+                        width: parent.width
+                        height: Math.max(88, implicitHeight)
+                        text: workspace.draft.entry.text
+                        enabled: !workspace.saving && !workspace.savedAlready
+                    }
+                    WorkflowField {
+                        nodeId: "description"
+                        label: "Description"
+                        width: parent.width
+                        height: Math.max(112, implicitHeight)
+                        text: workspace.draft.capturedDescription.text
+                        enabled: !workspace.saving && !workspace.savedAlready
+                    }
+                    WorkflowField {
+                        nodeId: "instruction"
+                        label: "Instruction"
+                        width: parent.width
+                        height: Math.max(176, implicitHeight)
+                        text: workspace.draft.instructionText
+                        enabled: !workspace.saving
+                        CaptureButton {
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 8
+                            width: 34
+                            height: 28
+                            text: "⌄"
+                            onClicked: workspace.openPicker("instruction")
                         }
-                        WorkflowField {
-                            nodeId: "description"
-                            label: "Description"
-                            width: parent.width
-                            height: 100
-                            text: workspace.draft.capturedDescription.text
-                            enabled: !workspace.saving && !workspace.savedAlready
-                        }
-                        WorkflowField {
-                            nodeId: "instruction"
-                            label: "Instruction"
-                            width: parent.width
-                            height: 100
-                            text: workspace.draft.instructionText
-                            enabled: !workspace.saving
-                            CaptureButton {
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: 8
-                                width: 34
-                                height: 28
-                                text: "⌄"
-                                onClicked: workspace.openPicker("instruction")
-                            }
-                        }
-                        WorkflowButton {
-                            nodeId: "model"
-                            width: parent.width
-                            text: workspace.selectedModel || "Choose a Model"
-                            onPerform: workspace.openPicker("model")
-                        }
-                        Text {
-                            text: "Description Types to generate"
-                            font: Tokens.label
-                            color: Tokens.surfaceVariantText
-                        }
-                        Flow {
-                            width: parent.width
-                            spacing: 6
-                            Repeater {
-                                model: ["definition", "translation", "example", "misc"]
-                                WorkflowButton {
-                                    required property string modelData
-                                    nodeId: "type-" + modelData
-                                    text: (workspace.draft.selectedTypes.includes(modelData) ? "✓ " : "") + modelData
-                                    prominent: workspace.draft.selectedTypes.includes(modelData)
-                                    onPerform: workspace.toggleType(modelData)
-                                }
+                    }
+                    WorkflowButton {
+                        nodeId: "model"
+                        width: parent.width
+                        text: workspace.selectedModel || "Choose a Model"
+                        onPerform: workspace.openPicker("model")
+                    }
+                    Text {
+                        text: "Description Types to generate"
+                        font: Tokens.label
+                        color: Tokens.surfaceVariantText
+                    }
+                    Flow {
+                        width: parent.width
+                        spacing: 6
+                        Repeater {
+                            model: ["definition", "translation", "example", "misc"]
+                            WorkflowButton {
+                                required property string modelData
+                                nodeId: "type-" + modelData
+                                text: (workspace.draft.selectedTypes.includes(modelData) ? "✓ " : "") + modelData
+                                prominent: workspace.draft.selectedTypes.includes(modelData)
+                                onPerform: workspace.toggleType(modelData)
                             }
                         }
                     }
@@ -964,7 +1051,8 @@ Item {
                 color: Tokens.outlineVariant
             }
             Column {
-                width: drawer.resultsWidth - 16
+                objectName: "results-column"
+                width: drawer.resultsWidth
                 height: parent.height
                 spacing: 12
                 Flickable {
@@ -972,6 +1060,10 @@ Item {
                     width: parent.width
                     height: parent.height - 52
                     contentHeight: resultContent.height
+                    onContentHeightChanged: Qt.callLater(function () {
+                        if (workspace.expanded && workspace.mode === "navigation")
+                            workspace.selectNode(workspace.activeNodeId);
+                    })
                     clip: true
                     ScrollBar.vertical: ScrollBar {}
                     Column {
@@ -991,7 +1083,11 @@ Item {
                             model: workspace.draft.descriptions.length
                             WorkflowField {
                                 required property int index
-                                readonly property var modelData: workspace.draft.descriptions[index]
+                                readonly property var modelData: workspace.draft.descriptions[index] || {
+                                    key: "removed-" + index,
+                                    type: "misc",
+                                    text: ""
+                                }
                                 nodeId: modelData.key
                                 section: "results"
                                 label: modelData.type
@@ -1097,7 +1193,7 @@ Item {
         id: popup
         objectName: "instruction-picker"
         visible: !!workspace.popupKind
-        x: drawer.x + drawer.senseWidth + 16
+        x: drawer.x + drawer.leftExtent + 16
         y: Math.max(8, drawer.y + 100)
         width: drawer.configWidth
         height: Math.min(320, workspace.height - y - 24)
