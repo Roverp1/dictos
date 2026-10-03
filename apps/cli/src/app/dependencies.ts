@@ -25,11 +25,13 @@ import {
   SqliteFolderRepository,
   SqliteInstructionRepository,
   SqliteSenseRepository,
+  SqliteScreenEntrySaveRepository,
   SqliteUserRepository,
 } from "@dictos/db-core";
 import { CentralApiAdapter, HttpConnectivityAdapter } from "@dictos/eden-http";
 import {
   AiSdkDescriptionGenerationAdapter,
+  AiSdkScreenEntryGenerationAdapter,
   configureAiSdkWarningLogging,
   ModelCatalogAdapter,
 } from "@dictos/ai-sdk";
@@ -44,6 +46,8 @@ import {
   ModelSelectionService,
   ProviderConnectionService,
   SenseService,
+  ScreenEntryGenerationService,
+  ScreenEntrySaveService,
   SyncService,
 } from "@dictos/core";
 
@@ -101,6 +105,7 @@ export const createProviderDependencies = async (): Promise<
     modelCatalog,
     providerConnectionRepo
   );
+  configureAiSdkWarningLogging(logger.child({ adapter: "AiSdkWarningLogger" }));
 
   return {
     dataDir,
@@ -119,6 +124,15 @@ export const createProviderDependencies = async (): Promise<
         modelCatalogService,
         providerConnectionRepo,
         localStateRepo
+      ),
+      screenEntryGenerationService: new ScreenEntryGenerationService(
+        providerConnectionRepo,
+        modelCatalogService,
+        new AiSdkScreenEntryGenerationAdapter({
+          logger: logger.child({
+            adapter: "AiSdkScreenEntryGenerationAdapter",
+          }),
+        })
       ),
     },
   };
@@ -146,7 +160,6 @@ export const createCliDependencies = async (
   });
 
   if (dbClient instanceof Error) return dbClient;
-  configureAiSdkWarningLogging(logger.child({ adapter: "AiSdkWarningLogger" }));
 
   const db = dbClient.db;
 
@@ -188,6 +201,9 @@ export const createCliDependencies = async (
         }),
       }),
       descriptionGenerationRepo
+    ),
+    screenEntrySaveService: new ScreenEntrySaveService(
+      new SqliteScreenEntrySaveRepository(db, localState.deviceId)
     ),
     authService: new AuthService(
       centralApiAdapter,
