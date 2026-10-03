@@ -47,12 +47,11 @@ function validState(value: unknown): value is OverlayCaptureLocalState {
 export class FsOverlayCaptureStateRepository implements OverlayCaptureStateStore {
   private readonly directory: string;
   private readonly file: string;
-  private readonly lock: string;
+  private pending: Promise<void> = Promise.resolve();
 
   constructor(dataDir: string) {
     this.directory = path.join(dataDir, "overlay-capture");
     this.file = path.join(this.directory, "state.json");
-    this.lock = path.join(this.directory, "state.json.lock");
   }
 
   async read(): Promise<OverlayCaptureLocalState | StorageError> {
@@ -85,6 +84,18 @@ export class FsOverlayCaptureStateRepository implements OverlayCaptureStateStore
   ): Promise<OverlayCaptureLocalState | StorageError> {
     if (!validState(state))
       return failure("replace_overlay_state", "Invalid state");
+    const snapshot: OverlayCaptureLocalState = {
+      version: 1,
+      instructionText: state.instructionText,
+      selectedTypes: [...state.selectedTypes],
+    };
+    // Complete snapshots need call ordering here; atomic rename arbitrates across processes.
+    const result = this.pending.then(() => this.writeSnapshot(snapshot));
+    this.pending = result.then(() => undefined);
+    return result;
+  }
+
+  private async writeSnapshot(saved: OverlayCaptureLocalState) {
     const created = await fs
       .mkdir(this.directory, { recursive: true, mode: 0o700 })
       .catch((cause: unknown) =>
@@ -96,37 +107,9 @@ export class FsOverlayCaptureStateRepository implements OverlayCaptureStateStore
       );
     if (created instanceof Error) return created;
 
-    for (let attempt = 0; attempt < 50; attempt++) {
-      const acquired = await fs
-        .mkdir(this.lock, { mode: 0o700 })
-        .catch((cause: unknown) =>
-          failure("lock_overlay_state", "Could not lock state", cause)
-        );
-      if (!(acquired instanceof Error)) {
-        const result = await this.replaceLocked(state);
-        const released = await fs
-          .rmdir(this.lock)
-          .catch((cause: unknown) =>
-            failure("unlock_overlay_state", "Could not unlock state", cause)
-          );
-        if (released instanceof Error) return released;
-        return result;
-      }
-      if (!acquired.cause || !isExists(acquired.cause)) return acquired;
-      await new Promise((resolve) => setTimeout(resolve, 40));
-    }
-    return failure("lock_overlay_state", "Timed out");
-  }
-
-  private async replaceLocked(state: OverlayCaptureLocalState) {
     const current = await this.read();
     if (current instanceof Error) return current;
 
-    const saved: OverlayCaptureLocalState = {
-      version: 1,
-      instructionText: state.instructionText,
-      selectedTypes: [...state.selectedTypes],
-    };
     const temporary = `${this.file}.${randomUUID()}.tmp`;
     const written = await fs
       .writeFile(temporary, JSON.stringify(saved), { flag: "wx", mode: 0o600 })
@@ -160,13 +143,4 @@ export class FsOverlayCaptureStateRepository implements OverlayCaptureStateStore
         )
       );
   }
-}
-
-function isExists(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "EEXIST"
-  );
 }

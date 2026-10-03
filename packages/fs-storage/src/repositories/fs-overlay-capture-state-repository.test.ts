@@ -25,6 +25,23 @@ async function fixture(cleanup: errore.AsyncDisposableStack) {
 }
 
 describe("FsOverlayCaptureStateRepository", () => {
+  test("an abandoned legacy lock does not prevent replacing the snapshot", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { directory, file } = await fixture(cleanup);
+    await fs.mkdir(path.join(path.dirname(file), "state.json.lock"), {
+      recursive: true,
+    });
+    const repository: OverlayCaptureStateStore =
+      new FsOverlayCaptureStateRepository(directory);
+    const snapshot: OverlayCaptureLocalState = {
+      version: 1,
+      instructionText: "Recovered Instruction",
+      selectedTypes: ["example"],
+    };
+    expect(await repository.replace(snapshot)).toEqual(snapshot);
+    expect(await repository.read()).toEqual(snapshot);
+  });
+
   test("missing state reads as an empty Instruction and default Description Type", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
     const { file, repository } = await fixture(cleanup);
@@ -37,6 +54,45 @@ describe("FsOverlayCaptureStateRepository", () => {
       "code",
       "ENOENT"
     );
+  });
+
+  test("one instance persists queued snapshots in call order", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { repository } = await fixture(cleanup);
+    const snapshots: OverlayCaptureLocalState[] = Array.from(
+      { length: 20 },
+      (_, i) => ({
+        version: 1,
+        instructionText: `Instruction ${i}`,
+        selectedTypes: i % 2 ? ["example"] : ["definition"],
+      })
+    );
+    const results = await Promise.all(
+      snapshots.map((snapshot) => repository.replace(snapshot))
+    );
+    expect(results).toEqual(snapshots);
+    expect(await repository.read()).toEqual({
+      version: 1,
+      instructionText: "Instruction 19",
+      selectedTypes: ["example"],
+    });
+  });
+
+  test("a failed queued write does not block the next valid snapshot", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { file, repository } = await fixture(cleanup);
+    await fs.mkdir(path.dirname(file));
+    await fs.writeFile(file, "corrupt");
+    const snapshot: OverlayCaptureLocalState = {
+      version: 1,
+      instructionText: "Recovered Instruction",
+      selectedTypes: ["misc"],
+    };
+    expect(await repository.replace(snapshot)).toBeInstanceOf(StorageError);
+    await fs.rm(file);
+    expect(await repository.replace(snapshot)).toEqual(snapshot);
+    expect(await repository.read()).toEqual(snapshot);
+    expect(await fs.readdir(path.dirname(file))).toEqual(["state.json"]);
   });
 
   test("replace persists only the overlay fields and clears an Instruction explicitly", async () => {
