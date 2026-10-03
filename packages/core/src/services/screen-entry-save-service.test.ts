@@ -1,15 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { DbError, ValidationError } from "../errors";
-import type {
-  ScreenEntrySaveInput,
-  ScreenEntrySaveResult,
-} from "../models/screen-entry-save";
-import type { ScreenEntrySaveRepository } from "../ports/outbound/screen-entry-save-repository";
-import {
-  ScreenEntrySaveService,
-  validateScreenEntrySaveInput,
-} from "./screen-entry-save-service";
+import { ValidationError } from "../errors";
+import { validateScreenEntrySaveInput } from "./screen-entry-save-service";
 
 describe("validateScreenEntrySaveInput", () => {
   test("rejects an all-whitespace Entry", () => {
@@ -156,55 +148,8 @@ describe("validateScreenEntrySaveInput", () => {
       descriptions: [{ type: "misc", text: "Typed" }],
     });
   });
-});
-
-describe("ScreenEntrySaveService", () => {
-  const saved: ScreenEntrySaveResult = {
-    entry: {
-      id: "entry-id",
-      folderId: "root",
-      text: "Entry",
-      createdAt: new Date("2026-01-01"),
-      modifiedAt: new Date("2026-01-01"),
-    },
-    sense: null,
-    capturedDescription: null,
-    descriptions: [],
-  };
-
-  test("center Save passes only reviewed Entry and captured Description to persistence", async () => {
-    const committed: ScreenEntrySaveInput[] = [];
-    const repository: ScreenEntrySaveRepository = {
-      commit: async (input) => {
-        committed.push(input);
-        return saved;
-      },
-    };
-    const result = await new ScreenEntrySaveService(repository).save({
-      kind: "entry",
-      folderId: "root",
-      entryText: "Entry",
-      descriptionText: " \n ",
-    });
-
-    expect(result).toEqual(saved);
-    expect(committed[0]).toEqual({
-      kind: "entry",
-      folderId: "root",
-      entryText: "Entry",
-      descriptionText: null,
-    });
-  });
-
-  test("inclusive right Save retains captured text and multiple Descriptions of one Type", async () => {
-    const committed: ScreenEntrySaveInput[] = [];
-    const repository: ScreenEntrySaveRepository = {
-      commit: async (input) => {
-        committed.push(input);
-        return saved;
-      },
-    };
-    const result = await new ScreenEntrySaveService(repository).save({
+  test("inclusive right Save preserves reviewed text and multiple Descriptions of one Type", () => {
+    const result = validateScreenEntrySaveInput({
       kind: "sense",
       folderId: "root",
       entryText: "  Entry ",
@@ -218,8 +163,7 @@ describe("ScreenEntrySaveService", () => {
       ],
     });
 
-    expect(result).toEqual(saved);
-    expect(committed[0]).toEqual({
+    expect(result).toEqual({
       kind: "sense",
       folderId: "root",
       entryText: "  Entry ",
@@ -231,65 +175,5 @@ describe("ScreenEntrySaveService", () => {
         { type: "example", text: " Example two\n" },
       ],
     });
-  });
-
-  test("ordinary right Save excludes captured Description from persistence", async () => {
-    const committed: ScreenEntrySaveInput[] = [];
-    const repository: ScreenEntrySaveRepository = {
-      commit: async (input) => {
-        committed.push(input);
-        return saved;
-      },
-    };
-    const result = await new ScreenEntrySaveService(repository).save({
-      kind: "sense",
-      folderId: "root",
-      entryText: "Entry",
-      descriptionText: "Captured",
-      includeDescription: false,
-      senseName: "Sense",
-      descriptions: [{ type: "definition", text: " Defined " }],
-    });
-
-    expect(result).toEqual(saved);
-    expect(committed[0]).toEqual({
-      kind: "sense",
-      folderId: "root",
-      entryText: "Entry",
-      descriptionText: null,
-      includeDescription: false,
-      senseName: "Sense",
-      descriptions: [{ type: "definition", text: " Defined " }],
-    });
-  });
-
-  test("returns validation failures without persisting", async () => {
-    const repository: ScreenEntrySaveRepository = {
-      commit: async () =>
-        new DbError({ operation: "commit", reason: "unexpected" }),
-    };
-    const result = await new ScreenEntrySaveService(repository).save({
-      kind: "entry",
-      folderId: "root",
-      entryText: " \t",
-      descriptionText: null,
-    });
-
-    expect(result).toBeInstanceOf(ValidationError);
-  });
-
-  test("returns persistence failures as values", async () => {
-    const failure = new DbError({ operation: "commit", reason: "failed" });
-    const repository: ScreenEntrySaveRepository = {
-      commit: async () => failure,
-    };
-    const result = await new ScreenEntrySaveService(repository).save({
-      kind: "entry",
-      folderId: "root",
-      entryText: "Entry",
-      descriptionText: null,
-    });
-
-    expect(result).toBe(failure);
   });
 });
