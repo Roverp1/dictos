@@ -132,7 +132,8 @@ Item {
             compare(capture.draft.descriptions[0].text, "User definition");
             keyClick(Qt.Key_R, Qt.ControlModifier);
             compare(capture.draft.senseName, "measurement");
-            compare(capture.draft.descriptions[0].text, "A measured value");
+            compare(capture.draft.descriptions[0].text, "User definition");
+            compare(capture.draft.descriptions[1].text, "A measured value");
             compare(requests.filter(function (r) {
                 return r.key === "generate";
             }).length, 1);
@@ -532,6 +533,45 @@ Item {
             }, 0);
             compare(capture.savedAlready, false);
             compare(exitSpy.count, 0);
+        }
+        function test_sense_selection_keeps_an_added_manual_description_and_reuses_the_empty_card() {
+            capture.selectedModel = "openai/test";
+            capture.updateText("entry", "read", false);
+            capture.openDrawer(true);
+            capture.selectNode("add-definition");
+            keyClick(Qt.Key_Return);
+            var added = capture.draft.descriptions.find(function (d) {
+                return d.type === "definition" && d.key !== "definition-0";
+            });
+            verify(added !== undefined);
+            var key = added.key;
+            capture.updateText(key, "Manual added Description", false);
+            capture.chooseSense("reading");
+            var request = requests[requests.length - 1];
+            compare(request.key, "generate");
+            compare(capture.draft.descriptions.find(function (d) {
+                return d.key === key;
+            }).text, "Manual added Description");
+            capture.commandFinished("generate", {
+                ok: true,
+                data: {
+                    senseName: "reading",
+                    descriptions: [
+                        {
+                            type: "definition",
+                            text: "Generated definition"
+                        }
+                    ]
+                }
+            }, request.revision);
+            compare(capture.draft.descriptions.length, 5);
+            compare(capture.draft.descriptions.find(function (d) {
+                return d.key === "definition-0";
+            }).text, "Generated definition");
+            compare(capture.draft.descriptions.find(function (d) {
+                return d.key === key;
+            }).text, "Manual added Description");
+            verify(findChild(capture, key) !== null);
         }
         function test_independent_drag_selections_and_double_click_only_clear_geometry() {
             capture.fullWords = [

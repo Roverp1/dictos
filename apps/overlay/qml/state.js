@@ -62,7 +62,9 @@ function chooseSense(current, name) {
   var state = copy(current);
   var before = snapshot(state);
   state.senseName = name;
-  state.descriptions = emptyDescriptions();
+  state.descriptions.forEach(function (description) {
+    if (!description.edited) description.text = "";
+  });
   state.generationRevision++;
   state.activeGenerationActionRevision = state.generationRevision;
   state.undo.push({
@@ -92,10 +94,12 @@ function applyGenerated(state, generated) {
         edited: false,
       });
   });
+  var order = state.descriptions.slice();
   state.descriptions.sort(function (a, b) {
     return (
       ["definition", "translation", "example", "misc"].indexOf(a.type) -
-      ["definition", "translation", "example", "misc"].indexOf(b.type)
+        ["definition", "translation", "example", "misc"].indexOf(b.type) ||
+      order.indexOf(a) - order.indexOf(b)
     );
   });
   return state;
