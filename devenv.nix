@@ -27,6 +27,8 @@ in {
     pkg-config
     tesseract
     leptonica
+    qt6.qtdeclarative
+    python3
   ];
 
   processes = {

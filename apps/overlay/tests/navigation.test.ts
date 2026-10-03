@@ -97,6 +97,13 @@ test("column switching skips absent or disabled Senses and preserves the nearest
   expect(nav.switchColumn(nodes, "result-row", 1)).toBeNull();
 });
 
+test("ordinary spatial movement stays in the active column", async () => {
+  const nav = await navigation();
+  const nodes = [node("entry", 0, 0), node("sense", 100, 0, "results")];
+  expect(nav.move(nodes, "entry", 1, 0)).toBeNull();
+  expect(nav.switchColumn(nodes, "entry", 1)).toBe("sense");
+});
+
 test("repair preserves stable IDs across reorder and stays in the section when a control is disabled", async () => {
   const nav = await navigation();
   const nodes = [

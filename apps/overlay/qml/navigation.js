@@ -77,7 +77,12 @@ function move(nodes, activeId, dx, dy) {
   var bestDistance = Infinity;
   for (var j = 0; j < nodes.length; ++j) {
     var candidate = nodes[j];
-    if (!candidate.enabled || candidate.id === activeId) continue;
+    if (
+      !candidate.enabled ||
+      candidate.id === activeId ||
+      candidate.section !== current.section
+    )
+      continue;
     var cx = candidate.x + candidate.width / 2 - current.x - current.width / 2;
     var cy =
       candidate.y + candidate.height / 2 - current.y - current.height / 2;

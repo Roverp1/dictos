@@ -16,6 +16,7 @@
     "typecheck": "bun turbo typecheck --filter='!@dictos/web' --filter='!@dictos/wasm-turso-sync' --filter='!@dictos/local-storage'",
     "format": "prettier --write --ignore-path .gitignore --ignore-path .prettierignore .",
     "dev:cli": "bun --cwd apps/cli start --",
+    "dev:overlay": "bun run --cwd apps/overlay dev",
     "dev:tui": "bun --cwd apps/tui/ dev",
     "dev:web": "bun --cwd apps/web dev",
     "dev:server": "bun --cwd apps/server/ dev"
@@ -25,5 +26,7 @@
     "prettier": "^3.9.8",
     "turbo": "^2.11.2"
   },
-  "trustedDependencies": ["esbuild"]
+  "trustedDependencies": [
+    "esbuild"
+  ]
 }
