@@ -90,12 +90,7 @@ export class ScreenEntryGenerationService {
     const existing = input.existingDescriptions.filter(({ text }) =>
       text.trim()
     );
-    const filled = new Set(existing.map(({ type }) => type));
-    const targetTypes = input.targetTypes.filter((type) => !filled.has(type));
-    if (targetTypes.length === 0)
-      return new ValidationError({
-        reason: "Selected Descriptions already have text.",
-      });
+    const targetTypes = input.targetTypes;
 
     const connection = await this.resolveConnection(input.model);
     if (connection instanceof Error) return connection;

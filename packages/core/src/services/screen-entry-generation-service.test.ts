@@ -72,7 +72,7 @@ async function createService(
 }
 
 describe("ScreenEntryGenerationService", () => {
-  test("generates missing Description Types from an unsaved Entry with an empty Instruction", async () => {
+  test("generates all selected Description Types even when current drafts contain text", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
     const requested: string[][] = [];
     const service = await createService(cleanup, {
@@ -81,7 +81,10 @@ describe("ScreenEntryGenerationService", () => {
         requested.push(input.targetTypes);
         return {
           senseName: "reading",
-          descriptions: [{ type: "translation", text: "czytać" }],
+          descriptions: [
+            { type: "definition", text: "A new definition" },
+            { type: "translation", text: "czytać" },
+          ],
         };
       },
     });
@@ -100,9 +103,12 @@ describe("ScreenEntryGenerationService", () => {
 
     expect(result).toEqual({
       senseName: "reading",
-      descriptions: [{ type: "translation", text: "czytać" }],
+      descriptions: [
+        { type: "definition", text: "A new definition" },
+        { type: "translation", text: "czytać" },
+      ],
     });
-    expect(requested).toEqual([["translation"]]);
+    expect(requested).toEqual([["definition", "translation"]]);
   });
 
   test("rejects malformed Sense suggestions before showing them", async () => {
