@@ -181,3 +181,40 @@ test("failed Description insertion rolls back the new Entry and Sense", async ()
   expect(failed).toBeInstanceOf(Error);
   expect(remaining).toEqual([]);
 });
+
+test("reviewed Save does not silently reuse an Entry renamed under its old identity", async () => {
+  await using cleanup = new errore.AsyncDisposableStack();
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "dictos-reviewed-entry-")
+  );
+  cleanup.defer(() => fs.rm(directory, { recursive: true, force: true }));
+  const client = await BunTursoClient.create(
+    path.join(directory, "dictos.db"),
+    logger
+  );
+  cleanup.defer(async () => {
+    const result = await client.close();
+    if (result instanceof Error) throw result;
+  });
+  const root = await new SqliteFolderRepository(client.db).findRoot();
+  if (root instanceof Error) throw root;
+  const entries = new SqliteEntryRepository(client.db, "device");
+  const entry = await entries.save({ text: "read", folderId: root.id });
+  if (entry instanceof Error) throw entry;
+  const renamed = await entries.update(entry.id, { text: "write" });
+  if (renamed instanceof Error) throw renamed;
+  const result = await new ScreenEntrySaveService(
+    new SqliteScreenEntrySaveRepository(client.db, "device")
+  ).save({
+    kind: "entry",
+    folderId: root.id,
+    entryText: "read",
+    descriptionText: "I read a book.",
+  });
+  expect(result).toBeInstanceOf(Error);
+  const descriptions = await new SqliteDescriptionRepository(
+    client.db
+  ).findByEntry(entry.id);
+  if (descriptions instanceof Error) throw descriptions;
+  expect(descriptions).toEqual([]);
+});

@@ -42,6 +42,11 @@ export class SqliteScreenEntrySaveRepository implements ScreenEntrySaveRepositor
           folderId: input.folderId,
         });
         if (entry instanceof Error) return entry;
+        if (entry.text !== input.entryText || entry.folderId !== input.folderId)
+          return new DbError({
+            operation: "save_reviewed_entry",
+            reason: "An existing Entry changed under this text identity.",
+          });
 
         const createdSense =
           input.kind === "sense"
