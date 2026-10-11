@@ -15,18 +15,19 @@
     "@dictos/core": "workspace:*",
     "@elysia/cors": "^1.4.2",
     "@elysia/jwt": "^1.4.2",
-    "@elysia/openapi": "^1.4.15",
+    "@elysia/openapi": "^1.4.16",
     "@libsql/client": "^0.17.3",
     "@tursodatabase/api": "^2.0.0",
     "drizzle-orm": "^0.45.2",
-    "elysia": "1.4.29",
+    "elysia": "1.4.30",
     "errore": "^0.14.1"
   },
   "peerDependencies": {
-    "typescript": "^6"
+    "typescript": "^7.0.2"
   },
   "devDependencies": {
-    "@types/bun": "1.3.14",
-    "drizzle-kit": "^0.31.10"
+    "@types/bun": "1.4.2",
+    "drizzle-kit": "^0.31.10",
+    "typescript": "^7.0.2"
   }
 }

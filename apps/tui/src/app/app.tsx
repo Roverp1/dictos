@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { useKeyboard, useRenderer } from "@opentui/react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router";
 
 import { appRoutes } from "./routes/route";
 import { AppLayout } from "./layout/app-layout";

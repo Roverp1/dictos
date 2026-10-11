@@ -798,6 +798,39 @@ describe("AiSdkDescriptionGenerationAdapter", () => {
     expect(JSON.stringify(errorEvents)).not.toContain("top-secret-key");
   });
 
+  test("returns an invalid response error for non-JSON provider output without leaking it", async () => {
+    const { errorEvents, logger } = createRecordingLogger();
+    const rawPayload = "raw-provider-output-do-not-log";
+    const adapter = new AiSdkDescriptionGenerationAdapter({
+      logger,
+      fetchImplementation: async () =>
+        Response.json({
+          id: "completion-1",
+          object: "chat.completion",
+          created: 0,
+          model: "test-model",
+          choices: [
+            {
+              index: 0,
+              finish_reason: "stop",
+              message: { role: "assistant", content: rawPayload },
+            },
+          ],
+        }),
+    });
+
+    const result = await adapter.generate({
+      ...request,
+      connection: { ...request.connection, providerId: "openai" },
+    });
+    expect(result).toBeInstanceOf(InvalidGenerationResponseError);
+    if (!(result instanceof InvalidGenerationResponseError)) return;
+    expect(result.reason).toBe(
+      "Provider returned invalid JSON. Try again or use another Model."
+    );
+    expect(JSON.stringify(errorEvents)).not.toContain(rawPayload);
+  });
+
   test.each(["openai", "google"])(
     "%s rejects an invalid proposal without exposing the raw response",
     async (providerId) => {

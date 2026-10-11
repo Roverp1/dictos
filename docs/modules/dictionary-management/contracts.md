@@ -23,7 +23,7 @@ These services expose the pure domain logic use-cases to the clients (e.g., the 
 
 ## Headless Dictionary UI (`packages/react/src/modules/dictionary`)
 
-`@dictos/react` exposes shared Dictionary state and actions for clients. It receives the domain services, `Logger`, and platform-provided `Notifier` through `DictosProvider`, keeping TUI, Web, and future Mobile clients from duplicating Dictionary interaction logic or leaking platform-specific Notification renderers into the shared package.
+`@dictos/react` exposes shared Dictionary state and actions for clients. It receives the domain services, `Logger`, and platform-provided `Notifier` through `DictosProvider`, keeping platform-specific Notification renderers out of the shared package. The retained Web client was built around this interface but is currently broken and unmaintained.
 
 The headless Dictionary model separates these UI concerns:
 
@@ -40,7 +40,7 @@ Client applications remain responsible for presentation and input bindings. Each
 
 ## Command Client Dictionary Interface (`apps/cli`)
 
-The CLI exposes Folder, Entry, Description, and Sense management through Commander.js subcommands. It composes the same Dictionary services used by the TUI and Web client, operating on the shared local database. `entry create` and `entry list` use the root Folder when `--folder` is omitted; an explicit Folder ID selects another Folder. Description Generation is composed separately for the CLI and is not part of shared React state.
+The CLI exposes Folder, Entry, Description, and Sense management through Commander.js subcommands. It uses the same Dictionary services as the TUI and operates on the shared local database. The retained Web client was also built around those services but is broken and unmaintained. `entry create` and `entry list` use the root Folder when `--folder` is omitted; an explicit Folder ID selects another Folder. Description Generation is composed separately for the CLI and is not part of shared React state.
 
 ## Notification Boundary (`packages/react/src/providers`)
 

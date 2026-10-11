@@ -1,6 +1,6 @@
 import { ConsolePosition, createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router";
 import pino from "pino";
 
 import {

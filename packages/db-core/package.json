@@ -13,13 +13,13 @@
   "devDependencies": {
     "@types/uuid": "^11.0.0",
     "drizzle-kit": "^0.31.10",
-    "typescript": "^6.0.0"
+    "typescript": "^7.0.2"
   },
   "dependencies": {
     "@dictos/core": "workspace:*",
     "@dictos/errore": "workspace:*",
     "@dictos/logger": "workspace:*",
     "drizzle-orm": "^0.45.2",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.2"
   }
 }
