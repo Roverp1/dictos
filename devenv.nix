@@ -28,7 +28,6 @@ in {
     tesseract
     leptonica
     qt6.qtdeclarative
-    python3
   ];
 
   processes = {

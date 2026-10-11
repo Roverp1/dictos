@@ -6,7 +6,7 @@
     "dev": "bash run.sh",
     "build:native": "bash build-native.sh",
     "test": "bun test tests src && QT_QUICK_BACKEND=software qmltestrunner -input tests/tst_Workflow.qml -platform offscreen",
-    "test:native": "python3 -m unittest discover -s native -p 'test_ocr_server.py' -v",
+    "test:native": "bun run build:native && bun test native",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
