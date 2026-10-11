@@ -107,6 +107,8 @@ The overlay debounces Instruction/Type changes and flushes on normal exit, inclu
 
 Read both the envelope and exit status. Overlay request failures use `INVALID_REQUEST`, `REQUEST_TOO_LARGE`, or `REQUEST_READ_FAILED`. Other handled failures use `OPERATION_FAILED`, or `DATABASE_IN_USE` when the Dictionary is locked. Missing/stale Model and Provider failures in suggest/generate currently use the generic `OPERATION_FAILED` envelope.
 
+When the dependency graph provides a Logger, overlay operations and JSON Instruction-list failures write structured diagnostics to `<dataDir>/dictos-cli.log`. Events include the operation and error type, but redact draft text, bound database values, credentials, and raw Provider/parser causes. JSON stdout remains the safe response channel.
+
 | Exit | Meaning                                                                                         |
 | ---- | ----------------------------------------------------------------------------------------------- |
 | 0    | Success                                                                                         |

@@ -66,6 +66,7 @@ FocusScope {
     }
 
     ScrollView {
+        objectName: "capture-scroll"
         anchors.top: caption.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
@@ -75,6 +76,8 @@ FocusScope {
         anchors.bottomMargin: Tokens.spacing.medium
         anchors.topMargin: Tokens.spacing.extraSmall
         clip: true
+        // Read-only editors must let wheel input reach the surrounding list.
+        wheelEnabled: root.editing
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         TextArea {

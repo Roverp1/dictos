@@ -1,6 +1,8 @@
 # Specification: Screen Entry and Description Generation
 
-**Status**: Completed | **Created**: Oct 2, 2026 | **Archived**: Oct 11, 2026
+**Status**: Implemented | **Created**: Oct 2, 2026 | **Archived**: Oct 11, 2026
+
+Automated checks and a quick user-reported workflow smoke are complete. T038's full live verification matrix remains open, and the error layout is provisional.
 
 ## 1. The Problem (Why are we doing this?)
 

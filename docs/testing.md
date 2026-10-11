@@ -84,9 +84,9 @@ Red flags:
 Tests live exactly next to the file they are testing.
 `SyncService.ts` -> `SyncService.test.ts`.
 
-### B. "Errors as Values" Assertions
+### B. TypeScript "Errors as Values" Assertions
 
-Dictos uses the `errore` package. We do not use `try/catch` in tests unless dealing with catastrophic panics. Instead, assert on the returned union.
+Dictos TypeScript uses the `errore` package. TypeScript tests assert on returned unions; `try/catch` is reserved for catastrophic panics. QML tests use QtTest assertions and native JavaScript exception handling at parsing/runtime boundaries.
 We can `throw` the error, instead of doing `expect(res instanceof Error).toBe(false)`, so that typescript would automatically narrow the type.
 
 ```typescript

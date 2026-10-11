@@ -27,6 +27,7 @@ function newOverlayState() {
     drawer: "compact",
     mode: "compact-edit",
     generationRevision: 0,
+    modelRevision: 0,
     activeGenerationActionRevision: null,
     undo: [],
     redo: [],
@@ -58,6 +59,37 @@ function restore(state, saved) {
   state.descriptions = copy(saved.descriptions);
   return state;
 }
+function generationInputs(state) {
+  return {
+    entryText: state.entry.text,
+    descriptionText: state.capturedDescription.text,
+    instructionText: state.instructionText,
+    senseName: state.senseName,
+    descriptions: state.descriptions
+      .filter(function (item) {
+        return item.text.trim();
+      })
+      .map(function (item) {
+        return { type: item.type, text: item.text };
+      }),
+    selectedTypes: state.selectedTypes.slice().sort(),
+    modelRevision: state.modelRevision,
+  };
+}
+function generationMatches(state, action) {
+  return (
+    action.requestInputs &&
+    JSON.stringify(generationInputs(state)) ===
+      JSON.stringify(action.requestInputs)
+  );
+}
+function modelChanged(current) {
+  var state = copy(current);
+  state.modelRevision++;
+  state.generationRevision++;
+  state.activeGenerationActionRevision = null;
+  return state;
+}
 function chooseSense(current, name) {
   var state = copy(current);
   var before = snapshot(state);
@@ -71,8 +103,10 @@ function chooseSense(current, name) {
     before: before,
     after: snapshot(state),
     requestRevision: state.generationRevision,
+    requestInputs: generationInputs(state),
     generated: null,
     resultApplied: false,
+    afterHasGenerated: false,
   });
   state.redo = [];
   return state;
@@ -111,11 +145,13 @@ function receiveGeneration(current, revision, generated) {
   });
   if (!action) return state;
   action.generated = copy(generated);
-  var after = restore(copy(state), action.after);
-  applyGenerated(after, generated);
-  action.after = snapshot(after);
-  if (state.activeGenerationActionRevision === revision) {
+  if (
+    state.activeGenerationActionRevision === revision &&
+    generationMatches(state, action)
+  ) {
     applyGenerated(state, generated);
+    action.after = snapshot(state);
+    action.afterHasGenerated = true;
     action.resultApplied = true;
     state.activeGenerationActionRevision = null;
   }
@@ -125,7 +161,10 @@ function undoDraft(current) {
   var state = copy(current);
   var action = state.undo.pop();
   if (!action) return state;
-  if (!action.generated || action.resultApplied) action.after = snapshot(state);
+  if (!action.afterHasGenerated || action.resultApplied) {
+    action.after = snapshot(state);
+    action.afterHasGenerated = !!action.resultApplied;
+  }
   restore(state, action.before);
   state.redo.push(action);
   state.generationRevision++;
@@ -137,12 +176,17 @@ function redoDraft(current) {
   var action = state.redo.pop();
   if (!action) return state;
   restore(state, action.after);
-  if (action.generated) action.resultApplied = true;
+  var matches = generationMatches(state, action);
+  if (action.generated && !action.afterHasGenerated && matches) {
+    applyGenerated(state, action.generated);
+    action.after = snapshot(state);
+    action.afterHasGenerated = true;
+  }
+  action.resultApplied = !!action.afterHasGenerated;
   state.undo.push(action);
   state.generationRevision++;
-  state.activeGenerationActionRevision = action.generated
-    ? null
-    : action.requestRevision;
+  state.activeGenerationActionRevision =
+    !action.generated && matches ? action.requestRevision : null;
   return state;
 }
 function changeText(current, field, text, remember) {
@@ -192,8 +236,10 @@ function beginGeneration(current) {
     before: before,
     after: snapshot(state),
     requestRevision: state.generationRevision,
+    requestInputs: generationInputs(state),
     generated: null,
     resultApplied: false,
+    afterHasGenerated: false,
   });
   state.redo = [];
   return state;

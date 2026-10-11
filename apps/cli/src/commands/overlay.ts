@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import type { Logger } from "@dictos/logger";
 import {
   descriptionTypes,
   type DescriptionType,
@@ -13,6 +14,10 @@ import {
   type OverlayJsonErrorCode,
 } from "../app/overlay-json";
 import { CliExitCode, type CliContext } from "../app/types";
+import {
+  logOperationCompleted,
+  logOperationFailed,
+} from "../app/command-action";
 import { registerOverlayStateCommands } from "./overlay-state";
 
 type SuggestRequest = {
@@ -132,12 +137,19 @@ export function registerOverlayCommands(
     .description("Review screen text in Dictos");
   registerOverlayStateCommands(overlay, context, options);
 
-  function respond<T>(
-    result: T | Error,
-    json: boolean,
-    human: (data: T) => void,
-    failedInput = false
-  ): void {
+  function respond<T>({
+    result,
+    json,
+    human = () => {},
+    failedInput = false,
+    log,
+  }: {
+    result: T | Error;
+    json: boolean;
+    human?: (data: T) => void;
+    failedInput?: boolean;
+    log?: { logger: Logger; operation: string };
+  }): void {
     if (json) {
       const errorCode: OverlayJsonErrorCode =
         result instanceof DatabaseInUseError
@@ -148,6 +160,8 @@ export function registerOverlayCommands(
       );
     }
     if (result instanceof Error) {
+      if (log)
+        logOperationFailed({ ...log, error: result, redactDetails: true });
       if (!json) context.output.writeError(result.message);
       process.exitCode = failedInput
         ? CliExitCode.UsageError
@@ -157,6 +171,7 @@ export function registerOverlayCommands(
       return;
     }
     if (!json) human(result);
+    if (log) logOperationCompleted(log);
   }
 
   overlay
@@ -168,21 +183,32 @@ export function registerOverlayCommands(
         validate: suggestRequest,
       });
       if (request instanceof Error)
-        return respond(request, json === true, () => {}, true);
+        return respond({
+          result: request,
+          json: json === true,
+          failedInput: true,
+        });
       const deps = await context.getProviderDependencies();
-      if (deps instanceof Error) return respond(deps, json === true, () => {});
+      if (deps instanceof Error)
+        return respond({ result: deps, json: json === true });
+      const log = { logger: deps.logger, operation: "overlay.suggest" };
       const model = await deps.modelSelectionService.resolve({});
       if (model instanceof Error)
-        return respond(model, json === true, () => {});
+        return respond({ result: model, json: json === true, log });
       const senses = await deps.screenEntryGenerationService.suggestSenses({
         ...request,
         model,
       });
       if (senses instanceof Error)
-        return respond(senses, json === true, () => {});
-      respond({ senses }, json === true, ({ senses }) => {
-        for (const sense of senses)
-          context.output.writeData(`${sense.name}\t${sense.definition}`);
+        return respond({ result: senses, json: json === true, log });
+      respond({
+        result: { senses },
+        json: json === true,
+        log,
+        human: ({ senses }) => {
+          for (const sense of senses)
+            context.output.writeData(`${sense.name}\t${sense.definition}`);
+        },
       });
     });
 
@@ -195,12 +221,18 @@ export function registerOverlayCommands(
         validate: generateRequest,
       });
       if (request instanceof Error)
-        return respond(request, json === true, () => {}, true);
+        return respond({
+          result: request,
+          json: json === true,
+          failedInput: true,
+        });
       const deps = await context.getProviderDependencies();
-      if (deps instanceof Error) return respond(deps, json === true, () => {});
+      if (deps instanceof Error)
+        return respond({ result: deps, json: json === true });
+      const log = { logger: deps.logger, operation: "overlay.generate" };
       const model = await deps.modelSelectionService.resolve({});
       if (model instanceof Error)
-        return respond(model, json === true, () => {});
+        return respond({ result: model, json: json === true, log });
       const result =
         await deps.screenEntryGenerationService.generateDescriptions({
           entryText: request.entryText,
@@ -212,11 +244,18 @@ export function registerOverlayCommands(
           model,
         });
       if (result instanceof Error)
-        return respond(result, json === true, () => {});
-      respond(result, json === true, (draft) => {
-        context.output.writeData(draft.senseName);
-        for (const description of draft.descriptions)
-          context.output.writeData(`${description.type}\t${description.text}`);
+        return respond({ result, json: json === true, log });
+      respond({
+        result,
+        json: json === true,
+        log,
+        human: (draft) => {
+          context.output.writeData(draft.senseName);
+          for (const description of draft.descriptions)
+            context.output.writeData(
+              `${description.type}\t${description.text}`
+            );
+        },
       });
     });
 
@@ -229,33 +268,46 @@ export function registerOverlayCommands(
         validate: saveRequest,
       });
       if (request instanceof Error)
-        return respond(request, json === true, () => {}, true);
+        return respond({
+          result: request,
+          json: json === true,
+          failedInput: true,
+        });
       const deps = await context.getDependencies();
-      if (deps instanceof Error) return respond(deps, json === true, () => {});
+      if (deps instanceof Error)
+        return respond({ result: deps, json: json === true });
+      const log = { logger: deps.logger, operation: "overlay.save" };
       const root = await deps.folderService.getRootFolder();
-      if (root instanceof Error) return respond(root, json === true, () => {});
+      if (root instanceof Error)
+        return respond({ result: root, json: json === true, log });
       const saved = await deps.screenEntrySaveService.save({
         ...request,
         folderId: root.id,
       });
       if (saved instanceof Error)
-        return respond(saved, json === true, () => {});
+        return respond({ result: saved, json: json === true, log });
       const result = {
         entryId: saved.entry.id,
         senseId: saved.sense?.id ?? null,
         capturedDescriptionId: saved.capturedDescription?.id ?? null,
         descriptionIds: saved.descriptions.map(({ id }) => id),
       };
-      respond(
+      respond({
         result,
-        json === true,
-        ({ entryId, senseId, capturedDescriptionId, descriptionIds }) => {
+        json: json === true,
+        log,
+        human: ({
+          entryId,
+          senseId,
+          capturedDescriptionId,
+          descriptionIds,
+        }) => {
           context.output.writeData(entryId);
           if (senseId !== null) context.output.writeData(senseId);
           if (capturedDescriptionId !== null)
             context.output.writeData(capturedDescriptionId);
           for (const id of descriptionIds) context.output.writeData(id);
-        }
-      );
+        },
+      });
     });
 }

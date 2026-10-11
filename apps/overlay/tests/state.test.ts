@@ -198,3 +198,55 @@ test("a Sense switch clears only unedited generated text and keeps every card id
     "extra-empty",
   ]);
 });
+
+test.each(["before redo", "after redo"])(
+  "a reply for the previous Entry cannot fill the edited draft when it arrives %s",
+  async (timing) => {
+    const m = await model();
+    let state = m.newOverlayState();
+    state.entry.text = "read";
+    state = m.beginGeneration(state);
+    const revision = state.activeGenerationActionRevision;
+    state = m.changeText(state, "entry", "write", false);
+    state = m.undoDraft(state);
+    const generated = {
+      senseName: "reading",
+      descriptions: [{ type: "definition", text: "Output for read" }],
+    };
+    if (timing === "before redo")
+      state = m.receiveGeneration(state, revision, generated);
+    state = m.redoDraft(state);
+    if (timing === "after redo")
+      state = m.receiveGeneration(state, revision, generated);
+    expect(state.entry.text).toBe("write");
+    expect(state.senseName).toBe("");
+    expect(state.descriptions[0].text).toBe("");
+  }
+);
+
+test("adding an empty Description card keeps matching generation usable", async () => {
+  const m = await model();
+  let state = m.newOverlayState();
+  state.entry.text = "read";
+  state = m.beginGeneration(state);
+  const revision = state.activeGenerationActionRevision;
+  state.descriptions.push({
+    key: "added-empty",
+    type: "definition",
+    text: "",
+    edited: false,
+  });
+  state = m.receiveGeneration(state, revision, {
+    senseName: "reading",
+    descriptions: [{ type: "definition", text: "Generated definition" }],
+  });
+  expect(state.senseName).toBe("reading");
+  expect(
+    state.descriptions.find((d: { key: string }) => d.key === "definition-0")
+      ?.text
+  ).toBe("Generated definition");
+  expect(
+    state.descriptions.find((d: { key: string }) => d.key === "added-empty")
+      ?.text
+  ).toBe("");
+});

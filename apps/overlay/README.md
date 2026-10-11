@@ -82,7 +82,7 @@ In the expanded drawer:
 | `u` / `Ctrl+z`            | Undo a draft action in navigation mode                                         |
 | `Ctrl+Shift+z` / `Ctrl+r` | Redo a draft action in navigation mode                                         |
 
-Right-clicking an input outside edit mode also clears its text. Editors keep ordinary typing and their own undo/redo. Real pointer movement updates the navigation cursor; a stationary pointer does not steal it during animation.
+Right-clicking an input outside edit mode also clears its text. Wheel input over read-only Description bodies scrolls the right column and responds to direction changes; in edit mode it scrolls the active editor's text. Editors keep ordinary typing and their own undo/redo. Real pointer movement updates the navigation cursor; a stationary pointer does not steal it during animation.
 
 ## Instructions, Models, and drafts
 
@@ -102,7 +102,7 @@ Suggest Senses offers up to 20 names with short definition previews. Choosing on
 
 Explicit Generate replaces all drafts of checked Types, including manual edits and previously generated text, while retaining unchecked Types and the captured center Description. Existing nonempty drafts supply context before the checked slots are cleared. Generate remains available when every checked Type has text. Type controls affect generation only; `+ Type` adds another editor, and right Save includes every nonempty card regardless of those controls.
 
-Sense switches and explicit Generate are single undoable actions. Undo restores the prior Sense and drafts, including after generation fails. Redo reuses a completed result or waits for its pending request. Manual cards, corrections, and cached results survive undo/redo; inactive replies cannot overwrite the current draft. This history lasts only for the current overlay session.
+Sense switches and explicit Generate are single undoable actions. Undo restores the prior Sense and drafts, including after generation fails. Redo reuses a completed result or waits for its pending request when the request-bound inputs still match. Editing inputs before undo/redo cannot reactivate output for the previous text. Changing the Selected Model invalidates pending generation and suggestions. Manual cards, corrections, and cached results survive undo/redo; inactive replies cannot overwrite the current draft. This history lasts only for the current overlay session.
 
 ## Save and failures
 
@@ -119,5 +119,9 @@ Right-column saves require a nonblank Sense and at least one nonempty typed Desc
 Save blocks duplicate submissions while pending. The overlay validates the returned IDs, captured-record presence, Sense presence, and typed Description count against the submitted Save mode. A valid success receipt blocks further saves and starts the local-state flush before exit. Failed saves keep the overlay open with text intact. A dead child, unreadable response, or contradictory receipt means the outcome is unknown; check the Dictionary before repeating it. There is no automatic Save retry.
 
 OCR, local-state, picker, generation, and Save failures show a Notification. Copy drafts copies labeled Entry, captured Description, Instruction, Sense, and nonempty typed Descriptions to the system clipboard. There is no dedicated Retry button: correct the problem and invoke the action again. If local-state flushing fails, the overlay stays open; an explicit exit afterward may lose the latest remembered Instruction/Type changes.
+
+A successful Save retries dirty local state even after an earlier preference write failed. It closes only after that flush succeeds; another failure keeps the saved session open without repeating the Dictionary write.
+
+QML uses native JavaScript exception handling at parsing/process boundaries, then reports safe structured failures through Notifications. TypeScript commands and adapters use `errore` Error-value unions. See Qt's [JavaScript host environment](https://doc.qt.io/qt-6/qtqml-javascript-hostenvironment.html) for the QML runtime boundary.
 
 See the CLI README for the provisional newline-delimited JSON protocol. [`quick-entry.sh`](../cli/quick-entry.sh) remains the older immediate-save shortcut with no review drawer.

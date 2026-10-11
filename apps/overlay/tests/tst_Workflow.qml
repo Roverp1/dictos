@@ -41,6 +41,7 @@ Item {
             capture.cropping = false;
             capture.generationLoading = false;
             capture.suggestionLoading = false;
+            capture.loadingSuggestionRevision = -1;
             capture.pendingModel = "";
             capture.modelTouched = false;
             capture.activeField = "entry";
@@ -572,6 +573,283 @@ Item {
                 return d.key === key;
             }).text, "Manual added Description");
             verify(findChild(capture, key) !== null);
+        }
+        function test_pending_generation_stays_invalid_after_entry_edit_and_undo_redo() {
+            capture.selectedModel = "openai/test";
+            capture.updateText("entry", "read", false);
+            capture.generate(false);
+            var request = requests[requests.length - 1];
+            capture.updateText("entry", "write", false);
+            capture.openDrawer(true);
+            keyClick(Qt.Key_Z, Qt.ControlModifier);
+            keyClick(Qt.Key_R, Qt.ControlModifier);
+            compare(capture.draft.entry.text, "write");
+            capture.commandFinished("generate", {
+                ok: true,
+                data: {
+                    senseName: "reading",
+                    descriptions: [
+                        {
+                            type: "definition",
+                            text: "Output for read"
+                        }
+                    ]
+                }
+            }, request.revision);
+            compare(capture.draft.senseName, "");
+            compare(capture.draft.descriptions[0].text, "");
+        }
+        function test_changing_model_invalidates_pending_generation_and_suggestions() {
+            capture.selectedModel = "openai/A";
+            capture.models = [
+                {
+                    id: "openai/A"
+                },
+                {
+                    id: "openai/B"
+                }
+            ];
+            capture.updateText("entry", "read", false);
+            capture.generate(false);
+            var generated = requests[requests.length - 1];
+            capture.suggest();
+            var suggested = requests[requests.length - 1];
+            capture.openPicker("model");
+            capture.choosePopup(1);
+            capture.commandFinished("model-select", {
+                ok: true,
+                data: null
+            }, 0);
+            compare(capture.selectedModel, "openai/B");
+            capture.commandFinished("generate", {
+                ok: true,
+                data: {
+                    senseName: "reading",
+                    descriptions: [
+                        {
+                            type: "definition",
+                            text: "Model A output"
+                        }
+                    ]
+                }
+            }, generated.revision);
+            capture.commandFinished("suggest", {
+                ok: true,
+                data: {
+                    senses: [
+                        {
+                            name: "reading",
+                            definition: "Model A preview"
+                        }
+                    ]
+                }
+            }, suggested.revision);
+            compare(capture.draft.senseName, "");
+            compare(capture.draft.descriptions[0].text, "");
+            compare(capture.draft.suggestions.length, 0);
+        }
+        function test_old_suggestions_do_not_finish_the_new_models_pending_request() {
+            capture.selectedModel = "openai/A";
+            capture.models = [
+                {
+                    id: "openai/A"
+                },
+                {
+                    id: "openai/B"
+                }
+            ];
+            capture.updateText("entry", "read", false);
+            capture.suggest();
+            var old = requests[requests.length - 1];
+            capture.openPicker("model");
+            capture.choosePopup(1);
+            capture.commandFinished("model-select", {
+                ok: true,
+                data: null
+            }, 0);
+            capture.suggest();
+            var current = requests[requests.length - 1];
+            capture.commandFinished("suggest", {
+                ok: true,
+                data: {
+                    senses: [
+                        {
+                            name: "Old",
+                            definition: "Old Model preview"
+                        }
+                    ]
+                }
+            }, old.revision);
+            compare(capture.suggestionLoading, true);
+            compare(capture.draft.suggestions.length, 0);
+            capture.commandFinished("suggest", {
+                ok: true,
+                data: {
+                    senses: [
+                        {
+                            name: "Current",
+                            definition: "Current Model preview"
+                        }
+                    ]
+                }
+            }, current.revision);
+            compare(capture.suggestionLoading, false);
+            compare(capture.draft.suggestions[0].name, "Current");
+        }
+        function test_changing_model_keeps_unused_cached_generation_inactive_on_redo() {
+            capture.selectedModel = "openai/A";
+            capture.models = [
+                {
+                    id: "openai/A"
+                },
+                {
+                    id: "openai/B"
+                }
+            ];
+            capture.updateText("entry", "read", false);
+            capture.generate(false);
+            var request = requests[requests.length - 1];
+            capture.openDrawer(true);
+            keyClick(Qt.Key_Z, Qt.ControlModifier);
+            capture.commandFinished("generate", {
+                ok: true,
+                data: {
+                    senseName: "reading",
+                    descriptions: [
+                        {
+                            type: "definition",
+                            text: "Cached Model A output"
+                        }
+                    ]
+                }
+            }, request.revision);
+            capture.openPicker("model");
+            capture.choosePopup(1);
+            capture.commandFinished("model-select", {
+                ok: true,
+                data: null
+            }, 0);
+            keyClick(Qt.Key_R, Qt.ControlModifier);
+            compare(capture.draft.senseName, "");
+            compare(capture.draft.descriptions[0].text, "");
+        }
+        function test_successful_save_retries_a_failed_preference_write_before_closing() {
+            capture.updateText("entry", "read", false);
+            capture.updateText("instruction", "Remember this exact Instruction", false);
+            capture.flushState();
+            capture.commandFinished("state-write", {
+                ok: false,
+                error: {
+                    message: "Write failed"
+                }
+            }, 0);
+            capture.save("entry");
+            capture.commandFinished("save", {
+                ok: true,
+                data: {
+                    entryId: "entry",
+                    senseId: null,
+                    capturedDescriptionId: null,
+                    descriptionIds: []
+                }
+            }, 0);
+            compare(capture.savedAlready, true);
+            compare(exitSpy.count, 0);
+            compare(requests[requests.length - 1].key, "state-write");
+            compare(requests[requests.length - 1].data.instructionText, "Remember this exact Instruction");
+            capture.commandFinished("state-write", {
+                ok: true,
+                data: {}
+            }, 0);
+            compare(exitSpy.count, 1);
+            compare(requests.filter(function (r) {
+                return r.key === "save";
+            }).length, 1);
+        }
+        function test_description_wheel_reverses_promptly_data() {
+            return [
+                {
+                    tag: "short list at its bounds",
+                    extraCards: 0
+                },
+                {
+                    tag: "long list in its middle",
+                    extraCards: 4
+                },
+                {
+                    tag: "rapid burst over Description bodies",
+                    extraCards: 12,
+                    burst: 6,
+                    overBody: true
+                }
+            ];
+        }
+        function descriptionWheelPoint(scroll) {
+            for (var card of capture.draft.descriptions) {
+                var field = findChild(capture, card.key);
+                var view = findChild(field, "capture-scroll");
+                var point = view.mapToItem(scroll, view.width / 2, view.height / 2);
+                if (point.y > 0 && point.y < scroll.height)
+                    return point;
+            }
+            fail("No visible Description body for wheel input");
+        }
+        function test_description_wheel_reverses_promptly(data) {
+            var next = State.copy(capture.draft);
+            next.descriptions.forEach(function (card) {
+                card.text = "A long Description.\n".repeat(20);
+            });
+            for (var i = 0; i < data.extraCards; i++)
+                next.descriptions.push({
+                    key: "scroll-" + i,
+                    type: "definition",
+                    text: "Description " + i,
+                    edited: true
+                });
+            capture.draft = next;
+            capture.openDrawer(true);
+            wait(550);
+            var scroll = findChild(capture, "results-scroll");
+            verify(scroll !== null);
+            var limit = scroll.contentHeight - scroll.height;
+            verify(limit > 20);
+            scroll.contentY = data.extraCards ? 400 : 0;
+            var start = scroll.contentY;
+            for (var step = 0; step < (data.burst || 1); step++) {
+                var point = data.overBody ? descriptionWheelPoint(scroll) : Qt.point(2, 150);
+                mouseWheel(scroll, point.x, point.y, 0, -120, Qt.NoButton, Qt.NoModifier, 0);
+                if (data.burst)
+                    wait(10);
+            }
+            wait(40);
+            verify(scroll.contentY > start, "Downward wheel input must move the Description list: start=" + start + ", after=" + scroll.contentY);
+            var down = Math.min(limit, scroll.contentY);
+            var body = descriptionWheelPoint(scroll);
+            mouseWheel(scroll, body.x, body.y, 0, 120, Qt.NoButton, Qt.NoModifier, 0);
+            wait(60);
+            verify(scroll.contentY < down, "Upward wheel reversal must take effect promptly: before=" + down + ", after=" + scroll.contentY);
+            var up = scroll.contentY;
+            body = descriptionWheelPoint(scroll);
+            mouseWheel(scroll, body.x, body.y, 0, -120, Qt.NoButton, Qt.NoModifier, 0);
+            wait(60);
+            verify(scroll.contentY > up, "Downward wheel reversal must take effect promptly: before=" + up + ", after=" + scroll.contentY);
+        }
+        function test_description_editor_keeps_its_own_wheel_scrolling_in_edit_mode() {
+            capture.updateText("definition-0", "A long Description.\n".repeat(30), false);
+            capture.openDrawer(true);
+            wait(550);
+            capture.edit("definition-0");
+            var field = findChild(capture, "definition-0");
+            var view = findChild(field, "capture-scroll");
+            var outer = findChild(capture, "results-scroll");
+            field.editor.cursorPosition = 0;
+            view.contentItem.contentY = 0;
+            wait(40);
+            var outerBefore = outer.contentY;
+            mouseWheel(view, view.width / 2, view.height / 2, 0, -120, Qt.NoButton, Qt.NoModifier, 0);
+            wait(60);
+            verify(view.contentItem.contentY > 0, "Editing must still allow scrolling through long Description text");
+            compare(outer.contentY, outerBefore);
         }
         function test_independent_drag_selections_and_double_click_only_clear_geometry() {
             capture.fullWords = [

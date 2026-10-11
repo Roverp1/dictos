@@ -7,6 +7,7 @@ import {
   getDependenciesOrExit,
   handleExpectedError,
   logOperationCompleted,
+  logOperationFailed,
   requireConfirmation,
 } from "../app/command-action";
 
@@ -67,6 +68,12 @@ export const registerInstructionCommands = (
       const instructions =
         await dependencies.instructionService.getInstructions();
       if (instructions instanceof Error && options.json) {
+        logOperationFailed({
+          logger: dependencies.logger,
+          operation: "instruction.list",
+          error: instructions,
+          redactDetails: true,
+        });
         context.output.writeData(
           serializeOverlayJsonResponse(instructions).slice(0, -1)
         );

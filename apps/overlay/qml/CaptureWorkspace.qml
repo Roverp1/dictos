@@ -41,6 +41,13 @@ Item {
     property var instructions: []
     property var models: []
     property string selectedModel: ""
+    onSelectedModelChanged: {
+        draft = State.modelChanged(draft);
+        generationLoading = false;
+        suggestionLoading = false;
+        loadingGenerationRevision = -1;
+        loadingSuggestionRevision = -1;
+    }
     property string pendingModel: ""
     property bool modelTouched: false
     property string notification: ""
@@ -48,6 +55,7 @@ Item {
     property bool generationLoading: false
     property int loadingGenerationRevision: -1
     property bool suggestionLoading: false
+    property int loadingSuggestionRevision: -1
     property bool saving: false
     property var pendingSave: null
     property bool savedAlready: false
@@ -217,8 +225,8 @@ Item {
         stateWritePending = true;
         commandRequested("state-write", ["overlay", "state", "write", "--json"], localState(), 0);
     }
-    function requestExit() {
-        if (stateWriteFailed) {
+    function requestExit(explicit) {
+        if (stateWriteFailed && explicit !== false) {
             console.warn("Overlay-local state could not be saved before explicit exit.");
             exitRequested();
             return;
@@ -267,6 +275,7 @@ Item {
     function suggest() {
         drawerMode = "pinned";
         suggestionLoading = true;
+        loadingSuggestionRevision = draft.generationRevision;
         commandRequested("suggest", ["overlay", "suggest", "--json"], {
             entryText: draft.entry.text,
             descriptionText: draft.capturedDescription.text || null,
@@ -352,7 +361,7 @@ Item {
             saving = false;
             if (response.ok === true && State.validSaveReceipt(response.data, pendingSave)) {
                 savedAlready = true;
-                requestExit();
+                requestExit(false);
             } else if (response.ok === false)
                 error(key, response);
             else
@@ -373,7 +382,8 @@ Item {
             return;
         }
         if (key === "suggest") {
-            suggestionLoading = false;
+            if (revision === loadingSuggestionRevision)
+                suggestionLoading = false;
             if (revision !== draft.generationRevision)
                 return;
             if (response.ok) {
@@ -1093,6 +1103,7 @@ Item {
                 spacing: 12
                 Flickable {
                     id: resultScroll
+                    objectName: "results-scroll"
                     width: parent.width
                     height: parent.height - 52
                     contentHeight: resultContent.height
