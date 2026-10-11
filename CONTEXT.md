@@ -29,7 +29,7 @@ A reusable user-authored directive that guides Description Generation.
 _Avoid_: Prompt, Prompt Template, Preset, Recipe, AI Instruction
 
 **Description Generation**:
-The action of creating typed Descriptions from a selected Description using an Instruction and Model.
+The action of creating typed Descriptions for an Entry using a Model, optional Description context, and reusable or inline Instruction text. Blank inline text uses built-in task guidance.
 _Avoid_: AI Generation, LLM Generation, Definition Generation
 
 **Provider**:

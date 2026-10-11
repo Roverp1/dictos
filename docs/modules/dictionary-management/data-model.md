@@ -64,8 +64,8 @@ Text fragments stored in folders.
 
 | Column       | Type              | Constraints               | Description                            |
 | ------------ | ----------------- | ------------------------- | -------------------------------------- |
-| `id`         | `text`            | PK                        | Deterministic UUIDv5 (`folderId:text`) |
-| `text`       | `text`            | NOT NULL                  | The capture text                       |
+| `id`         | `text`            | PK                        | Deterministic UUIDv5 (`text:folderId`) |
+| `text`       | `text`            | NOT NULL                  | Entry text                             |
 | `folderId`   | `text`            | FK (`folders.id`) CASCADE | Target folder                          |
 | `createdAt`  | `int (timestamp)` | NOT NULL                  | Creation timestamp                     |
 | `modifiedAt` | `int (timestamp)` | NOT NULL                  | Last modification timestamp            |
@@ -102,14 +102,39 @@ Named interpretations that group related Descriptions for one Entry.
 
 An index exists on `entryId`. There is no uniqueness constraint on `(entryId, name)` because duplicate Sense names are valid.
 
+### `activities`
+
+Daily Activity counts use a separate deterministic identity per device and UTC date.
+
+| Column  | Type   | Constraints           | Description                            |
+| ------- | ------ | --------------------- | -------------------------------------- |
+| `id`    | `text` | PK                    | Deterministic UUIDv5 (`date:deviceId`) |
+| `date`  | `text` | NOT NULL              | UTC date in `YYYY-MM-DD` format        |
+| `count` | `int`  | NOT NULL, default `1` | Action count for that device and date  |
+
+### Reviewed Save record ownership
+
+Screen saves reuse `folders`, `entries`, `senses`, `descriptions`, and `activities`. No table, column, or migration is added. Drafts and Sense suggestion previews are not persisted by suggestion or generation.
+
+`entryIdFor()` in `packages/db-core/src/repositories/entry-write.ts` derives the Entry ID from exact reviewed text and the root Folder ID using the existing Entry namespace. `insertOrReuseEntry()` inserts with conflict handling, then reads the existing row if that identity already exists. The reviewed-save adapter requires that row's text and Folder to match the request; an Entry renamed under its old ID produces a `DbError` and no new records. Nonblank text is stored unchanged; whitespace differences affect Entry identity.
+
+| Save mode                                                     | Sense                          | Captured Description                                        | Right-column Descriptions                                                  |
+| ------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Center (`kind: "entry"`)                                      | None created                   | Optional `misc`, `entryId` set, `senseId: null`             | None saved                                                                 |
+| Ordinary right (`kind: "sense"`, `includeDescription: false`) | New UUIDv7, owned by the Entry | None saved                                                  | Nonblank text with its reviewed Type, all owned by the Entry and new Sense |
+| Inclusive right (`kind: "sense"`, `includeDescription: true`) | New UUIDv7, owned by the Entry | Optional `misc`, owned by the Entry and that same new Sense | Same ownership as ordinary right Save                                      |
+
+Each saved Description has its own UUIDv7. Duplicate Sense names and multiple Descriptions of one Type are valid. Empty slots produce no rows. Right Save always creates a Sense, even if the Entry already has a Sense with the same name.
+
+`incrementEntrySaveActivity()` adds one to the current device's daily Activity count for each successful Save, including Entry reuse. That increment shares the transaction with all selected records; rollback leaves no partial records or Activity increment.
+
 ## Headless UI State (`@dictos/react`)
 
 This state is not persisted. It describes the current client interaction model for the Dictionary view.
 
 ```typescript
 type TreeItemReference =
-  | { type: "entry"; id: string }
-  | { type: "folder"; id: string };
+  { type: "entry"; id: string } | { type: "folder"; id: string };
 
 type PreviewPaneContent =
   | { kind: "empty" }

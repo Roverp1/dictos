@@ -136,6 +136,16 @@ When fixing a bug:
 2. Confirm the test fails.
 3. Fix the bug until the test passes.
 
+### F. Overlay Verification
+
+`apps/overlay` uses Bun for state, navigation, and OCR client tests, plus offscreen Qt tests for drawer interactions. Its native OCR integration suite builds the C++ helper and exercises real Unix sockets, OCR language data, and the client process:
+
+```bash
+devenv --profile overlay shell -- bun run --cwd apps/overlay test:native
+```
+
+Native OCR tests run separately from package `test` and root `bun run test`; passing the root suite does not verify the helper. The overlay README documents the regular Bun/Qt checks and matching Qt import/plugin paths. Neither the automated checks nor the recorded two- and three-column rendering smoke verified mixed-scale/multimonitor behavior or live paid-provider access. Error layout remains provisional.
+
 ## 5. Cover These Scenarios
 
 For every function or component, ensure these boundaries are tested if applicable:
