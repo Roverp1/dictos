@@ -19,6 +19,7 @@ out
 dist
 *.tgz
 /**/*.db*
+result
 
 # code coverage
 coverage
