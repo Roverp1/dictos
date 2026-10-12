@@ -84,9 +84,9 @@ Red flags:
 Tests live exactly next to the file they are testing.
 `SyncService.ts` -> `SyncService.test.ts`.
 
-### B. "Errors as Values" Assertions
+### B. TypeScript "Errors as Values" Assertions
 
-Dictos uses the `errore` package. We do not use `try/catch` in tests unless dealing with catastrophic panics. Instead, assert on the returned union.
+Dictos TypeScript uses the `errore` package. TypeScript tests assert on returned unions; `try/catch` is reserved for catastrophic panics. QML tests use QtTest assertions and native JavaScript exception handling at parsing/runtime boundaries.
 We can `throw` the error, instead of doing `expect(res instanceof Error).toBe(false)`, so that typescript would automatically narrow the type.
 
 ```typescript
@@ -135,6 +135,16 @@ When fixing a bug:
 1. Write a test that demonstrates the bug (must FAIL with current code).
 2. Confirm the test fails.
 3. Fix the bug until the test passes.
+
+### F. Overlay Verification
+
+`apps/overlay` uses Bun for state, navigation, and OCR client tests, plus offscreen Qt tests for drawer interactions. Its native OCR integration suite builds the C++ helper and exercises real Unix sockets, OCR language data, and the client process:
+
+```bash
+devenv --profile overlay shell -- bun run --cwd apps/overlay test:native
+```
+
+Native OCR tests run separately from package `test` and root `bun run test`; passing the root suite does not verify the helper. The overlay README documents the regular Bun/Qt checks and matching Qt import/plugin paths. Neither the automated checks nor the recorded two- and three-column rendering smoke verified mixed-scale/multimonitor behavior or live paid-provider access. Error layout remains provisional.
 
 ## 5. Cover These Scenarios
 

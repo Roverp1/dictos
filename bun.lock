@@ -30,6 +30,13 @@
         "typescript": "^7.0.2",
       },
     },
+    "apps/overlay": {
+      "name": "@dictos/overlay",
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^7.0.2",
+      },
+    },
     "apps/server": {
       "name": "@dictos/server",
       "version": "0.0.0",
@@ -518,6 +525,8 @@
     "@dictos/logger": ["@dictos/logger@workspace:packages/logger"],
 
     "@dictos/opentui-toast": ["@dictos/opentui-toast@workspace:packages/opentui-toast"],
+
+    "@dictos/overlay": ["@dictos/overlay@workspace:apps/overlay"],
 
     "@dictos/pino-logger": ["@dictos/pino-logger@workspace:packages/pino-logger"],
 

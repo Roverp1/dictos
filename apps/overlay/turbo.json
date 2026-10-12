@@ -1,0 +1,15 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "passThroughEnv": [
+        "QML_IMPORT_PATH",
+        "QML2_IMPORT_PATH",
+        "QT_PLUGIN_PATH",
+        "QT_QPA_PLATFORM_PLUGIN_PATH",
+        "FONTCONFIG_FILE",
+        "FONTCONFIG_PATH"
+      ]
+    }
+  }
+}

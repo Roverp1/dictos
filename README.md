@@ -4,7 +4,7 @@
 
 Dictos is an open-source app for building and managing personal dictionaries while reading, learning, and collecting language material. It stores your data locally first, keeps the interface fast, and is designed to sync across devices without making the network the source of truth.
 
-The project is still early. The Terminal UI is the primary client, and the central server is under development. The Web client code remains in the repo, but the app is broken and unmaintained.
+The project is still early. The Terminal UI is the primary client, with a script-oriented Command Client and a development Wayland/Hyprland screen overlay. The central server is under development. The Web client code remains in the repo, but the app is broken and unmaintained.
 
 ## Quick Start
 
@@ -44,6 +44,7 @@ Dictos is intended to become a serious open-source app for outside users, but it
 Current state:
 
 - Terminal UI is the primary client.
+- The Command Client supports Dictionary management and Description Generation. The development screen overlay reviews OCR text and generated drafts before saving; installation and packaging are deferred.
 - Web client code remains in the repo, but the app is broken, unmaintained, and unsupported. Routine checks do not cover it.
 - Central server exists for auth, sync setup, and future social features.
 - Mobile is part of the longer-term architecture, not the current product surface.
@@ -56,6 +57,7 @@ Current state:
 - **Cross-platform architecture** - Shared domain and headless UI logic are reused across clients.
 - **Turso database** - Local persistence with sync-oriented database adapters.
 - **Headless React controller** - `@dictos/react` owns shared interaction state while clients render their own UI.
+- **Screen text review** - A Quickshell overlay freezes one monitor, lets you correct independent Entry/Description selections, and saves reviewed Sense/Description drafts atomically.
 - **Server-backed sync setup** - The central ElysiaJS server supports auth and database provisioning flows.
 
 ## Requirements
@@ -96,6 +98,14 @@ Run the Terminal UI:
 ```bash
 bun run dev:tui
 ```
+
+Run the screen overlay from a Wayland/Hyprland session:
+
+```bash
+devenv --profile overlay shell -- bun run dev:overlay
+```
+
+See the [overlay README](./apps/overlay/README.md) for OCR language data, keyboard/mouse controls, and native checks. Suggestions and generation need a configured Provider Connection and Selected Model; manual editing and Save do not.
 
 The Web client has a manual development command, but is currently broken and unsupported:
 
@@ -164,11 +174,14 @@ Without devenv:
 
 ```text
 apps/tui/                 Terminal UI client using OpenTUI + React
+apps/cli/                 Script-oriented Command Client
+apps/overlay/             Development Quickshell/QML overlay with native Tesseract OCR
 apps/web/                 Retained, unsupported Web client (Vite + React Router)
 apps/server/              ElysiaJS central server
 packages/core/            Pure domain logic, ports, and services
 packages/react/           Headless shared UI state and actions
 packages/db-core/         Shared Drizzle schema and repositories
+packages/ai-sdk/          Description Generation and Model Catalog adapters
 packages/bun-turso-sync/  Bun/local Turso sync adapter
 packages/wasm-turso-sync/ Browser/WASM Turso sync adapter
 packages/fs-storage/      Filesystem storage adapter
@@ -191,7 +204,8 @@ For the full architecture, read [`docs/system-overview.md`](./docs/system-overvi
 ## Documentation
 
 - [`docs/system-overview.md`](./docs/system-overview.md) - Purpose, architecture, stack, and codebase map.
-- [`apps/cli/README.md`](./apps/cli/README.md) - CLI usage and Linux screen-region Entry hotkey setup.
+- [`apps/cli/README.md`](./apps/cli/README.md) - CLI usage, overlay JSON protocol, and retained screen-region shortcut.
+- [`apps/overlay/README.md`](./apps/overlay/README.md) - Development launcher, OCR build/checks, and review controls.
 - [`CONTEXT.md`](./CONTEXT.md) - Project terminology.
 - [`docs/testing.md`](./docs/testing.md) - Testing strategy and rules.
 - [`docs/adr`](./docs/adr) - Architecture decisions.

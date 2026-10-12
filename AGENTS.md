@@ -10,12 +10,17 @@ Before changing a package's dependencies, test runner, build tooling, or runtime
 
 - **Hexagonal Architecture**: Core domain logic lives in `packages/core`. It **MUST NOT** depend on external libraries, React, UI frameworks, or database drivers. Use Dependency Injection (ports/adapters).
 - **Headless UI**: `@dictos/react` acts as a headless controller for React state and actions. The Web client was built around it, but is broken and unmaintained; retain its code without treating it as a supported client.
-- **Error Handling**: Follow "errors as values" using the `errore` package (return `ReturnType | ErrorType` unions). **Do not use `throw` or `try/catch`** unless dealing with unrecoverable crashes. Always activate `errore` skill.
+- **TypeScript Error Handling**: Follow "errors as values" using the `errore` package (return `ReturnType | ErrorType` unions). **Do not use `throw` or `try/catch`** unless dealing with unrecoverable crashes. Always activate `errore` skill when working on TypeScript.
+- **QML/JavaScript Error Handling**: Use native JavaScript exceptions and `try/catch` at parsing and runtime boundaries. Convert command/OCR failures into structured responses and user-visible Notifications. Keep pure draft-state helpers non-throwing.
 - **Strict Terminology**: Refer to `CONTEXT.md` for strict domain vocabulary (e.g., "Entry", "Description", "Folder"). Do not invent synonyms.
 
 ## Feature Specifications
 
 Feature specs record the intent and known constraints at planning time, not an immutable implementation checklist. Follow them as a starting point, but adapt when implementation reveals necessary work. Explain material deviations and their impact in the PR, verify the resulting behavior, and update living documentation when contracts change. In reviews, investigate unexplained changes and unmet requirements; do not treat a change as defective solely because the spec did not anticipate it. Call out unverified risks rather than claiming they passed.
+
+## Prototypes
+
+Treat `examples/` and `experiments/` as unmaintained prototyping directories. Make ongoing changes in maintained apps and packages. Update prototypes only when the user explicitly requests prototype work.
 
 ## Important Commands
 

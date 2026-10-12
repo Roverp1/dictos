@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@dictos/overlay",
+  "private": true,
+  "scripts": {
+    "dev": "bash run.sh",
+    "build:native": "bash build-native.sh",
+    "test": "bun test tests src && QT_QUICK_BACKEND=software qmltestrunner -input tests/tst_Workflow.qml -platform offscreen",
+    "test:native": "bun run build:native && bun test native",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^7.0.2"
+  }
+}

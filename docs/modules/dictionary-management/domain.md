@@ -1,6 +1,6 @@
 # Domain: Dictionary Management
 
-**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Sep 25, 2026
+**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Oct 11, 2026
 
 ## Module Responsibility
 
@@ -14,6 +14,26 @@ Responsible for managing personal Dictionary content: Entries, typed Description
 2. `EntryService` validates the domain rules (e.g., text must not be empty, `folderId` must be provided) using `validateNewEntry`.
 3. Upon validation success, `EntryService` calls the `save()` method on the `EntryRepository` port.
 4. The concrete SQLite adapter (`packages/db-core`) executes an atomic transaction that generates a deterministic UUIDv5 (preventing sync conflicts), inserts the Entry via Drizzle ORM, and simultaneously increments the daily Activity CRDT.
+
+### Saving reviewed screen text
+
+The Command Client resolves the root Folder and passes the current editor text to `ScreenEntrySaveService.save()`. Save requires no Model or Instruction. Suggesting Senses and generating drafts write nothing to the Dictionary.
+
+All three Save modes insert or reuse the root Entry by its deterministic UUIDv5, derived from exact Entry text and the root Folder ID:
+
+| Save mode            | Records saved with the Entry                                                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Center Save Entry    | Optional nonblank captured Description as an unassigned `misc` Description. Sense and right-column drafts are ignored.                                    |
+| Ordinary right Save  | A new Sense and every nonblank right-column Description under its displayed Description Type. Captured context is excluded, even when generation used it. |
+| Inclusive right Save | The same Sense and typed Descriptions, plus optional nonblank captured text as a `misc` Description belonging to that new Sense.                          |
+
+Both right Save modes require a nonblank Sense name and at least one nonblank typed Description. Captured text alone cannot satisfy that requirement. Empty or whitespace-only Description slots are ignored. Validation uses trimming only to detect blank text; nonblank Entry text, Sense names, and Description text retain their reviewed whitespace and line breaks exactly.
+
+If an existing Entry under the derived identity has different text or Folder ownership, Save returns a conflict as `DbError` without attaching new records. This protects an Entry that was renamed while retaining its old deterministic ID.
+
+Every right Save creates a fresh Sense identity. Duplicate Sense names are valid; Save never silently reuses a Sense by name. Multiple Descriptions of the same Type remain valid, including a typed `misc` Description alongside the inclusive captured `misc`.
+
+`SqliteScreenEntrySaveRepository.commit()` writes the chosen records and increments Activity once in the same transaction, including when it reuses an existing Entry. SQL failures and post-write invariant failures roll back all writes, including Activity. The caller receives a `DbError` with no partial new Entry, Sense, or Description set. These modes use the existing Dictionary tables and require no schema change or migration.
 
 ### Managing Folders
 
@@ -44,6 +64,7 @@ Responsible for managing personal Dictionary content: Entries, typed Description
 - **Deterministic UUIDv5 over Constraints**: Instead of relying on SQLite `UNIQUE` constraints to enforce data integrity (which crash the Turso replication engine during split-brain merges), we enforce identity via UUIDv5. If two devices create an identical folder or entry offline, they generate the same PK, and the sync engine silently merges them.
 - **Optional Sense Grouping**: Senses organize an Entry's Descriptions without replacing direct Entry ownership. This keeps unstructured quick saves valid while establishing the future one-Sense-to-one-note boundary for Export.
 - **Atomic Generated Content**: Accepted Description Generation proposals use a dedicated persistence port. Creating or reusing the Sense, assigning an unassigned source Description, and inserting generated Descriptions succeed or roll back together.
+- **Reviewed Screen Saves**: Current editor text determines the records written. One persistence port owns Entry reuse, new Sense creation, Description inserts, and Activity; generation and draft history remain outside that transaction.
 
 ## Known Edge Cases & Constraints
 

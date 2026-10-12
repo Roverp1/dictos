@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import type { CliContext } from "../app/types";
+import { CliExitCode, type CliContext } from "../app/types";
 import {
   getProviderDependenciesOrExit,
   handleExpectedError,
@@ -7,6 +7,7 @@ import {
   sanitizeTerminalText,
 } from "../app/command-action";
 import { ValidationError } from "@dictos/core";
+import { serializeOverlayJsonResponse } from "../app/overlay-json";
 
 export const registerModelsCommands = (
   program: Command,
@@ -17,14 +18,33 @@ export const registerModelsCommands = (
     .argument("[provider-id]", "Filter by Provider ID")
     .option("--refresh", "Refresh the Model Catalog")
     .option("--verbose", "Show Model metadata")
+    .option("--json", "Output one JSON envelope")
     .action(
       async (
         providerId: string | undefined,
-        options: { refresh?: boolean; verbose?: boolean }
+        options: { refresh?: boolean; verbose?: boolean; json?: boolean }
       ) => {
-        const dependencies = await getProviderDependenciesOrExit(context);
+        const dependencies = options.json
+          ? await context.getProviderDependencies()
+          : await getProviderDependenciesOrExit(context);
+        if (dependencies instanceof Error) {
+          context.output.writeData(
+            serializeOverlayJsonResponse(dependencies).slice(0, -1)
+          );
+          context.output.writeError("Operation failed");
+          process.exitCode = CliExitCode.UnexpectedFailure;
+          return;
+        }
         if (dependencies === null) return;
-        const failure = (error: Error) =>
+        const failure = (error: Error) => {
+          if (options.json) {
+            context.output.writeData(
+              serializeOverlayJsonResponse(error).slice(0, -1)
+            );
+            context.output.writeError("Operation failed");
+            process.exitCode = CliExitCode.ExpectedFailure;
+            return;
+          }
           handleExpectedError(context, error, {
             logger: dependencies.logger,
             operation: "models.list",
@@ -33,6 +53,7 @@ export const registerModelsCommands = (
               refresh: options.refresh === true,
             },
           });
+        };
 
         if (providerId !== undefined) {
           const providers =
@@ -56,33 +77,44 @@ export const registerModelsCommands = (
         const catalog = await dependencies.modelCatalog.get();
         if (catalog instanceof Error) return failure(catalog);
 
-        for (const model of models) {
-          const id = sanitizeTerminalText(
-            `${model.providerId}/${model.modelId}`
-          );
-          if (!options.verbose) {
-            context.output.writeData(id);
-            continue;
-          }
-          const cost = model.cost;
-          const input =
-            cost && Number.isFinite(cost.input) && cost.input >= 0
-              ? String(cost.input)
-              : "-";
-          const output =
-            cost && Number.isFinite(cost.output) && cost.output >= 0
-              ? String(cost.output)
-              : "-";
+        if (options.json) {
           context.output.writeData(
-            [
-              id,
-              sanitizeTerminalText(model.name),
-              sanitizeTerminalText(model.status),
-              input,
-              output,
-            ].join("\t")
+            serializeOverlayJsonResponse(
+              models.map(({ providerId, modelId, name, status }) => ({
+                id: `${providerId}/${modelId}`,
+                name,
+                status,
+              }))
+            ).slice(0, -1)
           );
-        }
+        } else
+          for (const model of models) {
+            const id = sanitizeTerminalText(
+              `${model.providerId}/${model.modelId}`
+            );
+            if (!options.verbose) {
+              context.output.writeData(id);
+              continue;
+            }
+            const cost = model.cost;
+            const input =
+              cost && Number.isFinite(cost.input) && cost.input >= 0
+                ? String(cost.input)
+                : "-";
+            const output =
+              cost && Number.isFinite(cost.output) && cost.output >= 0
+                ? String(cost.output)
+                : "-";
+            context.output.writeData(
+              [
+                id,
+                sanitizeTerminalText(model.name),
+                sanitizeTerminalText(model.status),
+                input,
+                output,
+              ].join("\t")
+            );
+          }
         process.stderr.write(
           `Model Catalog: ${sanitizeTerminalText(catalog.source)} (${sanitizeTerminalText(catalog.fetchedAt)})\n`
         );

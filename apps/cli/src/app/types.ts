@@ -9,6 +9,8 @@ import type {
   ModelCatalogService,
   ModelSelectionService,
   ProviderConnectionService,
+  ScreenEntryGenerationService,
+  ScreenEntrySaveService,
   SessionRepository,
   SenseService,
   SyncService,
@@ -36,6 +38,7 @@ export type CliProviderDependencies = {
   modelCatalogService: ModelCatalogService;
   modelSelectionService: ModelSelectionService;
   modelCatalog: ModelCatalogPort;
+  screenEntryGenerationService: ScreenEntryGenerationService;
   logger: Logger;
 };
 
@@ -46,6 +49,7 @@ export type CliDependencies = CliProviderDependencies & {
   senseService: SenseService;
   instructionService: InstructionService;
   descriptionGenerationService: DescriptionGenerationService;
+  screenEntrySaveService: ScreenEntrySaveService;
 
   authService: AuthService;
   syncService: SyncService;
@@ -66,13 +70,10 @@ export type TerminalPrompt = {
 };
 
 export type CliDependencyResult =
-  | CliDependencies
-  | CliDependencyError
-  | DatabaseInUseError;
+  CliDependencies | CliDependencyError | DatabaseInUseError;
 
 export type CliProviderDependencyResult =
-  | CliProviderDependencies
-  | CliDependencyError;
+  CliProviderDependencies | CliDependencyError;
 
 export type CliContext = {
   output: CliOutput;

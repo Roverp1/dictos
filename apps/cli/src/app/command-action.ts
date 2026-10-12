@@ -64,13 +64,26 @@ export const handleExpectedError = (
   error: Error,
   log?: CliOperationLog
 ): void => {
-  if (log)
-    log.logger.error("CLI operation failed", sanitizeLogError(error), {
-      ...log.context,
-      operation: log.operation,
-    });
+  if (log) logOperationFailed({ ...log, error });
   context.output.writeError(error.message);
   process.exitCode = CliExitCode.ExpectedFailure;
+};
+
+export const logOperationFailed = ({
+  logger,
+  operation,
+  context,
+  error,
+  redactDetails = false,
+}: CliOperationLog & { error: Error; redactDetails?: boolean }): void => {
+  logger.error(
+    "CLI operation failed",
+    sanitizeLogError({ error, redactDetails }),
+    {
+      ...context,
+      operation,
+    }
+  );
 };
 
 export const logOperationCompleted = ({
@@ -84,11 +97,22 @@ export const logOperationCompleted = ({
 export const sanitizeTerminalText = (value: string): string =>
   value.replace(/[\u0000-\u001f\u007f-\u009f]/g, "");
 
-function sanitizeLogError(error: Error): Error {
-  if (!(error instanceof DbError)) return error;
-  return new DbError({
-    operation: error.operation,
-    reason: "Database operation failed",
-    cause: new Error("Database failure details omitted from logs"),
-  });
+function sanitizeLogError({
+  error,
+  redactDetails = false,
+}: {
+  error: Error;
+  redactDetails?: boolean;
+}): Error {
+  if (error instanceof DbError)
+    return new DbError({
+      operation: error.operation,
+      reason: "Database operation failed",
+      cause: new Error("Database failure details omitted from logs"),
+    });
+  if (!redactDetails) return error;
+  // Parser and provider causes can contain draft text or credentials.
+  const sanitized = new Error("Operation failure details omitted from logs");
+  sanitized.name = error.name;
+  return sanitized;
 }

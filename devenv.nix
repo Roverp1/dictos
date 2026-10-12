@@ -17,6 +17,19 @@ in {
 
   profiles.cli.module.packages = with pkgs; [grim slurp tesseract libnotify];
 
+  profiles.overlay.module.packages = with pkgs; [
+    quickshell
+    grim
+    slurp
+    imagemagick
+    hyprland
+    gcc
+    pkg-config
+    tesseract
+    leptonica
+    qt6.qtdeclarative
+  ];
+
   processes = {
     turso-sync.exec = "tursodb ${serverDataDir}/sync-server.db --sync-server 0.0.0.0:8080";
     server.exec = "secretspec run -- bun run dev:server";

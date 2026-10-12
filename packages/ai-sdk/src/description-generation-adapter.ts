@@ -1,6 +1,3 @@
-import { createGoogle } from "@ai-sdk/google";
-import { createOpenAI } from "@ai-sdk/openai";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText, jsonSchema, NoObjectGeneratedError, Output } from "ai";
 import * as errore from "@dictos/errore";
 import type { Logger } from "@dictos/logger";
@@ -18,21 +15,17 @@ import {
   providerFailureReason,
   sanitizedProviderCause,
 } from "./provider-failure";
-
-type Fetch = (
-  input: Parameters<typeof fetch>[0],
-  init?: Parameters<typeof fetch>[1]
-) => ReturnType<typeof fetch>;
+import { providerModel, type ProviderFetch } from "./provider-model";
 
 type AiSdkDescriptionGenerationAdapterOptions = {
-  fetchImplementation?: Fetch;
+  fetchImplementation?: ProviderFetch;
   logger: Logger;
 };
 
 const MAX_PROVIDER_RETRIES = 2;
 
 export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationPort {
-  private fetchImplementation: Fetch;
+  private fetchImplementation: ProviderFetch;
   private logger: Logger;
 
   constructor({
@@ -59,30 +52,12 @@ export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationP
       maxRetries: MAX_PROVIDER_RETRIES,
     };
     const { providerId, apiKey } = request.connection;
-    const fetchImplementation = this.fetchImplementation as typeof fetch;
-    const model = (() => {
-      if (providerId === "openai")
-        return createOpenAI({ apiKey, fetch: fetchImplementation }).chat(
-          request.modelId
-        );
-      if (providerId === "google")
-        return createGoogle({ apiKey, fetch: fetchImplementation })(
-          request.modelId
-        );
-      const baseURL = {
-        openrouter: "https://openrouter.ai/api/v1",
-        deepseek: "https://api.deepseek.com/v1",
-        groq: "https://api.groq.com/openai/v1",
-      }[providerId];
-      if (!baseURL) return null;
-      return createOpenAICompatible({
-        baseURL,
-        apiKey,
-        name: "dictos-provider",
-        fetch: fetchImplementation,
-        supportsStructuredOutputs: false,
-      }).chatModel(request.modelId);
-    })();
+    const model = providerModel({
+      providerId,
+      apiKey,
+      modelId: request.modelId,
+      fetchImplementation: this.fetchImplementation,
+    });
     if (model === null) {
       const error = new DescriptionGenerationError({
         operation: "request",
@@ -142,7 +117,8 @@ export class AiSdkDescriptionGenerationAdapter implements DescriptionGenerationP
     }).catch((cause) => {
       if (NoObjectGeneratedError.isInstance(cause)) {
         const error = new InvalidGenerationResponseError({
-          reason: "Provider returned invalid JSON. Try again or use another Model.",
+          reason:
+            "Provider returned invalid JSON. Try again or use another Model.",
           cause: sanitizedOutputCause(cause),
         });
         this.logger.error(

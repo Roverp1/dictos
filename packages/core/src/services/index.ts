@@ -4,6 +4,8 @@ export * from "./description-service";
 export * from "./sense-service";
 export * from "./instruction-service";
 export * from "./description-generation-service";
+export * from "./screen-entry-generation-service";
+export * from "./screen-entry-save-service";
 export * from "./provider-connection-service";
 export * from "./model-catalog-service";
 export * from "./model-selection-service";

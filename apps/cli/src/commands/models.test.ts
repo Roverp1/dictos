@@ -94,6 +94,45 @@ test("offline listing shows sorted configured Model IDs and catalog provenance w
   });
 });
 
+test("models --json lists eligible configured Models in one envelope", async () => {
+  await withCli(async ({ context, invoke, stdout, stderr, dataDir }) => {
+    const deps = await context.getProviderDependencies();
+    if (deps instanceof Error) throw deps;
+    const connected = await deps.providerConnectionService.connect({
+      providerId: "google",
+      apiKey: "private-key",
+    });
+    if (connected instanceof Error) throw connected;
+    const stored = await new FsModelCatalogStore({ dataDir }).replace({
+      source: "cache",
+      fetchedAt: "2026-09-01T00:00:00.000Z",
+      providers: [{ id: "google", name: "Google" }],
+      models: [
+        {
+          providerId: "google",
+          modelId: "polski",
+          name: "Polski Model",
+          status: "active",
+          textGeneration: true as const,
+          inputModalities: ["text"],
+          outputModalities: ["text"],
+        },
+      ],
+    });
+    if (stored instanceof Error) throw stored;
+    await invoke("google", "--json");
+    expect(stdout).toEqual([
+      JSON.stringify({
+        ok: true,
+        data: [{ id: "google/polski", name: "Polski Model", status: "active" }],
+      }) + "\n",
+    ]);
+    expect(stderr.join("")).toContain("Model Catalog: cache");
+    expect(await fs.readdir(dataDir)).not.toContain("dictos.db");
+    expect(process.exitCode ?? 0).toBe(0);
+  });
+});
+
 test("embedding-only Models are not listed or selectable despite text modalities", async () => {
   await withCli(async ({ context, invoke, stdout }) => {
     const dependencies = await context.getProviderDependencies();
@@ -128,6 +167,17 @@ test("unknown Provider fails without printing Model IDs", async () => {
     await invoke("not-supported");
     expect(stdout).toEqual([]);
     expect(stderr.join("")).toContain("Unknown Provider ID");
+    expect(process.exitCode).toBe(3);
+  });
+});
+
+test("models --json reports an unknown Provider as one safe error envelope", async () => {
+  await withCli(async ({ invoke, stdout, stderr }) => {
+    await invoke("not-supported", "--json");
+    expect(stdout).toEqual([
+      '{"ok":false,"error":{"code":"OPERATION_FAILED","message":"Operation failed"}}\n',
+    ]);
+    expect(stderr.join("")).not.toContain("not-supported");
     expect(process.exitCode).toBe(3);
   });
 });

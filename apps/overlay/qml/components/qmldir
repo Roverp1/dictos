@@ -1,0 +1,7 @@
+singleton Tokens 1.0 Tokens.qml
+Anim 1.0 Anim.qml
+StateLayer 1.0 StateLayer.qml
+CaptureButton 1.0 CaptureButton.qml
+CaptureField 1.0 CaptureField.qml
+CaptureListView 1.0 CaptureListView.qml
+BottomSurface 1.0 BottomSurface.qml
