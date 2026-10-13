@@ -20,17 +20,25 @@ _Avoid_: Label, Category, Kind
 A named interpretation of an Entry that groups related Descriptions.
 _Avoid_: Meaning, Definition Group, Description Group
 
+**Sense Candidate**:
+A proposed Sense name with a short definition preview, returned for review before Save. It has no saved Sense identity, and its preview is not a saved Description.
+_Avoid_: Saved Sense (for a candidate), Saved Description (for its preview)
+
 **Folder**:
 A nested container used to organize Entries.
 _Avoid_: Directory, Dictionary, Deck, Collection
 
 **Instruction**:
-A reusable user-authored directive that guides Description Generation.
+A reusable user-authored directive that guides Description Generation. Inline Instruction text guides generation without creating or updating an Instruction record.
 _Avoid_: Prompt, Prompt Template, Preset, Recipe, AI Instruction
 
 **Description Generation**:
 The action of creating typed Descriptions for an Entry using a Model, optional Description context, and reusable or inline Instruction text. Blank inline text uses built-in task guidance.
 _Avoid_: AI Generation, LLM Generation, Definition Generation
+
+**Generation Draft**:
+An unsaved Sense name and typed Description texts returned by Entry-based Description Generation for review. It contains no Dictionary record IDs.
+_Avoid_: Saved Descriptions, Persisted Proposal (for an unsaved draft)
 
 **Provider**:
 An external service with a stable provider ID that supplies Models for Description Generation.
