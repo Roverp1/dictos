@@ -73,3 +73,4 @@ Save does not call a Provider or require a generation proposal. A valid success 
 - [ADR 0009: Keep Provider Credentials Device-Local](../../adr/0009-keep-provider-credentials-device-local.md)
 - [ADR 0010: Use Catalog-Backed Provider IDs](../../adr/0010-use-catalog-backed-provider-ids.md)
 - [ADR 0011: Keep the Model Catalog Out of Provider Execution](../../adr/0011-keep-catalog-out-of-provider-execution.md)
+- [ADR 0012: Use a Standalone Screen Review Client](../../adr/0012-use-a-standalone-screen-review-client.md)

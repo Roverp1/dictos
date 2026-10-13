@@ -1,0 +1,3 @@
+# Use a Standalone Screen Review Client
+
+Screen review needs a Wayland surface for a frozen image, pointer selection, and unsaved draft editing, separate from the [shared Dictionary interaction model](./0003-headless-ui-state.md). We use a standalone Quickshell/QML client that delegates application operations to existing [Command Client](./0006-first-class-command-client.md) subprocesses through JSON stdin/stdout and uses a session-scoped native Tesseract companion over a private Unix socket. This reuses the proven screen-selection workflow and existing core services and adapters without a Qt-specific application backend, while keeping Tesseract initialized and reusing the frozen image for repeated full and crop OCR.

@@ -76,3 +76,4 @@ Every right Save creates a fresh Sense identity. Duplicate Sense names are valid
 - [Data Model & State](./data-model.md)
 - [Interfaces & Contracts](./contracts.md)
 - [Description Generation](../description-generation/domain.md)
+- [ADR 0012: Use a Standalone Screen Review Client](../../adr/0012-use-a-standalone-screen-review-client.md)
