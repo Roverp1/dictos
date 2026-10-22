@@ -17,7 +17,7 @@ Resolve shared → CLI for direct CLI use and shared → CLI → Overlay once wh
 | New `packages/config` | Runtime dependency on `zod` 4 (`^4.6.7` at planning time) and `@dictos/errore`. Portable runtime exports, inferred types, setting metadata, and generated JSON Schema assets. |
 | `packages/fs-storage` | Add `@dictos/config` and `smol-toml` (`^1.9.1` at planning time). Export native configuration functions through a separate `./configuration` entry point. |
 | `apps/cli` | Add a direct `@dictos/config` dependency. Wire startup, logger settings, bootstrap output, snapshot decoding, and explicit Model inputs. |
-| `apps/overlay` | Add `@dictos/config` for a Bun launch helper that validates CLI bootstrap output. QML receives the snapshot and makes runtime Model choices. |
+| `apps/overlay` | Add `@dictos/config` and `@dictos/errore` for launch adapters that return Error values. Validate CLI bootstrap output and native OCR startup records. QML receives the snapshot and makes runtime Model choices. |
 | `packages/core` | Remove persisted selection contracts and wiring. Keep existing generation inputs, Model parsing, eligibility checks, and Provider validation. No configuration dependency. |
 
 Keep native code and schema-generation scripts outside the portable runtime entry point. Typecheck `packages/config` against ES libraries without ambient platform globals, and give it a separate Bun test configuration. Retain the maintained packages' existing test runners and runtime assumptions. Generated-schema tests may use `ajv` 8 and `ajv-draft-04` as development dependencies; neither belongs in runtime exports.
@@ -302,6 +302,29 @@ Keep `onSelectedModelChanged` and the state helper's existing request revisions.
 
 English (`eng`) is the default OCR argument. Explicit file/environment languages replace it. After Tesseract initialization, check `GetLoadedLanguagesAsVector` against every requested identifier before publishing readiness; `Init` alone can accept a partially loaded combination. Missing requested data reports the missing language and stops OCR initialization. Do not retry with English. This is language-configuration validation, not a new OCR mode or engine.
 
+### Native OCR startup results
+
+Extend the helper's stdout readiness record to report safe startup failures as well as success. Emit one newline-terminated JSON record, bounded to 16 KiB:
+
+```typescript
+type OcrStartupFailure =
+  | {
+      code: "OCR_LANGUAGE_UNAVAILABLE";
+      missingLanguages: readonly string[];
+    }
+  | { code: "OCR_INITIALIZATION_FAILED" | "OCR_STARTUP_FAILED" };
+
+type OcrStartupRecord =
+  | { ready: true; initMs: number }
+  | { ready: false; error: OcrStartupFailure };
+```
+
+If `Init` succeeds but loads only some requested languages, report the missing requested identifiers before exiting nonzero. If `Init` fails before the loaded set can be checked, report `OCR_INITIALIZATION_FAILED`; the launcher already has the requested languages. Other helper startup failures use `OCR_STARTUP_FAILED`. Keep raw Tesseract stderr separate from the user-facing error protocol as diagnostic output.
+
+Add a bounded decoder and renderer in `apps/overlay/src/ocr-startup.ts`. Validate the record and require every reported missing identifier to belong to the opening's validated language list. Render language names from that known list with local setup guidance. Never render arbitrary stderr or a helper-supplied message. For missing, malformed, or oversized records, produce a generic local startup error without copying the output to the terminal.
+
+`run.sh` must read the record before deleting temporary output. Before starting Quickshell, require a valid success record, a live helper, and a ready socket. On a failure record, print the rendered diagnostic to launcher stderr, exit nonzero, and perform normal cleanup. A nonempty readiness file or socket alone does not prove startup succeeded. Keep this change within the startup handshake, without adding an Overlay logging system or changing OCR request/response bodies.
+
 ### Failure and output contracts
 
 Add `CliExitCode.ConfigurationFailure = 5`. Preserve existing success, unexpected, usage, operation-failure, and database-in-use exit codes. Configuration errors from direct actions, bootstrap, state helpers, or Overlay children use exit 5. Human output includes safe source/key diagnostics on stderr. Machine-readable commands return exactly one newline-terminated failure envelope:
@@ -335,7 +358,7 @@ Follow [the project testing rules](../../docs/testing.md): pure resolution tests
 | CLI | Real startup under isolated configuration/data homes; help/version create nothing; removed Model commands; explicit `--model`; configured default; legacy selection ignored; device identity preserved; global and CLI logging levels reflected in the real CLI log. |
 | Overlay workflow | Bootstrap creates all three files without opening Dictionary or credentials. Later file edits do not affect children using the snapshot. Invalid snapshots fail without a disk fallback. Two openings keep separate selections, and a new opening reads the edited configuration. |
 | QML | Initial Model from bootstrap, local picker selection, explicit request Model payloads, manual Save with no usable Model, and preservation of existing text and late-reply/undo protections. |
-| OCR | The real helper receives `eng` by default and a configured/overridden combination when supplied. Missing or partially loaded requested data fails visibly without a fallback. |
+| OCR | The real helper receives `eng` by default and a configured/overridden combination when supplied. Run the actual launcher with missing or partially loaded language data. Verify its stderr names the missing identifier before cleanup, it exits nonzero, and Quickshell does not start. Malformed startup output produces a safe local diagnostic without forwarding raw helper stderr. |
 
 Fixtures must isolate both configuration and data locations so tests neither consume nor rewrite the developer's files. Use actual subprocesses for startup races and snapshot inheritance; do not mock filesystem calls or internal logging. Live paid Provider access is not required.
 
