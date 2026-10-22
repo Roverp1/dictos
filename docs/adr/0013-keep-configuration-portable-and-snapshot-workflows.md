@@ -1,0 +1,3 @@
+# Keep Configuration Portable and Snapshot Workflows
+
+The portable `@dictos/config` module owns setting definitions, defaults, validation, and precedence; native adapters handle TOML parsing and starter-file creation, leaving future clients free to use other storage. Resolve shared → CLI for CLI commands and shared → CLI → Overlay once per Overlay opening, then pass the validated snapshot to CLI subprocesses so file edits cannot change an ongoing review. Keep the Default Model in the snapshot and pass each runtime Selected Model with generation requests, without storing a device-wide selection or rewriting configuration.
