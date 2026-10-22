@@ -269,7 +269,7 @@ Add one bootstrap operation under the existing Overlay command group:
 
 Bootstrap always starts a new native Overlay load. It ignores any inherited snapshot so opening another Overlay reads the current files rather than adopting a parent opening's settings.
 
-Add `apps/overlay/src/prepare-launch.ts` as a Bun process adapter. It runs bootstrap with the known CLI path, checks the child exit status and envelope, validates the returned snapshot through `@dictos/config`, and prints only compact snapshot JSON on success. A launch error goes to stderr and returns nonzero. Bound captured bootstrap output to 1 MiB and encoded snapshots to 16 KiB.
+Add `apps/overlay/src/prepare-launch.ts` as a Bun process adapter. It runs bootstrap with the known CLI path, checks the child exit status and envelope, validates the returned snapshot through `@dictos/config`, and prints only compact snapshot JSON on success. For a valid configuration failure, print its actionable `error.message` on launcher stderr without replacing it with a generic launch failure, then return nonzero. For malformed outcomes, report a safe local launch error and return nonzero. Bound captured bootstrap output to 1 MiB and encoded snapshots to 16 KiB.
 
 `run.sh` invokes that helper before starting the native OCR companion or capturing the screen. Capture its output in a standalone assignment, check success, then export it as `DICTOS_OVERLAY_CONFIG_SNAPSHOT`. Derive the native language argument by joining `snapshot.settings.ocrLanguages` with `+`. This process-local variable contains only configuration values and provenance and is inherited by Quickshell and all its CLI children; it is not a user preference or a global shell setting.
 
@@ -342,6 +342,20 @@ type ConfigurationFailureResponse = {
 
 Extend the shared response error shape with an optional `issues` property. Configuration failures always include a nonempty issue list; existing error codes retain their current code/message shape. Use safe messages and issue data rather than raw input or exception text.
 
+Add one formatter in `apps/cli/src/app/configuration-error.ts`:
+
+```typescript
+function configurationFailureResponse(input: {
+  error: ConfigurationError;
+}): ConfigurationFailureResponse;
+```
+
+Its `error.message` summarizes the first safe issue: file/input source, setting path if known, available location, and the reason or expected shape. Include the remaining issue count when needed and retain all safe issues in the array. For snapshot errors, identify the startup snapshot and offending field without printing the environment payload. Human stderr, JSON responses, and bootstrap failure reporting use the same summary. Consumers must be able to display `message` directly; `issues` provides supplemental detail.
+
+Handle configuration errors explicitly in `commands/models.ts`, `commands/instruction.ts` JSON listing, `commands/overlay-state.ts`, Overlay operation/bootstrap responders, and shared dependency/output helpers. Each independent conversion must preserve exit 5 and the configuration failure envelope, including those outside the shared command-action helpers.
+
+`CommandJob.qml` must preserve a valid failure response's message through its exit/envelope checks. `CaptureWorkspace.qml` displays that message in the existing Notification and preserves drafts. QML displays the message directly, without another issue-array formatter or any reliance on captured stderr. Verify that the actual Notification text includes the source/key/reason summary.
+
 Malformed Overlay framing or request Model shape remains exit 2 with `INVALID_REQUEST`. A Model rejected by catalog/connection/generation checks remains an operation failure, with no automatic replacement. Add configuration-error handling to the shared output/dependency helpers so a usable error envelope is not replaced by a generic dependency message. Keep raw configuration, parser causes, and Provider data out of logs and normal output. Emit a process snapshot only through bootstrap's explicit success response, not through diagnostic output or logs.
 
 No HTTP endpoint or server contract is added.
@@ -355,9 +369,9 @@ Follow [the project testing rules](../../docs/testing.md): pure resolution tests
 | Portable resolution | Shared → CLI and shared → CLI → Overlay inheritance; deleting an override; list replacement; provenance; invalid overridden lower-priority values; prohibited Overlay logging overrides; no Model and English defaults. |
 | Editor schema agreement | Run representative valid/invalid document cases through runtime validation and an independent Draft 4 validator. Check generated artifacts for drift. Verify completion, hover descriptions, and diagnostics manually in one TOML editor using local artifacts. |
 | Native adapter | Real files for first-run scope, fully commented starters, existing empty/custom/malformed files, unreadable paths, size/parse failures, and schema directives that resolve locally. Concurrent processes must preserve existing content and publish only complete files. |
-| CLI | Real startup under isolated configuration/data homes; help/version create nothing; removed Model commands; explicit `--model`; configured default; legacy selection ignored; device identity preserved; global and CLI logging levels reflected in the real CLI log. |
+| CLI | Real startup under isolated configuration/data homes; help/version create nothing; removed Model commands; explicit `--model`; configured default; legacy selection ignored; device identity preserved; global and CLI logging levels reflected in the real CLI log. Exercise configuration failures through Model listing, Instruction listing, state, bootstrap, and operation JSON branches; each must retain exit 5 and an actionable message. |
 | Overlay workflow | Bootstrap creates all three files without opening Dictionary or credentials. Later file edits do not affect children using the snapshot. Invalid snapshots fail without a disk fallback. Two openings keep separate selections, and a new opening reads the edited configuration. |
-| QML | Initial Model from bootstrap, local picker selection, explicit request Model payloads, manual Save with no usable Model, and preservation of existing text and late-reply/undo protections. |
+| QML | Initial Model from bootstrap, local picker selection, explicit request Model payloads, manual Save with no usable Model, and preservation of existing text and late-reply/undo protections. A configuration failure's actual Notification contains its safe source/key/reason summary without requiring stderr or an issue-array renderer. |
 | OCR | The real helper receives `eng` by default and a configured/overridden combination when supplied. Run the actual launcher with missing or partially loaded language data. Verify its stderr names the missing identifier before cleanup, it exits nonzero, and Quickshell does not start. Malformed startup output produces a safe local diagnostic without forwarding raw helper stderr. |
 
 Fixtures must isolate both configuration and data locations so tests neither consume nor rewrite the developer's files. Use actual subprocesses for startup races and snapshot inheritance; do not mock filesystem calls or internal logging. Live paid Provider access is not required.
