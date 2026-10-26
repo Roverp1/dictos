@@ -10,6 +10,7 @@
     "start": "bun run src/index.ts"
   },
   "dependencies": {
+    "@dictos/config": "workspace:*",
     "@dictos/bun-turso-sync": "workspace:*",
     "@dictos/ai-sdk": "workspace:*",
     "@dictos/core": "workspace:*",

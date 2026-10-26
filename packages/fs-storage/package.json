@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./configuration": "./src/configuration/index.ts"
   },
   "scripts": {
     "test": "bun test",
@@ -15,8 +16,10 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@dictos/config": "workspace:*",
     "@dictos/core": "workspace:*",
     "@dictos/errore": "workspace:*",
-    "@dictos/logger": "workspace:*"
+    "@dictos/logger": "workspace:*",
+    "smol-toml": "^1.9.1"
   }
 }

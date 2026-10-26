@@ -1,3 +1,5 @@
 /apps/web/
 /packages/wasm-turso-sync/
 /packages/local-storage/
+# Generated schemas keep the generator's canonical formatting.
+/packages/config/schemas/

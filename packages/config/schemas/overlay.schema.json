@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "overrides": {
+      "type": "object",
+      "properties": {
+        "generation": {
+          "type": "object",
+          "properties": {
+            "default_model": {
+              "type": "string",
+              "pattern": "^[^\\s/]+\\/[^\\s]+$",
+              "description": "Qualified provider/model ID used to initialize new work.",
+              "examples": [
+                "openai/MODEL_ID"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "ocr": {
+      "type": "object",
+      "properties": {
+        "languages": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[^\\s+/]+(?:\\/[^\\s+/]+)*$"
+          },
+          "description": "Ordered Tesseract language identifiers. Replaces the complete inherited list.",
+          "examples": [
+            [
+              "eng",
+              "pol"
+            ]
+          ],
+          "default": [
+            "eng"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

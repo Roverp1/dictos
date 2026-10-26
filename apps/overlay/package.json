@@ -9,6 +9,10 @@
     "test:native": "bun run build:native && bun test native",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@dictos/config": "workspace:*",
+    "@dictos/errore": "workspace:*"
+  },
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^7.0.2"
