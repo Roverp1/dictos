@@ -89,14 +89,10 @@ interface ProviderConnectionRepository {
 }
 interface LocalState {
   deviceId: string;
-  selectedModel: SelectedModel | null;
 }
 interface LocalStateRepository {
   getLocalState(): Promise<LocalState | StorageError>;
   resetLocalState(): Promise<LocalState | StorageError>;
-  setSelectedModel(
-    value: SelectedModel | null
-  ): Promise<LocalState | StorageError>;
 }
 ```
 
@@ -119,39 +115,19 @@ class ProviderConnectionService {
     id: ProviderId
   ): Promise<ProviderConnection | NotFoundError | StorageError>;
 }
-class ModelSelectionService {
-  select(
-    id: QualifiedModelId
-  ): Promise<
-    | SelectedModel
-    | ValidationError
-    | NotFoundError
-    | ModelCatalogError
-    | StorageError
-  >;
-  current(): Promise<
-    | SelectedModel
-    | null
-    | ValidationError
-    | NotFoundError
-    | ModelCatalogError
-    | StorageError
-  >;
-  resolve(input: {
-    override?: QualifiedModelId;
-  }): Promise<
-    | SelectedModel
-    | ValidationError
-    | NotFoundError
-    | ModelCatalogError
-    | StorageError
-  >;
-}
 ```
 
-Connect validates the catalog Provider and key, and refuses to overwrite an existing connection. Reconnect requires an existing connection. Disconnect clears a matching Selected Model before deleting its credential; a failure to clear leaves the credential, while a failed deletion can leave it configured but unselected. `FsProviderConnectionRepository` stores one key per Provider ID in owner-only `<dataDir>/providers.json`, serializes writes with a lock, and returns credentials only from targeted `findByProviderId` calls. Lists and mutation results contain only `providerId`.
+Connect validates the catalog Provider and key, and refuses to overwrite an existing connection. Reconnect requires an existing connection. Disconnect removes only the credential; it neither reads local identity nor changes configuration or a workflow's Selected Model. `FsProviderConnectionRepository` stores one key per Provider ID in owner-only `<dataDir>/providers.json`, serializes writes with a lock, and returns credentials only from targeted `findByProviderId` calls. Lists and mutation results contain only `providerId`.
 
-`ModelSelectionService.select(id)`, `current()`, and `resolve({ override? })` validate catalog eligibility and a configured credential. `current()` returns `null` if unselected; a stale or disconnected choice returns an Error. `resolve` uses an explicit override for that call without saving it; without either choice it returns `ValidationError`, never a fallback Model. `FsLocalStateRepository` stores selection alongside `deviceId` in `<dataDir>/local-state.json`; selection updates preserve the device ID and reset clears selection. Neither credentials, selection, nor catalog cache enter the Dictionary database or Sync.
+`LocalStateRepository` owns only device identity at `<dataDir>/local-state.json`, with get/reset operations. There is no `ModelSelectionService` or persisted-selection setter. Credentials, configuration, runtime Model choices, and catalog cache stay outside the Dictionary database, Sync, and Mirroring.
+
+### Configuration and Model Inputs
+
+`@dictos/config` owns portable leaf schemas, inferred types, defaults, permitted scopes, resolution, provenance, and immutable snapshot validation. `@dictos/fs-storage/configuration` handles native paths, TOML, and starter-file creation when files are missing. Core has no configuration dependency: its generation services receive explicit `SelectedModel` inputs and enforce catalog eligibility and Provider Connection checks.
+
+The CLI's `resolveCommandModel({ override: string | null, configured: string | null })` returns `SelectedModel | ValidationError`. It chooses an explicit `--model` before the resolved Default Model and parses the qualified ID with core's helper. If neither is present, it returns an actionable validation failure before a Provider request. It does not persist, check account access, or choose a fallback. A well-formed but unavailable default does not prevent a valid explicit override. Configuration shape errors remain startup failures even when `--model` is supplied.
+
+The Overlay initializes its Selected Model from the opening's Default Model and changes that choice locally. Every suggestion or generation carries the chosen qualified ID. Picker changes preserve editor text, invalidate pending requests, and never rewrite configuration or the opening's snapshot. Reopening starts from freshly resolved configuration. See the [configuration reference](../../configuration.md) for file scopes, precedence, starter behavior, and the portable/native API boundary.
 
 ## Saved-Description Generation Boundary
 
@@ -246,11 +222,11 @@ The CLI supplies the root Folder ID. Entry saves omit Sense and typed drafts and
 
 ## Overlay State Boundary
 
-`OverlayCaptureStateStore.read()` and `replace(state)` return `Promise<OverlayCaptureLocalState | StorageError>`. `FsOverlayCaptureStateRepository` stores complete version 1 snapshots at `<dataDir>/overlay-capture/state.json`, validates known Types, queues writes within one repository instance, and atomically renames unique owner-only temporary files. Across processes, the last completed replacement wins; there is no persistent lock directory. Missing state returns empty Instruction text and `["definition"]`; corrupt state returns an Error without overwriting it, including during replacement. This file holds only Instruction input text and Type choices. State operations use filesystem storage directly without constructing either CLI dependency graph. Instruction edits never write database Instructions; the Selected Model remains shared device-local state in `local-state.json`.
+`OverlayCaptureStateStore.read()` and `replace(state)` return `Promise<OverlayCaptureLocalState | StorageError>`. `FsOverlayCaptureStateRepository` stores complete version 1 snapshots at `<dataDir>/overlay-capture/state.json`, validates known Types, queues writes within one repository instance, and atomically renames unique owner-only temporary files. Across processes, the last completed replacement wins; there is no persistent lock directory. Missing state returns empty Instruction text and `["definition"]`; corrupt state returns an Error without overwriting it, including during replacement. This file holds only Instruction input text and Type choices. State commands obtain validated configuration first, then use filesystem storage directly without constructing either CLI dependency graph. Instruction edits never write database Instructions; the Selected Model stays in workflow memory and is not part of this file.
 
 ## Command Client
 
-`CliContext.getProviderDependencies()` lazily caches a provider-only graph (local storage, catalog, selection, logger, and screen generation service/adapter). Provider, catalog, selection, overlay suggestion, and overlay draft generation commands do not open `dictos.db`. `getDependencies()` extends this graph with the Dictionary database, saved-Description generation, reviewed saves, and other services. Saved Instruction listing reads the database. The central server is not on either generation path.
+`CliContext.getConfiguration()` lazily caches a configuration load per invocation. Direct CLI use initializes and loads shared → CLI configuration; Overlay children validate the inherited startup snapshot instead. Help/version and parser usage failures do not call the loader. `getProviderDependencies()` first obtains configuration, then lazily caches a provider-only graph (local storage, catalog, logger, and screen generation service/adapter). Provider, catalog, overlay suggestion, and overlay draft generation commands do not open `dictos.db`. `getDependencies()` extends this graph with the Dictionary database, saved-Description generation, reviewed saves, and other services. Saved Instruction listing reads the database. The central server is not on either generation path.
 
 ```text
 dictos provider available
@@ -259,18 +235,17 @@ dictos provider reconnect <provider-id>
 dictos provider list
 dictos provider disconnect <provider-id> --yes
 dictos models [provider-id] [--refresh] [--verbose]
-dictos model select <provider/model>
-dictos model current
 dictos description generate <description-id> --instruction <instruction-id> --types <type,...> [--model <provider/model>] [--allow-duplicate]
 ```
 
-Connect/reconnect read the API key through hidden terminal input, not a flag. `provider available` lists supported IDs, while `provider list` reports configured IDs without verifying account access. `models` prints sorted eligible qualified IDs for configured Providers (optional safe metadata); catalog source/date go to stderr. Generation resolves the saved choice or an invocation-only override before creating a proposal. A suspected duplicate requires confirmation or `--allow-duplicate`; discard writes nothing, and acceptance commits the same proposal without another provider request. Success prints the Sense ID then generated Description IDs. Exit codes are `0` success, `1` unexpected/dependency failure, `2` usage or required confirmation, `3` handled Error, and `4` Dictionary database in use.
+Connect/reconnect read the API key through hidden terminal input, not a flag. `provider available` lists supported IDs, while `provider list` reports configured IDs without verifying account access. `models` prints sorted eligible qualified IDs for configured Providers (optional safe metadata); catalog source/date go to stderr. Generation uses its explicit Model override or configured Default Model before creating a proposal. The `model select` and `model current` commands are unavailable. A suspected duplicate requires confirmation or `--allow-duplicate`; discard writes nothing, and acceptance commits the same proposal without another provider request. Success prints the Sense ID then generated Description IDs. Exit codes are `0` success, `1` unexpected/dependency failure, `2` usage or required confirmation, `3` handled Error, `4` Dictionary database in use, and `5` configuration failure.
 
 The commit repository rechecks source Entry ownership and expected Sense assignment, and checks existing Sense identity before writes. New Sense creation, source assignment, and generated Description inserts run in one database transaction; a failed write rolls them back together. Stale proposals return `GenerationConflictError` rather than being committed.
 
 ### Provisional Overlay Commands
 
 ```text
+dictos overlay bootstrap --json
 dictos overlay suggest --json
 dictos overlay generate --json
 dictos overlay save --json
@@ -278,15 +253,29 @@ dictos overlay state read --json
 dictos overlay state write --json
 ```
 
-The three operation names are provisional. Suggest, generate, save, and state write read one bounded UTF-8 JSON line from stdin (at most 1 MiB before its terminating newline). Send `JSON.stringify(request) + "\n"`; multiline text is escaped inside JSON and never passed through shell arguments. Stream input requires the newline, not EOF. With `--json`, stdout contains exactly one newline-terminated envelope, including handled failures:
+The three operation names are provisional. Bootstrap reads no stdin and always performs a fresh native shared → CLI → Overlay load, ignoring any inherited snapshot. It initializes missing files and returns `OverlayCliResponse<ConfigurationSnapshot>` with `client: "overlay"`, without opening the Dictionary, initializing device identity, reading credentials, probing Models, or making network requests.
+
+The launcher validates bootstrap's exit status, envelope, and snapshot before capture/OCR. Captured bootstrap output is bounded to 1 MiB and encoded snapshots to 16 KiB. It exports the immutable snapshot through process-local `DICTOS_OVERLAY_CONFIG_SNAPSHOT` to Quickshell and all CLI children. This internal transport is not a user preference.
+
+Children require a complete version-1 Overlay snapshot and retain its inherited CLI logging level. They do not discover, create, or reread TOML files or reapply live environment overrides. A present invalid, oversized, unsupported-version, or wrong-client snapshot fails with exit `5`, without disk fallback. The snapshot carries configuration values and provenance, not runtime Selected Models or credentials; shared data-location conventions still determine storage. These rules also cover Model/Instruction listing, Save, and direct state operations. A new bootstrap reads the latest native files.
+
+Suggest, generate, save, and state write read one bounded UTF-8 JSON line from stdin (at most 1 MiB before its terminating newline). Send `JSON.stringify(request) + "\n"`; multiline text is escaped inside JSON and never passed through shell arguments. Stream input requires the newline, not EOF. With `--json`, stdout contains exactly one newline-terminated envelope, including handled failures:
 
 ```ts
 type OverlayCliResponse<T> =
   | { ok: true; data: T }
-  | { ok: false; error: { code: string; message: string } };
-type SuggestRequest = ScreenEntryText;
+  | {
+      ok: false;
+      error: {
+        code: string;
+        message: string;
+        issues?: readonly ConfigurationIssue[];
+      };
+    };
+type SuggestRequest = ScreenEntryText & { model: string };
 type SuggestResult = { senses: SenseCandidate[] };
 type GenerateRequest = ScreenEntryText & {
+  model: string;
   senseName: string | null;
   descriptions: ScreenDescriptionInput[];
   targetTypes: DescriptionType[];
@@ -303,12 +292,35 @@ type SaveResult = {
 };
 ```
 
-Nullable fields must be present as strings or `null`. Generate maps transport `descriptions` to core `existingDescriptions`. Both generation operations resolve the persisted Selected Model with no command override or automatic fallback. Save uses the full database graph but does not resolve a Model. State write accepts `OverlayCaptureLocalState`; read and write return that shape in `data` and require `--json`. The three operations also allow human-readable output when `--json` is omitted.
+Nullable fields must be present as strings or `null`. Generate maps transport `descriptions` to core `existingDescriptions`. Both generation operations require an explicit qualified `model`; a missing or malformed ID returns `INVALID_REQUEST` with exit `2`, even when a Default Model exists. Valid but unavailable choices fail through generation checks without fallback. Save uses the full database graph but does not resolve a Model. Save and state payloads have no Model field. State write accepts `OverlayCaptureLocalState`; read and write return that shape in `data` and require `--json`. The three operations also allow human-readable output when `--json` is omitted.
 
-Error envelopes expose safe codes/messages without logs, progress text, ANSI codes, credentials, or raw Provider responses. Framing errors use `INVALID_REQUEST`, `REQUEST_TOO_LARGE`, or `REQUEST_READ_FAILED`; operation failures currently use `OPERATION_FAILED`, and a busy database uses `DATABASE_IN_USE`. Suggest/generate/save exit with `2` for invalid input, `3` for handled operation failure, or `4` for a busy database; state helper failures use `3`. Success uses `0`. Clients must check both envelope and exit status. Empty or malformed output or a child-process crash cannot confirm a Save outcome; retain drafts and do not auto-retry.
+Error envelopes expose safe codes/messages without logs, progress text, ANSI codes, credentials, or raw Provider responses. Framing errors use `INVALID_REQUEST`, `REQUEST_TOO_LARGE`, or `REQUEST_READ_FAILED`; operation failures currently use `OPERATION_FAILED`, and a busy database uses `DATABASE_IN_USE`. Suggest/generate/save exit with `2` for invalid input, `3` for handled operation failure, or `4` for a busy database; other handled state helper failures use `3`. Configuration failures use `5` across operations, bootstrap, state helpers, and Model/Instruction JSON listing. Success uses `0`. Clients must check both envelope and exit status. Empty or malformed output or a child-process crash cannot confirm a Save outcome; retain drafts and do not auto-retry.
+
+Configuration failures use this envelope, with a nonempty issue list:
+
+```ts
+type ConfigurationIssue = {
+  kind: "initialize" | "read" | "parse" | "validate" | "snapshot";
+  source: string;
+  keyPath: readonly string[];
+  line: number | null;
+  column: number | null;
+  message: string;
+};
+type ConfigurationFailureResponse = {
+  ok: false;
+  error: {
+    code: "CONFIGURATION_ERROR";
+    message: string;
+    issues: readonly ConfigurationIssue[];
+  };
+};
+```
+
+`configurationFailureResponse` formats the first safe issue into `error.message`: source, known setting path, available line/column, and reason or expected shape, plus the remaining issue count. Human output uses the same summary. The launcher prints it to stderr for bootstrap failure; `CommandJob` preserves it for an open Overlay's Notification without requiring stderr or an issue renderer. Drafts remain intact. Raw TOML, supplied values, snapshot payloads, and parser causes are excluded from diagnostics; logging sanitizes configuration causes. Only bootstrap's explicit success response transports the snapshot. Configuration errors are propagated as Error values and are not replaced with generic dependency failures or replacement defaults.
 
 When dependency initialization provides a Logger, overlay operations and JSON Instruction-list failures write structured operation/error-type diagnostics to the local CLI log. Logs redact draft text, SQL bound values, credentials, and raw parser/Provider causes; diagnostics never enter JSON stdout.
 
 The overlay also validates Save receipts before closing. IDs must be nonblank, typed Description IDs must be unique, and the captured Description ID cannot appear in the typed list. Sense/captured-record presence and typed Description count must agree with the submitted Save mode and nonblank text. A contradictory success receipt leaves the outcome unknown. A valid receipt blocks further saves and starts the local-state flush before exit; a flush failure keeps the overlay open without repeating the committed Save.
 
-Picker support uses `dictos instruction list --json`, `dictos models [provider-id] --json`, `dictos model current --json`, and `dictos model select <provider/model>`. Reading saved Instructions and copying their text does not link subsequent inline edits to a record. Model selection persists the shared device choice.
+Picker support uses `dictos instruction list --json` and `dictos models [provider-id] --json`. Reading saved Instructions and copying their text does not link subsequent inline edits to a record. Model picker choices update only the current Overlay's Selected Model; they issue no persistence command.

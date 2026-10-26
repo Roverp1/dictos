@@ -41,23 +41,33 @@ interface ProviderConnectionFile {
 
 The map key is the Provider ID; supported IDs are `deepseek`, `google`, `groq`, `openai`, and `openrouter`. The filesystem adapter validates the version and stored shape, serializes updates, writes through a uniquely named same-directory temporary file, removes temporary files after failed writes, and creates the file with owner-only mode `0o600`. Lists and mutation results use the safe `ProviderConnection` shape containing only `providerId`; targeted internal reads for Description Generation and connection management use `ProviderConnectionWithCredential`. Credentials are not included in normal output.
 
-## Selected Model
+## Default Model and Selected Model
 
-The device-local `<dataDir>/local-state.json` stores the Selected Model alongside the existing device identity:
+The Default Model is an optional qualified `provider/model` ID in device-local configuration. It initializes new work and is not a saved runtime selection. File scopes and inheritance are defined in the [configuration reference](../../configuration.md). There is no built-in Default Model or automatic catalog fallback.
+
+Core receives the Selected Model as an explicit pair:
 
 ```typescript
 interface SelectedModel {
   providerId: string;
   modelId: string;
 }
-
-interface LocalState {
-  deviceId: string;
-  selectedModel: SelectedModel | null;
-}
 ```
 
-The selected pair is represented externally as `provider/model`; Model IDs may contain further slashes. A missing state file initializes a new `deviceId` with `selectedModel: null`. An existing file with a valid `deviceId` but no `selectedModel` is treated as unselected. Selection updates preserve `deviceId`; only an explicit local-state reset replaces it and clears the selection. No Model is chosen automatically. A per-command Model override does not change the saved choice. The overlay shares this selection with other Command Client operations; its Model picker persists the choice through `dictos model select`, not in overlay-local state.
+The pair is represented externally as `provider/model`; Model IDs may contain further slashes. A CLI `--model` takes precedence over the configured default when initializing the invocation's Selected Model. The Overlay initializes from its startup snapshot and keeps its picker choice in memory for that opening. Neither choice changes configuration, the snapshot's Default Model, or any local-state file. Disconnecting a Provider removes only its credential.
+
+`<dataDir>/local-state.json` holds only device identity through `LocalState = { deviceId: string }`; get/reset operations are described in the [Sync contracts](../sync/contracts.md). Model choice does not read or update this identity.
+
+### Configuration Snapshot
+
+`@dictos/config` infers the immutable snapshot from shared leaf schemas. Its version-1 transport contains `client`, effective `settings`, and value `origins`:
+
+- `settings.defaultModel` is a qualified ID or `null`.
+- `settings.logLevel` is the resolved CLI logging threshold.
+- `settings.ocrLanguages` is `null` for CLI snapshots and a nonempty ordered list for Overlay snapshots.
+- Each applicable setting has an origin with `kind` (`default`, `global`, `cli`, `overlay`, or `environment`), nullable source label, and original key path. Default origins also cover the absence of a Default Model.
+
+An Overlay opening carries one validated snapshot to its CLI children through internal `DICTOS_OVERLAY_CONFIG_SNAPSHOT` transport. The snapshot contains no runtime Selected Model, device identity, authentication session, credentials, cache, or draft state. It is not persisted. The configuration module owns file documents, defaults, editor schemas, and resolution rules; core generation takes only domain inputs.
 
 ## Overlay-Local State
 
@@ -111,7 +121,7 @@ interface ModelCatalogCacheFile extends Omit<ModelCatalog, "source"> {
 
 `source` identifies the active catalog in memory; the cache file stores `version`, `fetchedAt`, `providers`, and `models`, but not `source`. `fetchedAt` is the snapshot retrieval date or the refresh timestamp, not proof of live Provider access. The `textGeneration: true` marker is derived from upstream data only after checking text input, text-only output, a non-deprecated status, a generation signal (`temperature`, `tool_call`, or `structured_output`), and no model-specific protocol override. The bundled snapshot and refresh use the same predicate. Text modalities alone are insufficient because models.dev includes embedding-only Models. Version 1 caches have no such marker and fall back to the bundled snapshot with a warning; an explicit successful refresh replaces them with version 2. Only eligible Models from configured Providers are listed for selection. Catalog metadata does not prove account access or guarantee Description Generation will succeed.
 
-No synced database table, Drizzle schema, or Sync record changes for Provider Connections, the Selected Model, or the Model Catalog.
+Provider Connections, configuration, runtime Selected Models, and the Model Catalog add no synced database table, Drizzle schema, or Sync record.
 
 ## Ephemeral Saved-Description Proposals
 

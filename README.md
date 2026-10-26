@@ -4,7 +4,7 @@
 
 Dictos is an open-source app for building and managing personal dictionaries while reading, learning, and collecting language material. It stores your data locally first, keeps the interface fast, and is designed to sync across devices without making the network the source of truth.
 
-The project is still early. The Terminal UI is the primary client, with a script-oriented Command Client and a development Wayland/Hyprland screen overlay. The central server is under development. The Web client code remains in the repo, but the app is broken and unmaintained.
+The project is still early. The current CLI-first alpha focuses on the Command Client and a development Wayland/Hyprland screen overlay. The Terminal UI remains maintained. The central server is under development. The Web client code remains in the repo, but the app is broken and unmaintained.
 
 ## Quick Start
 
@@ -19,10 +19,10 @@ secretspec config init
 secretspec check
 
 bun install
-devenv up
+bun run dev:cli entry list
 ```
 
-`devenv up` starts the local sync server and central server. In another terminal, run `bun run dev:tui` to start the Terminal UI.
+The first normal CLI invocation creates missing shared and CLI configuration files with commented settings. See [application configuration](./docs/configuration.md) for locations and Default Model setup. Local Dictionary commands do not require the central server. Run `devenv up` when developing the server/Sync stack, or `bun run dev:tui` for the Terminal UI.
 
 ## What It Does
 
@@ -43,7 +43,7 @@ Dictos is intended to become a serious open-source app for outside users, but it
 
 Current state:
 
-- Terminal UI is the primary client.
+- The alpha focuses on the Command Client and development Overlay; the Terminal UI remains maintained.
 - The Command Client supports Dictionary management and Description Generation. The development screen overlay reviews OCR text and generated drafts before saving; installation and packaging are deferred.
 - Web client code remains in the repo, but the app is broken, unmaintained, and unsupported. Routine checks do not cover it.
 - Central server exists for auth, sync setup, and future social features.
@@ -58,6 +58,7 @@ Current state:
 - **Turso database** - Local persistence with sync-oriented database adapters.
 - **Headless React controller** - `@dictos/react` owns shared interaction state while clients render their own UI.
 - **Screen text review** - A Quickshell overlay freezes one monitor, lets you correct independent Entry/Description selections, and saves reviewed Sense/Description drafts atomically.
+- **Application configuration** - Shared and client TOML files configure Default Models, CLI logging, and Overlay OCR, with commented starters and offline editor schemas.
 - **Server-backed sync setup** - The central ElysiaJS server supports auth and database provisioning flows.
 
 ## Requirements
@@ -92,6 +93,14 @@ Install dependencies:
 ```bash
 bun install
 ```
+
+Run the Command Client:
+
+```bash
+bun run dev:cli entry list
+```
+
+Use the [CLI README](./apps/cli/README.md) for Provider Connections and generation. A file-based Default Model initializes the Selected Model for each command or Overlay opening. `--model` and the Overlay picker choose a Model for current work without saving that selection. The [configuration reference](./docs/configuration.md) describes inheritance and defaults.
 
 Run the Terminal UI:
 
@@ -179,12 +188,13 @@ apps/overlay/             Development Quickshell/QML overlay with native Tessera
 apps/web/                 Retained, unsupported Web client (Vite + React Router)
 apps/server/              ElysiaJS central server
 packages/core/            Pure domain logic, ports, and services
+packages/config/          Portable configuration, snapshots, and editor schemas
 packages/react/           Headless shared UI state and actions
 packages/db-core/         Shared Drizzle schema and repositories
 packages/ai-sdk/          Description Generation and Model Catalog adapters
 packages/bun-turso-sync/  Bun/local Turso sync adapter
 packages/wasm-turso-sync/ Browser/WASM Turso sync adapter
-packages/fs-storage/      Filesystem storage adapter
+packages/fs-storage/      Native TOML configuration and filesystem storage
 packages/local-storage/   Browser localStorage adapter
 packages/eden-http/       Elysia Eden HTTP client adapter
 packages/logger/          Shared logger interface
@@ -199,11 +209,14 @@ The core domain lives in `packages/core` and must not depend on React, UI framew
 
 `@dictos/react` is a headless controller for Dictionary interaction state: browse mode, entry mode, preview content, cursors, selection, and context-menu targets. The TUI uses it today. The retained Web client was built around it but is broken and unmaintained.
 
+`@dictos/config` owns portable settings and resolution. `@dictos/fs-storage/configuration` handles native file discovery, commented starters, and TOML decoding. CLI commands resolve settings once; an Overlay passes its startup snapshot to CLI children while keeping Model choice local to the opening. The TUI does not yet consume these TOML settings.
+
 For the full architecture, read [`docs/system-overview.md`](./docs/system-overview.md).
 
 ## Documentation
 
 - [`docs/system-overview.md`](./docs/system-overview.md) - Purpose, architecture, stack, and codebase map.
+- [`docs/configuration.md`](./docs/configuration.md) - Configuration locations, scopes, defaults, schemas, and failure behavior.
 - [`apps/cli/README.md`](./apps/cli/README.md) - CLI usage, overlay JSON protocol, and retained screen-region shortcut.
 - [`apps/overlay/README.md`](./apps/overlay/README.md) - Development launcher, OCR build/checks, and review controls.
 - [`CONTEXT.md`](./CONTEXT.md) - Project terminology.
