@@ -1,6 +1,6 @@
 # Technical Plan: Application Configuration
 
-**Parent Spec**: [spec.md](./spec.md) | **Status**: Draft
+**Parent Spec**: [spec.md](./spec.md) | **Status**: Implemented
 
 ## 1. Architectural Strategy
 
@@ -8,17 +8,17 @@ Create `@dictos/config` as a portable module for setting definitions, validation
 
 Put native discovery, TOML parsing, and create-if-missing initialization in `@dictos/fs-storage/configuration`. Use `smol-toml` so the adapter keeps its native JavaScript filesystem model. The adapter supplies parsed values to the portable resolver. Application wiring decodes environment variables and passes them as explicit inputs. Do not add a generic writable-source interface for files, environment variables, or command arguments. Only the filesystem adapter creates starter files; existing configuration is never edited through these interfaces.
 
-Resolve shared → CLI for direct CLI use and shared → CLI → Overlay once when an Overlay opens. Pass the snapshot to its subprocesses through a process-local environment variable so file edits cannot change settings during a review. Pass the current Selected Model in each generation request. Existing generation modules check eligibility and Provider Connections, so remove the stateful `ModelSelectionService` without adding another Model-selection abstraction. See [ADR 0013](../../docs/adr/0013-keep-configuration-portable-and-snapshot-workflows.md).
+Resolve shared → CLI for direct CLI use and shared → CLI → Overlay once when an Overlay opens. Pass the snapshot to its subprocesses through a process-local environment variable so file edits cannot change settings during a review. Pass the current Selected Model in each generation request. Existing generation modules check eligibility and Provider Connections, so remove the stateful `ModelSelectionService` without adding another Model-selection abstraction. See [ADR 0013](../../../docs/adr/0013-keep-configuration-portable-and-snapshot-workflows.md).
 
 ### Package ownership and dependencies
 
-| Package | Responsibility and dependency changes |
-| --- | --- |
-| New `packages/config` | Runtime dependency on `zod` 4 (`^4.6.7` at planning time) and `@dictos/errore`. Portable runtime exports, inferred types, setting metadata, and generated JSON Schema assets. |
-| `packages/fs-storage` | Add `@dictos/config` and `smol-toml` (`^1.9.1` at planning time). Export native configuration functions through a separate `./configuration` entry point. |
-| `apps/cli` | Add a direct `@dictos/config` dependency. Wire startup, logger settings, bootstrap output, snapshot decoding, and explicit Model inputs. |
-| `apps/overlay` | Add `@dictos/config` and `@dictos/errore` for launch adapters that return Error values. Validate CLI bootstrap output and native OCR startup records. QML receives the snapshot and makes runtime Model choices. |
-| `packages/core` | Remove persisted selection contracts and wiring. Keep existing generation inputs, Model parsing, eligibility checks, and Provider validation. No configuration dependency. |
+| Package               | Responsibility and dependency changes                                                                                                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New `packages/config` | Runtime dependency on `zod` 4 (`^4.6.7` at planning time) and `@dictos/errore`. Portable runtime exports, inferred types, setting metadata, and generated JSON Schema assets.                                    |
+| `packages/fs-storage` | Add `@dictos/config` and `smol-toml` (`^1.9.1` at planning time). Export native configuration functions through a separate `./configuration` entry point.                                                        |
+| `apps/cli`            | Add a direct `@dictos/config` dependency. Wire startup, logger settings, bootstrap output, snapshot decoding, and explicit Model inputs.                                                                         |
+| `apps/overlay`        | Add `@dictos/config` and `@dictos/errore` for launch adapters that return Error values. Validate CLI bootstrap output and native OCR startup records. QML receives the snapshot and makes runtime Model choices. |
+| `packages/core`       | Remove persisted selection contracts and wiring. Keep existing generation inputs, Model parsing, eligibility checks, and Provider validation. No configuration dependency.                                       |
 
 Keep native code and schema-generation scripts outside the portable runtime entry point. Typecheck `packages/config` against ES libraries without ambient platform globals, and give it a separate Bun test configuration. Retain the maintained packages' existing test runners and runtime assumptions. Generated-schema tests may use `ajv` 8 and `ajv-draft-04` as development dependencies; neither belongs in runtime exports.
 
@@ -137,7 +137,7 @@ function configurationScopes(input: {
 }): readonly ConfigurationScope[];
 
 function resolveConfiguration(
-  input: ResolveConfigurationInput,
+  input: ResolveConfigurationInput
 ): ConfigurationSnapshot | ConfigurationError;
 
 function validateConfigurationSnapshot(input: {
@@ -193,11 +193,11 @@ function initializeAndLoadConfiguration(input: {
 
 These functions live under `packages/fs-storage/src/configuration/`. Keep path discovery separate from directory creation. Use the following configuration locations; the existing data-directory function is unchanged.
 
-| Platform | Configuration directory |
-| --- | --- |
+| Platform                                      | Configuration directory                                                                                                                                            |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Linux and other XDG-style native environments | Absolute `XDG_CONFIG_HOME` plus `/dictos`, otherwise `<home>/.config/dictos`; ignore relative XDG values rather than resolving them against the working directory. |
-| macOS | `<home>/Library/Preferences/dictos` |
-| Windows | Absolute `APPDATA` plus `/dictos/config`, otherwise `<home>/AppData/Roaming/dictos/config` |
+| macOS                                         | `<home>/Library/Preferences/dictos`                                                                                                                                |
+| Windows                                       | Absolute `APPDATA` plus `/dictos/config`, otherwise `<home>/AppData/Roaming/dictos/config`                                                                         |
 
 The adapter maps scopes to `config.toml`, `cli.toml`, and `overlay.toml`. Locate schema artifacts through the exported `@dictos/config/schemas/*.json` assets and turn their native locations into absolute file URIs for starter directives. Resolve those assets before creating files, so a missing build artifact produces an error instead of a broken starter reference.
 
@@ -259,13 +259,13 @@ Remove `registerModelCommands`, its registration, selection dependency types, an
 
 Add one bootstrap operation under the existing Overlay command group:
 
-| Contract | Value |
-| --- | --- |
-| Command | `dictos overlay bootstrap --json` |
-| Input | No stdin request |
-| Success stdout | One newline-terminated `OverlayCliResponse<ConfigurationSnapshot>` with `client: "overlay"` |
-| Work performed | Initialize the three-file chain, resolve configuration and supported environment inputs, return the snapshot |
-| Excluded work | No Dictionary open, device-state initialization, credential read, Provider eligibility check, or network request |
+| Contract       | Value                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Command        | `dictos overlay bootstrap --json`                                                                                |
+| Input          | No stdin request                                                                                                 |
+| Success stdout | One newline-terminated `OverlayCliResponse<ConfigurationSnapshot>` with `client: "overlay"`                      |
+| Work performed | Initialize the three-file chain, resolve configuration and supported environment inputs, return the snapshot     |
+| Excluded work  | No Dictionary open, device-state initialization, credential read, Provider eligibility check, or network request |
 
 Bootstrap always starts a new native Overlay load. It ignores any inherited snapshot so opening another Overlay reads the current files rather than adopting a parent opening's settings.
 
@@ -319,8 +319,7 @@ type OcrStartupFailure =
   | { code: "OCR_INITIALIZATION_FAILED" | "OCR_STARTUP_FAILED" };
 
 type OcrStartupRecord =
-  | { ready: true; initMs: number }
-  | { ready: false; error: OcrStartupFailure };
+  { ready: true; initMs: number } | { ready: false; error: OcrStartupFailure };
 ```
 
 If `Init` succeeds but loads only some requested languages, report the missing requested identifiers before exiting nonzero. If `Init` fails before the loaded set can be checked, report `OCR_INITIALIZATION_FAILED`; the launcher already has the requested languages. Other helper startup failures use `OCR_STARTUP_FAILED`. Keep raw Tesseract stderr separate from the user-facing error protocol as diagnostic output.
@@ -366,17 +365,17 @@ No HTTP endpoint or server contract is added.
 
 ## 4. Verification
 
-Follow [the project testing rules](../../docs/testing.md): pure resolution tests use logical inputs; filesystem and process behavior use real temporary infrastructure. All tests are colocated with the behavior they exercise.
+Follow [the project testing rules](../../../docs/testing.md): pure resolution tests use logical inputs; filesystem and process behavior use real temporary infrastructure. All tests are colocated with the behavior they exercise.
 
-| Area | Required evidence |
-| --- | --- |
-| Portable resolution | Shared → CLI and shared → CLI → Overlay inheritance; deleting an override; list replacement; provenance; invalid overridden lower-priority values; prohibited Overlay logging overrides; no Model and English defaults. |
-| Editor schema agreement | Run representative valid/invalid document cases through runtime validation and an independent Draft 4 validator. Check generated artifacts for drift. Verify completion, hover descriptions, and diagnostics manually in one TOML editor using local artifacts. |
-| Native adapter | Real files for first-run scope, fully commented starters, existing empty/custom/malformed files, unreadable paths, size/parse failures, and schema directives that resolve locally. Concurrent processes must preserve existing content and publish only complete files. |
-| CLI | Real startup under isolated configuration/data homes; help/version create nothing; removed Model commands; explicit `--model`; configured default; legacy selection ignored; device identity preserved; global and CLI logging levels reflected in the real CLI log. Exercise configuration failures through Model listing, Instruction listing, state, bootstrap, and operation JSON branches; each must retain exit 5 and an actionable message. |
-| Overlay workflow | Bootstrap creates all three files without opening Dictionary or credentials. Follow the real launch coordinator → Quickshell → shared CLI runner → `CommandJob` → CLI path for both `models --json` and a direct state helper after file edits. The opening's snapshot and log threshold stay active. Invalid snapshots fail without a disk fallback. Two openings keep separate selections, and a new opening reads the edited configuration. |
-| QML | Initial Model from bootstrap, local picker selection, explicit request Model payloads, manual Save with no usable Model, and preservation of existing text and late-reply/undo protections. A configuration failure's actual Notification contains its safe source/key/reason summary without requiring stderr or an issue-array renderer. |
-| OCR | The real helper receives `eng` by default and a configured/overridden combination when supplied. Run the actual launcher with missing or partially loaded language data. Verify its stderr names the missing identifier before cleanup, it exits nonzero, and Quickshell does not start. Malformed startup output produces a safe local diagnostic without forwarding raw helper stderr. |
+| Area                    | Required evidence                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Portable resolution     | Shared → CLI and shared → CLI → Overlay inheritance; deleting an override; list replacement; provenance; invalid overridden lower-priority values; prohibited Overlay logging overrides; no Model and English defaults.                                                                                                                                                                                                                            |
+| Editor schema agreement | Run representative valid/invalid document cases through runtime validation and an independent Draft 4 validator. Check generated artifacts for drift. Verify completion, hover descriptions, and diagnostics manually in one TOML editor using local artifacts.                                                                                                                                                                                    |
+| Native adapter          | Real files for first-run scope, fully commented starters, existing empty/custom/malformed files, unreadable paths, size/parse failures, and schema directives that resolve locally. Concurrent processes must preserve existing content and publish only complete files.                                                                                                                                                                           |
+| CLI                     | Real startup under isolated configuration/data homes; help/version create nothing; removed Model commands; explicit `--model`; configured default; legacy selection ignored; device identity preserved; global and CLI logging levels reflected in the real CLI log. Exercise configuration failures through Model listing, Instruction listing, state, bootstrap, and operation JSON branches; each must retain exit 5 and an actionable message. |
+| Overlay workflow        | Bootstrap creates all three files without opening Dictionary or credentials. Follow the real launch coordinator → Quickshell → shared CLI runner → `CommandJob` → CLI path for both `models --json` and a direct state helper after file edits. The opening's snapshot and log threshold stay active. Invalid snapshots fail without a disk fallback. Two openings keep separate selections, and a new opening reads the edited configuration.     |
+| QML                     | Initial Model from bootstrap, local picker selection, explicit request Model payloads, manual Save with no usable Model, and preservation of existing text and late-reply/undo protections. A configuration failure's actual Notification contains its safe source/key/reason summary without requiring stderr or an issue-array renderer.                                                                                                         |
+| OCR                     | The real helper receives `eng` by default and a configured/overridden combination when supplied. Run the actual launcher with missing or partially loaded language data. Verify its stderr names the missing identifier before cleanup, it exits nonzero, and Quickshell does not start. Malformed startup output produces a safe local diagnostic without forwarding raw helper stderr.                                                           |
 
 ### Process-handoff acceptance check
 

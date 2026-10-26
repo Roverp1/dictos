@@ -1,6 +1,8 @@
 # Specification: Application Configuration
 
-**Status**: Draft | **Created**: Oct 19, 2026
+**Status**: Implemented | **Created**: Oct 19, 2026 | **Archived**: Oct 26, 2026
+
+The [configuration reference](../../../docs/configuration.md), client/package documentation, and Description Generation and Sync modules describe the delivered behavior. This file preserves the planning contract. The [implementation tasks](./tasks.md#absorption-and-manual-verification-2026-10-26) record reported manual checks and remaining interactive verification limits.
 
 ## 1. The Problem (Why are we doing this?)
 
@@ -185,4 +187,4 @@ The Overlay resolves shared, CLI, and Overlay configuration once at startup, ini
 
 TypeScript runtime schemas define application validation, inferred types, editor schemas, and the descriptions, defaults, and examples used in starter files. Generated file schemas describe optional contributions. Apply defaults during resolution, after combining contributions, rather than to each source before merging. Starter-file rendering belongs with TOML tooling and uses the shared metadata rather than duplicating setting definitions. The technical plan chooses the schema library, TOML parser, schema-generation tooling, and internal context transport while preserving these contracts. Build-time schema export must not add native dependencies to portable runtime imports.
 
-The [Default Model and Selected Model glossary entries](../../CONTEXT.md) distinguish startup preferences from runtime choices. This feature replaces the device-wide selection behavior in the [Description Generation contracts](../../docs/modules/description-generation/contracts.md) and follows the [shared local-data decision](../../docs/adr/0007-share-local-data-across-clients.md) and [device-local credential decision](../../docs/adr/0009-keep-provider-credentials-device-local.md). Update living implementation documentation with the feature; this specification does not say the behavior is already implemented.
+The [Default Model and Selected Model glossary entries](../../../CONTEXT.md) distinguish startup preferences from runtime choices. This feature replaces the device-wide selection behavior in the [Description Generation contracts](../../../docs/modules/description-generation/contracts.md) and follows the [shared local-data decision](../../../docs/adr/0007-share-local-data-across-clients.md) and [device-local credential decision](../../../docs/adr/0009-keep-provider-credentials-device-local.md). Update living implementation documentation with the feature; this specification does not say the behavior is already implemented.
