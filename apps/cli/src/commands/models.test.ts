@@ -7,6 +7,7 @@ import { FsModelCatalogStore } from "@dictos/fs-storage";
 
 import { createCliContext } from "../app/context";
 import { registerModelsCommands } from "./models";
+import { isolateProcessEnvironment } from "../app/cli-fixture";
 
 const originalDataHome = process.env.XDG_DATA_HOME;
 const originalFetch = globalThis.fetch;
@@ -32,7 +33,7 @@ async function withCli(
   }) => Promise<void>
 ) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-models-cli-"));
-  process.env.XDG_DATA_HOME = root;
+  const restore = isolateProcessEnvironment(root);
   const stdout: string[] = [];
   const stderr: string[] = [];
   process.stdout.write = ((text: string) => {
@@ -57,6 +58,7 @@ async function withCli(
       dataDir: path.join(root, "dictos"),
     });
   } finally {
+    restore();
     process.stdout.write = originalStdout;
     process.stderr.write = originalStderr;
     await fs.rm(root, { recursive: true, force: true });

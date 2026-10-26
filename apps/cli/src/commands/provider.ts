@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import { ValidationError } from "@dictos/core";
 import { CliExitCode, type CliContext } from "../app/types";
 import {
+  getConfigurationOrExit,
   getProviderDependenciesOrExit,
   handleExpectedError,
   logOperationCompleted,
@@ -38,6 +39,8 @@ export const registerProviderCommands = (
       .command(action)
       .argument("[provider-id]", "Provider ID (required)")
       .action(async (providerId?: string) => {
+        const configuration = await getConfigurationOrExit(context);
+        if (configuration === null) return;
         if (providerId === undefined) {
           context.output.writeError(
             `provider ${action} requires <provider-id>`
@@ -130,6 +133,8 @@ export const registerProviderCommands = (
     .option("--yes", "Confirm disconnection")
     .action(
       async (providerId: string | undefined, options: { yes?: boolean }) => {
+        const configuration = await getConfigurationOrExit(context);
+        if (configuration === null) return;
         if (providerId === undefined) {
           context.output.writeError(
             "provider disconnect requires <provider-id>"

@@ -7,7 +7,6 @@ import type { Logger } from "../../../../packages/logger/src/index";
 
 import { ModelCatalogAdapter } from "../../../../packages/ai-sdk/src/model-catalog-adapter";
 import { FsModelCatalogStore } from "../../../../packages/fs-storage/src/repositories/fs-model-catalog-store";
-import { FsLocalStateRepository } from "../../../../packages/fs-storage/src/repositories/fs-local-state-repository";
 import { FsProviderConnectionRepository } from "../../../../packages/fs-storage/src/repositories/fs-provider-connection-repository";
 import { NotFoundError, StorageError, ValidationError } from "../errors";
 import { ModelCatalogService } from "./model-catalog-service";
@@ -29,7 +28,6 @@ async function fixture(cleanup: errore.AsyncDisposableStack) {
   );
   cleanup.defer(() => fs.rm(dataDir, { recursive: true, force: true }));
   const connections = new FsProviderConnectionRepository({ dataDir, logger });
-  const state = new FsLocalStateRepository(dataDir);
   const catalog = new ModelCatalogService(
     new ModelCatalogAdapter({
       store: new FsModelCatalogStore({ dataDir }),
@@ -41,9 +39,8 @@ async function fixture(cleanup: errore.AsyncDisposableStack) {
     connections
   );
   return {
-    service: new ProviderConnectionService(connections, catalog, state),
+    service: new ProviderConnectionService(connections, catalog),
     connections,
-    state,
     dataDir,
   };
 }
@@ -121,9 +118,9 @@ describe("ProviderConnectionService", () => {
     });
   });
 
-  test("disconnect clears only the matching Selected Model before removing the credential", async () => {
+  test("disconnect removes only the requested Provider credential", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
-    const { service, state, connections } = await fixture(cleanup);
+    const { service, connections } = await fixture(cleanup);
     for (const providerId of ["google", "openai"]) {
       const result = await service.connect({
         providerId,
@@ -131,26 +128,22 @@ describe("ProviderConnectionService", () => {
       });
       if (result instanceof Error) throw result;
     }
-    const saved = await state.setSelectedModel({
-      providerId: "openai",
-      modelId: "gpt-4o",
-    });
-    if (saved instanceof Error) throw saved;
     expect(await service.disconnect("google")).toEqual({
       providerId: "google",
     });
-    expect(await state.getLocalState()).toEqual(saved);
+    expect(await connections.findByProviderId("google")).toBeNull();
+    expect(await connections.findByProviderId("openai")).toEqual({
+      providerId: "openai",
+      apiKey: "secret-openai",
+    });
     expect(await service.disconnect("openai")).toEqual({
       providerId: "openai",
     });
-    const after = await state.getLocalState();
-    if (after instanceof Error) throw after;
-    expect(after).toEqual({ deviceId: saved.deviceId, selectedModel: null });
     expect(await connections.findAll()).toEqual([]);
     expect(await service.disconnect("openai")).toBeInstanceOf(NotFoundError);
   });
 
-  test("a failed Selected Model read leaves the credential configured", async () => {
+  test("disconnect removes the credential without reading or rewriting malformed local state", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
     const { service, connections, dataDir } = await fixture(cleanup);
     const connected = await service.connect({
@@ -159,32 +152,25 @@ describe("ProviderConnectionService", () => {
     });
     if (connected instanceof Error) throw connected;
     await fs.writeFile(path.join(dataDir, "local-state.json"), "{broken");
-    expect(await service.disconnect("google")).toBeInstanceOf(StorageError);
-    expect(await connections.findByProviderId("google")).toEqual({
+    expect(await service.disconnect("google")).toEqual({
       providerId: "google",
-      apiKey: "secret",
     });
+    expect(await connections.findByProviderId("google")).toBeNull();
+    expect(
+      await fs.readFile(path.join(dataDir, "local-state.json"), "utf8")
+    ).toBe("{broken");
   });
 
-  test("a failed credential deletion leaves the Provider configured but unselected", async () => {
+  test("a failed credential deletion leaves the Provider configured", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
-    const { service, state, connections, dataDir } = await fixture(cleanup);
+    const { service, connections, dataDir } = await fixture(cleanup);
     const connected = await service.connect({
       providerId: "google",
       apiKey: "secret",
     });
     if (connected instanceof Error) throw connected;
-    const saved = await state.setSelectedModel({
-      providerId: "google",
-      modelId: "gemini",
-    });
-    if (saved instanceof Error) throw saved;
     await fs.mkdir(path.join(dataDir, "providers.json.lock"));
     expect(await service.disconnect("google")).toBeInstanceOf(StorageError);
-    expect(await state.getLocalState()).toEqual({
-      deviceId: saved.deviceId,
-      selectedModel: null,
-    });
     expect(await connections.findByProviderId("google")).toEqual({
       providerId: "google",
       apiKey: "secret",

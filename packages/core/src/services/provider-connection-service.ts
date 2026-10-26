@@ -5,17 +5,13 @@ import {
   type StorageError,
 } from "../errors";
 import type { ProviderConnection, ProviderId } from "../models";
-import type {
-  LocalStateRepository,
-  ProviderConnectionRepository,
-} from "../ports/outbound";
+import type { ProviderConnectionRepository } from "../ports/outbound";
 import { ModelCatalogService } from "./model-catalog-service";
 
 export class ProviderConnectionService {
   constructor(
     private readonly connections: ProviderConnectionRepository,
-    private readonly catalog: ModelCatalogService,
-    private readonly localState: LocalStateRepository
+    private readonly catalog: ModelCatalogService
   ) {}
 
   async connect(input: {
@@ -77,13 +73,6 @@ export class ProviderConnectionService {
         entity: "Provider Connection",
         id: "requested",
       });
-
-    const state = await this.localState.getLocalState();
-    if (state instanceof Error) return state;
-    if (state.selectedModel?.providerId === providerId) {
-      const cleared = await this.localState.setSelectedModel(null);
-      if (cleared instanceof Error) return cleared;
-    }
 
     const deleted = await this.connections.delete(providerId);
     if (deleted instanceof Error) return deleted;

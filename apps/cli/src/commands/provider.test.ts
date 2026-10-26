@@ -8,6 +8,10 @@ import { createCliContext } from "../app/context";
 import { createCliProgram } from "../app/program";
 import { CliExitCode } from "../app/types";
 import { registerProviderCommands } from "./provider";
+import {
+  isolateProcessEnvironment,
+  isolatedEnvironment,
+} from "../app/cli-fixture";
 
 const originalDataHome = process.env.XDG_DATA_HOME;
 
@@ -19,7 +23,7 @@ afterEach(() => {
 
 async function createFixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-provider-cli-"));
-  process.env.XDG_DATA_HOME = root;
+  const restore = isolateProcessEnvironment(root);
   const context = createCliContext();
   const stdout: string[] = [];
   const stderr: string[] = [];
@@ -40,6 +44,7 @@ async function createFixture() {
     stderr,
     prompts,
     keys,
+    context,
     async run(...args: string[]) {
       stdout.length = 0;
       stderr.length = 0;
@@ -54,6 +59,7 @@ async function createFixture() {
       return process.exitCode ?? 0;
     },
     async cleanup() {
+      restore();
       await fs.rm(root, { recursive: true, force: true });
     },
     async assertNoDatabase() {
@@ -175,6 +181,12 @@ describe("provider commands", () => {
     const fixture = await createFixture();
     try {
       fixture.keys.push("google-secret", "openai-secret");
+      const configDir = path.join(fixture.root, "config", "dictos");
+      await fs.mkdir(configDir, { recursive: true });
+      const configFile = path.join(configDir, "config.toml");
+      const config =
+        '[generation]\ndefault_model = "google/configured-model"\n';
+      await fs.writeFile(configFile, config);
       await fixture.run("connect", "google");
       await fixture.run("connect", "openai");
       expect(await fixture.run("disconnect", "google")).toBe(
@@ -192,6 +204,12 @@ describe("provider commands", () => {
       expect(await fixture.run("disconnect", "google", "--yes")).toBe(
         CliExitCode.Success
       );
+      const configuration = await fixture.context.getConfiguration();
+      if (configuration instanceof Error) throw configuration;
+      expect(configuration.settings.defaultModel).toBe(
+        "google/configured-model"
+      );
+      expect(await fs.readFile(configFile, "utf8")).toBe(config);
       expect(fixture.stdout).toEqual(["google\tdisconnected"]);
       expect(await fixture.run("list")).toBe(CliExitCode.Success);
       expect(fixture.stdout).toEqual(["openai\tconfigured"]);
@@ -205,13 +223,13 @@ describe("provider commands", () => {
   });
 });
 
-test("provider, catalog, and selection commands work while another process holds the unmigrated Dictionary database", async () => {
+test("provider and catalog commands work while another process holds the unmigrated Dictionary database", async () => {
   const root = await fs.mkdtemp(
     path.join(os.tmpdir(), "dictos-cli-locked-db-")
   );
   const dataDir = path.join(root, "dictos");
   await fs.mkdir(dataDir);
-  process.env.XDG_DATA_HOME = root;
+  const restore = isolateProcessEnvironment(root);
   const dbPath = path.join(dataDir, "dictos.db");
   const script = `
     import { connect } from "@tursodatabase/sync";
@@ -230,6 +248,7 @@ test("provider, catalog, and selection commands work while another process holds
       .pathname,
     stdout: "pipe",
     stderr: "pipe",
+    env: isolatedEnvironment(root),
   });
   const holderErrors = new Response(holder.stderr).text();
   const originalStderrWrite = process.stderr.write;
@@ -281,11 +300,6 @@ test("provider, catalog, and selection commands work while another process holds
       stderr: [],
       exitCode: CliExitCode.Success,
     });
-    expect(await run("model", "current")).toEqual({
-      stdout: ["No Model selected."],
-      stderr: [],
-      exitCode: CliExitCode.Success,
-    });
     expect(await run("provider", "connect", "google")).toEqual({
       stdout: ["google\tconfigured"],
       stderr: [],
@@ -296,10 +310,6 @@ test("provider, catalog, and selection commands work while another process holds
       stderr: [],
       exitCode: CliExitCode.Success,
     });
-    const invalid = await run("model", "select", "google/not-listed");
-    expect(invalid.stdout).toEqual([]);
-    expect(invalid.stderr.join(" ")).toContain("refresh");
-    expect(invalid.exitCode).toBe(CliExitCode.ExpectedFailure);
     const listed = await run("models", "google");
     expect(listed.exitCode).toBe(CliExitCode.Success);
     expect(listed.stdout.length).toBeGreaterThan(0);
@@ -309,22 +319,12 @@ test("provider, catalog, and selection commands work while another process holds
       /Model Catalog: bundled \(\d{4}-\d{2}-\d{2}/
     );
 
-    const selectedId = listed.stdout[0]!;
-    expect(await run("model", "select", selectedId)).toEqual({
-      stdout: [selectedId],
-      stderr: [],
-      exitCode: CliExitCode.Success,
-    });
-    expect(await run("model", "current")).toEqual({
-      stdout: [selectedId],
-      stderr: [],
-      exitCode: CliExitCode.Success,
-    });
-    expect(JSON.stringify([listed, selectedId])).not.toContain(secret);
+    expect(JSON.stringify(listed)).not.toContain(secret);
     expect(
       (await fs.readdir(dataDir)).filter((file) => file.startsWith("dictos.db"))
     ).toEqual(databaseFiles);
   } finally {
+    restore();
     process.stderr.write = originalStderrWrite;
     holder.kill("SIGUSR2");
     const timeout = setTimeout(() => holder.kill(), 5000);

@@ -1,4 +1,6 @@
 import * as errore from "@dictos/errore";
+import { ConfigurationError, type ConfigurationIssue } from "@dictos/config";
+import { configurationFailureResponse } from "./configuration-error";
 
 const MAX_REQUEST_BYTES = 1024 * 1024;
 
@@ -28,7 +30,14 @@ const handledMessages: Record<OverlayJsonErrorCode, string> = {
 
 export type OverlayCliResponse<T> =
   | { ok: true; data: T }
-  | { ok: false; error: { code: string; message: string } };
+  | {
+      ok: false;
+      error: {
+        code: string;
+        message: string;
+        issues?: readonly ConfigurationIssue[];
+      };
+    };
 
 const parseLine = <T>(
   line: Uint8Array,
@@ -111,6 +120,10 @@ export function serializeOverlayJsonResponse<T>(
   result: T | Error,
   errorCode: OverlayJsonErrorCode = "OPERATION_FAILED"
 ): string {
+  if (result instanceof ConfigurationError)
+    return (
+      JSON.stringify(configurationFailureResponse({ error: result })) + "\n"
+    );
   const error =
     result instanceof OverlayJsonRequestTooLargeError
       ? { code: "REQUEST_TOO_LARGE", message: "JSON request is too large" }

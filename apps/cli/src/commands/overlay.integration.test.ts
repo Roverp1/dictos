@@ -13,6 +13,10 @@ import type { Logger } from "@dictos/logger";
 import { Command } from "commander";
 import { createCliContext } from "../app/context";
 import { registerOverlayCommands } from "./overlay";
+import {
+  isolateProcessEnvironment,
+  isolatedEnvironment,
+} from "../app/cli-fixture";
 
 const logger: Logger = {
   child: () => logger,
@@ -37,7 +41,7 @@ test("overlay Save returns reviewed Entry IDs and writes the captured Descriptio
       stdin: "pipe",
       stdout: "pipe",
       stderr: "pipe",
-      env: { ...process.env, XDG_DATA_HOME: directory },
+      env: isolatedEnvironment(directory),
     }
   );
   child.stdin.write(
@@ -95,11 +99,9 @@ test("draft generation and Sense suggestions use edited input without opening th
     path.join(os.tmpdir(), "dictos-overlay-ai-")
   );
   cleanup.defer(() => fs.rm(directory, { recursive: true, force: true }));
-  const oldDataHome = process.env.XDG_DATA_HOME;
-  process.env.XDG_DATA_HOME = directory;
+  const restore = isolateProcessEnvironment(directory);
   cleanup.defer(() => {
-    if (oldDataHome === undefined) delete process.env.XDG_DATA_HOME;
-    else process.env.XDG_DATA_HOME = oldDataHome;
+    restore();
     process.exitCode = 0;
   });
   const oldFetch = globalThis.fetch;
@@ -144,10 +146,6 @@ test("draft generation and Sense suggestions use edited input without opening th
   if (models instanceof Error) throw models;
   const model = models[0];
   if (!model) throw new Error("No eligible OpenAI Model in bundled catalog");
-  const selected = await dependencies.modelSelectionService.select(
-    `openai/${model.modelId}`
-  );
-  if (selected instanceof Error) throw selected;
   const stdout: string[] = [];
   context.output = {
     writeData: (text) => {
@@ -156,6 +154,7 @@ test("draft generation and Sense suggestions use edited input without opening th
     writeError: () => {},
   };
   const input = {
+    model: `openai/${model.modelId}`,
     entryText: "read",
     descriptionText: "I read a book.",
     instructionText: "Odpowiedz po polsku.\nKrótko.",
@@ -195,7 +194,7 @@ test("draft generation and Sense suggestions use edited input without opening th
   );
 });
 
-test("missing Selected Model returns a handled error without creating Dictionary records", async () => {
+test("disconnected explicit Model returns a handled error without creating Dictionary records", async () => {
   await using cleanup = new errore.AsyncDisposableStack();
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "dictos-overlay-no-model-")
@@ -213,11 +212,12 @@ test("missing Selected Model returns a handled error without creating Dictionary
       stdin: "pipe",
       stdout: "pipe",
       stderr: "pipe",
-      env: { ...process.env, XDG_DATA_HOME: directory },
+      env: isolatedEnvironment(directory),
     }
   );
   child.stdin.write(
     JSON.stringify({
+      model: "openai/gpt-4o",
       entryText: "read",
       descriptionText: null,
       instructionText: "",

@@ -64,12 +64,11 @@ function fixture() {
 }
 
 describe("LocalStorageLocalStateRepository", () => {
-  test("initializes missing state with no Selected Model and keeps its identity", async () => {
+  test("initializes missing device identity and keeps it", async () => {
     const { repository } = fixture();
     const first = await repository.getLocalState();
     if (first instanceof Error) throw first;
     expect(first.deviceId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(first.selectedModel).toBeNull();
     expect(await repository.getLocalState()).toEqual(first);
   });
 
@@ -81,22 +80,7 @@ describe("LocalStorageLocalStateRepository", () => {
     );
     expect(await repository.getLocalState()).toEqual({
       deviceId: "existing-device",
-      selectedModel: null,
     });
-    expect(await repository.setSelectedModel(null)).toEqual({
-      deviceId: "existing-device",
-      selectedModel: null,
-    });
-  });
-
-  test("selection initializes missing state and retains its device ID", async () => {
-    const { repository } = fixture();
-    const selection = { providerId: "openai", modelId: "gpt-4o" };
-    const state = await repository.setSelectedModel(selection);
-    if (state instanceof Error) throw state;
-    expect(state.deviceId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(state.selectedModel).toEqual(selection);
-    expect(await repository.getLocalState()).toEqual(state);
   });
 
   test("malformed existing state fails without replacing identity until explicit reset", async () => {
@@ -104,40 +88,25 @@ describe("LocalStorageLocalStateRepository", () => {
       '{"deviceId":',
       "{}",
       '"wrong shape"',
-      '{"deviceId":"ok","selectedModel":{"providerId":"openai"}}',
+      '{"deviceId":""}',
     ]) {
       const { storage, repository } = fixture();
       storage.setItem("dictos_local_state", raw);
       expect(await repository.getLocalState()).toBeInstanceOf(StorageError);
-      expect(await repository.setSelectedModel(null)).toBeInstanceOf(
-        StorageError
-      );
       expect(storage.getItem("dictos_local_state")).toBe(raw);
       const reset = await repository.resetLocalState();
       if (reset instanceof Error) throw reset;
-      expect(reset.selectedModel).toBeNull();
       expect(await repository.getLocalState()).toEqual(reset);
     }
   });
 
-  test("selection updates keep identity, clearing selection and reset are explicit", async () => {
+  test("explicit reset replaces identity", async () => {
     const { repository, logContexts } = fixture();
     const initial = await repository.getLocalState();
     if (initial instanceof Error) throw initial;
-    const selection = { providerId: "openai", modelId: "gpt-4o" };
-    expect(await repository.setSelectedModel(selection)).toEqual({
-      deviceId: initial.deviceId,
-      selectedModel: selection,
-    });
-    expect(await repository.getLocalState()).toEqual({
-      deviceId: initial.deviceId,
-      selectedModel: selection,
-    });
-    expect(await repository.setSelectedModel(null)).toEqual(initial);
     const reset = await repository.resetLocalState();
     if (reset instanceof Error) throw reset;
     expect(reset.deviceId).not.toBe(initial.deviceId);
-    expect(reset.selectedModel).toBeNull();
     expect(await repository.getLocalState()).toEqual(reset);
     expect(logContexts).toEqual([undefined, undefined]);
   });
@@ -152,16 +121,10 @@ describe("LocalStorageLocalStateRepository", () => {
       throw new Error("read unavailable");
     };
     expect(await repository.getLocalState()).toBeInstanceOf(StorageError);
-    expect(await repository.setSelectedModel(null)).toBeInstanceOf(
-      StorageError
-    );
     storage.getItem = () => JSON.stringify({ deviceId: "existing-device" });
     storage.setItem = () => {
       throw new Error("write unavailable");
     };
-    expect(await repository.setSelectedModel(null)).toBeInstanceOf(
-      StorageError
-    );
     expect(await repository.resetLocalState()).toBeInstanceOf(StorageError);
   });
 });

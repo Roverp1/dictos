@@ -19,13 +19,29 @@ async function fixture(cleanup: errore.AsyncDisposableStack) {
 }
 
 describe("FsLocalStateRepository", () => {
-  test("initializes missing state once with no Selected Model", async () => {
+  test("ignores legacy Selected Model state without changing identity or rewriting the file", async () => {
+    await using cleanup = new errore.AsyncDisposableStack();
+    const { file, repository } = await fixture(cleanup);
+    const raw =
+      '{ "deviceId": "existing-device", "selectedModel": {"providerId":"openai"} }\n';
+    await fs.writeFile(file, raw);
+    const before = await fs.stat(file);
+
+    expect(await repository.getLocalState()).toEqual({
+      deviceId: "existing-device",
+    });
+    expect(await fs.readFile(file, "utf8")).toBe(raw);
+    const after = await fs.stat(file);
+    expect(after.ino).toBe(before.ino);
+    expect(after.mtimeMs).toBe(before.mtimeMs);
+  });
+
+  test("initializes missing device identity once", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
     const { directory, repository } = await fixture(cleanup);
     const first = await repository.getLocalState();
     if (first instanceof Error) throw first;
     expect(first.deviceId).toMatch(/^[0-9a-f-]{36}$/);
-    expect(first.selectedModel).toBeNull();
     const second = await new FsLocalStateRepository(directory).getLocalState();
     expect(second).toEqual(first);
   });
@@ -36,7 +52,6 @@ describe("FsLocalStateRepository", () => {
     await fs.writeFile(file, JSON.stringify({ deviceId: "existing-device" }));
     expect(await repository.getLocalState()).toEqual({
       deviceId: "existing-device",
-      selectedModel: null,
     });
   });
 
@@ -44,41 +59,30 @@ describe("FsLocalStateRepository", () => {
     for (const raw of [
       '{"deviceId":',
       "{}",
-      '{"deviceId":"ok","selectedModel":{"providerId":"openai"}}',
+      '{"deviceId":""}',
+      '{"deviceId":42}',
+      "null",
     ]) {
       await using cleanup = new errore.AsyncDisposableStack();
       const { file, repository } = await fixture(cleanup);
       await fs.writeFile(file, raw);
       expect(await repository.getLocalState()).toBeInstanceOf(StorageError);
-      expect(await repository.setSelectedModel(null)).toBeInstanceOf(
-        StorageError
-      );
       expect(await fs.readFile(file, "utf8")).toBe(raw);
     }
   });
 
-  test("selection updates preserve identity and explicit reset changes it", async () => {
+  test("explicit reset replaces the device identity", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
     const { repository } = await fixture(cleanup);
     const initial = await repository.getLocalState();
     if (initial instanceof Error) throw initial;
-    const selected = await repository.setSelectedModel({
-      providerId: "openai",
-      modelId: "gpt-4o",
-    });
-    expect(selected).toEqual({
-      deviceId: initial.deviceId,
-      selectedModel: { providerId: "openai", modelId: "gpt-4o" },
-    });
-    expect(await repository.getLocalState()).toEqual(selected);
     const reset = await repository.resetLocalState();
     if (reset instanceof Error) throw reset;
     expect(reset.deviceId).not.toBe(initial.deviceId);
-    expect(reset.selectedModel).toBeNull();
     expect(await repository.getLocalState()).toEqual(reset);
   });
 
-  test("failed replacement leaves the existing identity and selection intact", async () => {
+  test("failed reset leaves the existing identity intact", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
     const { directory, file, repository } = await fixture(cleanup);
     const initial = await repository.getLocalState();
@@ -86,12 +90,7 @@ describe("FsLocalStateRepository", () => {
     // A directory at the replacement path forces the rename to fail without mocking I/O.
     await fs.rename(file, path.join(directory, "saved-state.json"));
     await fs.mkdir(file);
-    expect(
-      await repository.setSelectedModel({
-        providerId: "openai",
-        modelId: "gpt-4o",
-      })
-    ).toBeInstanceOf(StorageError);
+    expect(await repository.resetLocalState()).toBeInstanceOf(StorageError);
     expect(
       JSON.parse(
         await fs.readFile(path.join(directory, "saved-state.json"), "utf8")
@@ -141,51 +140,13 @@ describe("FsLocalStateRepository", () => {
     }
   });
 
-  test("concurrent CLI selection updates never change the device ID or expose partial JSON", async () => {
-    await using cleanup = new errore.AsyncDisposableStack();
-    const { directory, file, repository } = await fixture(cleanup);
-    const initial = await repository.getLocalState();
-    if (initial instanceof Error) throw initial;
-    const moduleUrl = new URL("./fs-local-state-repository.ts", import.meta.url)
-      .href;
-    const script = `import { FsLocalStateRepository } from ${JSON.stringify(moduleUrl)}; const state = await new FsLocalStateRepository(process.argv[1]).setSelectedModel({providerId:'openai',modelId:process.argv[2]}); if (state instanceof Error) process.exit(1); console.log(JSON.stringify(state));`;
-    const children = Array.from({ length: 6 }, (_, index) =>
-      Bun.spawn(["bun", "-e", script, directory, `model-${index}`], {
-        stdout: "pipe",
-        stderr: "pipe",
-      })
-    );
-    const results = await Promise.all(
-      children.map(async (child) => ({
-        code: await child.exited,
-        output: await new Response(child.stdout).text(),
-      }))
-    );
-    for (const result of results) {
-      expect(result.code).toBe(0);
-      expect(JSON.parse(result.output).deviceId).toBe(initial.deviceId);
-    }
-    const saved = await repository.getLocalState();
-    if (saved instanceof Error) throw saved;
-    expect(saved.deviceId).toBe(initial.deviceId);
-    expect(
-      results.map((result) => JSON.parse(result.output).selectedModel)
-    ).toContainEqual(saved.selectedModel);
-    expect(JSON.parse(await fs.readFile(file, "utf8"))).toEqual(saved);
-  });
-
   test("lock contention times out without losing identity", async () => {
     await using cleanup = new errore.AsyncDisposableStack();
     const { directory, repository } = await fixture(cleanup);
     const initial = await repository.getLocalState();
     if (initial instanceof Error) throw initial;
     await fs.mkdir(path.join(directory, "local-state.json.lock"));
-    expect(
-      await repository.setSelectedModel({
-        providerId: "openai",
-        modelId: "gpt-4o",
-      })
-    ).toBeInstanceOf(StorageError);
+    expect(await repository.getLocalState()).toBeInstanceOf(StorageError);
     await fs.rmdir(path.join(directory, "local-state.json.lock"));
     expect(await repository.getLocalState()).toEqual(initial);
   });

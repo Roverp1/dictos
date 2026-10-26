@@ -7,6 +7,7 @@ import { Command } from "commander";
 import { createCliContext } from "../app/context";
 import { CliExitCode } from "../app/types";
 import { registerOverlayStateCommands } from "./overlay-state";
+import { isolateProcessEnvironment } from "../app/cli-fixture";
 
 const originalDataHome = process.env.XDG_DATA_HOME;
 
@@ -20,7 +21,7 @@ async function fixture() {
   const root = await fs.mkdtemp(
     path.join(os.tmpdir(), "dictos-overlay-state-cli-")
   );
-  process.env.XDG_DATA_HOME = root;
+  const restore = isolateProcessEnvironment(root);
   const dataDir = path.join(root, "dictos");
 
   async function run(args: string[], input = "") {
@@ -43,7 +44,10 @@ async function fixture() {
     root,
     dataDir,
     run,
-    cleanup: () => fs.rm(root, { recursive: true, force: true }),
+    cleanup: () => {
+      restore();
+      return fs.rm(root, { recursive: true, force: true });
+    },
   };
 }
 

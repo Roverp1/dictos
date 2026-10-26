@@ -1,4 +1,6 @@
 import type { Command } from "commander";
+import { ConfigurationError } from "@dictos/config";
+import { configurationFailureResponse } from "../app/configuration-error";
 import { CliExitCode, type CliContext } from "../app/types";
 import {
   getProviderDependenciesOrExit,
@@ -31,8 +33,16 @@ export const registerModelsCommands = (
           context.output.writeData(
             serializeOverlayJsonResponse(dependencies).slice(0, -1)
           );
-          context.output.writeError("Operation failed");
-          process.exitCode = CliExitCode.UnexpectedFailure;
+          context.output.writeError(
+            dependencies instanceof ConfigurationError
+              ? configurationFailureResponse({ error: dependencies }).error
+                  .message
+              : "Operation failed"
+          );
+          process.exitCode =
+            dependencies instanceof ConfigurationError
+              ? CliExitCode.ConfigurationFailure
+              : CliExitCode.UnexpectedFailure;
           return;
         }
         if (dependencies === null) return;

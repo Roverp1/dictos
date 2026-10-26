@@ -5,6 +5,8 @@ import path from "node:path";
 
 import { createCliContext } from "./context";
 import { CliDependencyError } from "./errors";
+import { isolateProcessEnvironment } from "./cli-fixture";
+import { ConfigurationError, resolveConfiguration } from "@dictos/config";
 
 const originalDataHome = process.env.XDG_DATA_HOME;
 
@@ -13,9 +15,39 @@ afterEach(() => {
   else process.env.XDG_DATA_HOME = originalDataHome;
 });
 
+test("an injected configuration load is cached for the invocation and errors retain their type", async () => {
+  const snapshot = resolveConfiguration({
+    client: "cli",
+    documents: {},
+    environment: { ocrLanguages: null },
+  });
+  if (snapshot instanceof Error) throw snapshot;
+  const failure = new ConfigurationError({
+    issues: [
+      {
+        kind: "read",
+        source: "injected config.toml",
+        keyPath: [],
+        line: null,
+        column: null,
+        message: "Could not read configuration.",
+      },
+    ],
+  });
+  let current = snapshot as typeof snapshot | ConfigurationError;
+  const context = createCliContext({ loadConfiguration: async () => current });
+  expect(await context.getConfiguration()).toBe(snapshot);
+  current = failure;
+  expect(await context.getConfiguration()).toBe(snapshot);
+  const failing = createCliContext({ loadConfiguration: async () => failure });
+  expect(await failing.getConfiguration()).toBe(failure);
+  expect(await failing.getProviderDependencies()).toBe(failure);
+  expect(await failing.getDependencies()).toBe(failure);
+});
+
 test("provider dependencies work without initializing the Dictionary database", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-cli-provider-"));
-  process.env.XDG_DATA_HOME = root;
+  const restore = isolateProcessEnvironment(root);
 
   try {
     const dataDir = path.join(root, "dictos");
@@ -43,13 +75,14 @@ test("provider dependencies work without initializing the Dictionary database", 
     expect(await context.getDependencies()).toBeInstanceOf(CliDependencyError);
     expect(await fs.readdir(dataDir)).not.toContain("dictos.db");
   } finally {
+    restore();
     await fs.rm(root, { recursive: true, force: true });
   }
 });
 
 test("Dictionary dependencies reuse the cached provider services", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "dictos-cli-full-"));
-  process.env.XDG_DATA_HOME = root;
+  const restore = isolateProcessEnvironment(root);
 
   try {
     const context = createCliContext();
@@ -65,11 +98,11 @@ test("Dictionary dependencies reuse the cached provider services", async () => {
       provider.providerConnectionService
     );
     expect(full.modelCatalogService).toBe(provider.modelCatalogService);
-    expect(full.modelSelectionService).toBe(provider.modelSelectionService);
     expect(full.modelCatalog).toBe(provider.modelCatalog);
     expect(full.logger).toBe(provider.logger);
     expect(await context.getDependencies()).toBe(full);
   } finally {
+    restore();
     await fs.rm(root, { recursive: true, force: true });
   }
 });

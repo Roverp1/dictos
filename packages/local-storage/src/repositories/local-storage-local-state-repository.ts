@@ -4,7 +4,6 @@ import {
   StorageError,
   type LocalState,
   type LocalStateRepository,
-  type SelectedModel,
 } from "@dictos/core";
 import * as errore from "@dictos/errore";
 import type { Logger } from "@dictos/logger";
@@ -39,17 +38,7 @@ export class LocalStorageLocalStateRepository implements LocalStateRepository {
       parsed === null ||
       !("deviceId" in parsed) ||
       typeof parsed.deviceId !== "string" ||
-      !parsed.deviceId ||
-      ("selectedModel" in parsed &&
-        parsed.selectedModel !== null &&
-        (typeof parsed.selectedModel !== "object" ||
-          !parsed.selectedModel ||
-          !("providerId" in parsed.selectedModel) ||
-          typeof parsed.selectedModel.providerId !== "string" ||
-          !parsed.selectedModel.providerId ||
-          !("modelId" in parsed.selectedModel) ||
-          typeof parsed.selectedModel.modelId !== "string" ||
-          !parsed.selectedModel.modelId))
+      !parsed.deviceId
     )
       return new StorageError({
         operation: "parse_local_state",
@@ -58,10 +47,6 @@ export class LocalStorageLocalStateRepository implements LocalStateRepository {
 
     return {
       deviceId: parsed.deviceId,
-      selectedModel:
-        "selectedModel" in parsed
-          ? (parsed.selectedModel as SelectedModel | null)
-          : null,
     };
   }
 
@@ -80,7 +65,7 @@ export class LocalStorageLocalStateRepository implements LocalStateRepository {
   }
 
   async resetLocalState(): Promise<LocalState | StorageError> {
-    const state = this.write({ deviceId: uuidv4(), selectedModel: null });
+    const state = this.write({ deviceId: uuidv4() });
     if (state instanceof Error) return state;
     this.logger.info("Generated new local state");
     return state;
@@ -91,16 +76,5 @@ export class LocalStorageLocalStateRepository implements LocalStateRepository {
     if (state instanceof Error) return state;
     if (state !== null) return state;
     return this.resetLocalState();
-  }
-
-  async setSelectedModel(
-    value: SelectedModel | null
-  ): Promise<LocalState | StorageError> {
-    const state = this.read();
-    if (state instanceof Error) return state;
-    return this.write({
-      deviceId: state?.deviceId ?? uuidv4(),
-      selectedModel: value,
-    });
   }
 }
