@@ -7,20 +7,24 @@ import Quickshell.Wayland
 ShellRoot {
     id: shell
     readonly property string outputName: Quickshell.env("DICTOS_OCR_OUTPUT") || ""
+    readonly property var configuration: {
+        try {
+            var snapshot = JSON.parse(Quickshell.env("DICTOS_OVERLAY_CONFIG_SNAPSHOT"));
+            if (snapshot.version !== 1 || snapshot.client !== "overlay" || !snapshot.settings || !(snapshot.settings.defaultModel === null || typeof snapshot.settings.defaultModel === "string"))
+                throw new Error("Invalid startup snapshot");
+            return snapshot;
+        } catch (error) {
+            console.error("Overlay startup configuration is missing or invalid.");
+            Qt.quit();
+            return null;
+        }
+    }
+    CliCommandRunner {
+        id: cliRunner
+    }
     Component {
         id: jobFactory
         CommandJob {}
-    }
-    function command(owner, key, args, payload, revision) {
-        var job = jobFactory.createObject(shell, {
-            command: ["bun", Quickshell.env("DICTOS_CLI_PATH")].concat(args),
-            payload: payload,
-            jsonResponse: key !== "model-select"
-        });
-        job.completed.connect(function (response) {
-            owner.commandFinished(key, response, revision);
-        });
-        job.running = true;
     }
     function ocr(owner, mode, args) {
         var job = jobFactory.createObject(shell, {
@@ -32,7 +36,7 @@ ShellRoot {
         job.running = true;
     }
     Variants {
-        model: Quickshell.screens
+        model: shell.configuration ? Quickshell.screens : []
         PanelWindow {
             id: panel
             required property var modelData
@@ -53,6 +57,7 @@ ShellRoot {
                 id: workspace
                 anchors.fill: parent
                 autoLoad: panel.visible
+                initialModel: shell.configuration.settings.defaultModel
                 imageUrl: Quickshell.env("DICTOS_OCR_IMAGE_URL") || ""
                 fullPsm: Quickshell.env("DICTOS_OCR_FULL_PSM") || "3"
                 retryPsm: Quickshell.env("DICTOS_OCR_RETRY_PSM") || "6"
@@ -60,7 +65,7 @@ ShellRoot {
                     if (Quickshell.env("DICTOS_OVERLAY_EXPANDED") === "1")
                         openDrawer(true);
                 }
-                onCommandRequested: (key, args, payload, revision) => shell.command(workspace, key, args, payload, revision)
+                onCommandRequested: (key, args, payload, revision) => cliRunner.run(workspace, key, args, payload, revision)
                 onOcrRequested: (mode, args) => shell.ocr(workspace, mode, args)
                 onCopyRequested: text => {
                     Quickshell.clipboardText = text;

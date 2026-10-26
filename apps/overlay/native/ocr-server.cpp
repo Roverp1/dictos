@@ -18,6 +18,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace {
 using Clock = std::chrono::steady_clock;
@@ -25,6 +26,11 @@ using Image = std::unique_ptr<PIX, void (*)(PIX*)>;
 volatile std::sig_atomic_t stopping = 0;
 
 void stop(int) { stopping = 1; }
+
+int startupFailure(const char* code) {
+  std::cout << "{\"ready\":false,\"error\":{\"code\":\"" << code << "\"}}" << std::endl;
+  return 1;
+}
 
 void jsonString(std::ostream& out, const std::string& text) {
   constexpr char hex[] = "0123456789abcdef";
@@ -194,7 +200,7 @@ bool sendAll(int fd, const std::string& message) {
 int main(int argc, char** argv) {
   if (argc != 4) {
     std::cerr << "Usage: ocr-server SOCKET IMAGE LANG\n";
-    return 2;
+    return startupFailure("OCR_STARTUP_FAILED");
   }
   struct sigaction action{};
   action.sa_handler = stop;
@@ -203,17 +209,40 @@ int main(int argc, char** argv) {
   sigaction(SIGINT, &action, nullptr);
   tesseract::TessBaseAPI api;
   const auto initStart = Clock::now();
-  if (api.Init(nullptr, argv[3])) {
-    std::cerr << "Could not initialize Tesseract\n";
-    return 1;
+  std::vector<std::string> requested;
+  std::istringstream languages(argv[3]);
+  std::string language;
+  while (std::getline(languages, language, '+')) requested.push_back(language);
+  const int initialized = api.Init(nullptr, argv[3]);
+  std::vector<std::string> loaded;
+  api.GetLoadedLanguagesAsVector(&loaded);
+  // Init may succeed with only part of a requested combination loaded.
+  if (!loaded.empty()) {
+    std::vector<std::string> missing;
+    for (const auto& item : requested) {
+      if (std::find(loaded.begin(), loaded.end(), item) == loaded.end()) missing.push_back(item);
+    }
+    if (!missing.empty()) {
+      std::ostringstream record;
+      record << "{\"ready\":false,\"error\":{\"code\":\"OCR_LANGUAGE_UNAVAILABLE\",\"missingLanguages\":[";
+      for (size_t i = 0; i < missing.size(); ++i) {
+        if (i) record << ',';
+        jsonString(record, missing[i]);
+      }
+      record << "]}}\n";
+      if (record.str().size() > 16384) return startupFailure("OCR_INITIALIZATION_FAILED");
+      std::cout << record.str() << std::flush;
+      return 1;
+    }
   }
+  if (initialized || loaded.empty()) return startupFailure("OCR_INITIALIZATION_FAILED");
   const auto initMs = std::chrono::duration<double, std::milli>(Clock::now() - initStart).count();
   if (std::strlen(argv[1]) >= sizeof(sockaddr_un::sun_path)) {
     std::cerr << "Socket path too long\n";
-    return 1;
+    return startupFailure("OCR_STARTUP_FAILED");
   }
   const int server = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (server < 0) return 1;
+  if (server < 0) return startupFailure("OCR_STARTUP_FAILED");
   sockaddr_un address{};
   address.sun_family = AF_UNIX;
   std::strcpy(address.sun_path, argv[1]);
@@ -224,7 +253,7 @@ int main(int argc, char** argv) {
     std::cerr << "Could not bind OCR socket\n";
     close(server);
     if (!bound) unlink(argv[1]);
-    return 1;
+    return startupFailure("OCR_STARTUP_FAILED");
   }
   std::cout << "{\"ready\":true,\"initMs\":" << initMs << "}" << std::endl;
   Image image(nullptr, [](PIX* pix) { pixDestroy(&pix); });

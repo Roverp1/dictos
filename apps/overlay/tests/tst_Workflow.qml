@@ -14,6 +14,10 @@ Item {
         imageUrl: Qt.resolvedUrl("fixture.png")
     }
     property var requests: []
+    Component {
+        id: workspaceFactory
+        Overlay.CaptureWorkspace { autoLoad: false }
+    }
     SignalSpy {
         id: exitSpy
         target: capture
@@ -42,8 +46,7 @@ Item {
             capture.generationLoading = false;
             capture.suggestionLoading = false;
             capture.loadingSuggestionRevision = -1;
-            capture.pendingModel = "";
-            capture.modelTouched = false;
+            capture.selectedModel = "";
             capture.activeField = "entry";
             capture.notification = "";
             capture.saving = false;
@@ -74,6 +77,56 @@ Item {
             compare(capture.mode, "navigation");
             keyClick(Qt.Key_K);
             compare(capture.activeNodeId, "entry");
+        }
+        function test_new_workspaces_start_from_the_default_and_keep_independent_choices() {
+            var first = createTemporaryObject(workspaceFactory, null, { initialModel: "openai/default" });
+            var second = createTemporaryObject(workspaceFactory, null, { initialModel: "openai/default" });
+            verify(first !== null && second !== null);
+            compare(first.selectedModel, "openai/default");
+            first.models = [{ id: "google/local" }];
+            first.openPicker("model");
+            first.choosePopup(0);
+            compare(first.selectedModel, "google/local");
+            compare(second.selectedModel, "openai/default");
+            var reopened = createTemporaryObject(workspaceFactory, null, { initialModel: "openai/default" });
+            compare(reopened.selectedModel, "openai/default");
+            var absent = createTemporaryObject(workspaceFactory, null, { initialModel: null });
+            compare(absent.selectedModel, "");
+        }
+        function test_each_generation_request_carries_its_current_model() {
+            capture.selectedModel = "openai/A";
+            capture.updateText("entry", "read", false);
+            capture.suggest();
+            var suggestion = requests[requests.length - 1];
+            compare(suggestion.data.model, "openai/A");
+            capture.models = [{ id: "google/B" }];
+            capture.openPicker("model");
+            capture.choosePopup(0);
+            capture.generate(false);
+            compare(requests[requests.length - 1].data.model, "google/B");
+            compare(suggestion.data.model, "openai/A");
+        }
+        function test_configuration_failure_notification_shows_source_key_reason_and_preserves_drafts() {
+            capture.updateText("entry", "Reviewed Entry", false);
+            capture.updateText("description", "Captured Description", false);
+            capture.updateText("sense", "Reviewed Sense", false);
+            capture.updateText("definition-0", "Manual Description", false);
+            capture.save("sense-all");
+            capture.commandFinished("save", {
+                ok: false,
+                error: { code: "CONFIGURATION_ERROR", message: "/tmp/dictos/cli.toml: overrides.logging.level: expected <supported level>" }
+            }, 0);
+            var notification = findChild(capture, "configuration-notification");
+            verify(notification !== null);
+            verify(notification.visible);
+            verify(notification.text.indexOf("/tmp/dictos/cli.toml") >= 0);
+            verify(notification.text.indexOf("overrides.logging.level") >= 0);
+            verify(notification.text.indexOf("expected <supported level>") >= 0);
+            compare(notification.textFormat, Text.PlainText);
+            compare(capture.draft.entry.text, "Reviewed Entry");
+            compare(capture.draft.capturedDescription.text, "Captured Description");
+            compare(capture.draft.senseName, "Reviewed Sense");
+            compare(capture.draft.descriptions[0].text, "Manual Description");
         }
         function test_failed_save_preserves_right_drafts_and_copy_labels() {
             capture.updateText("entry", "read", false);
@@ -471,7 +524,7 @@ Item {
                 verify(capture.notification.length > 0);
             }
         }
-        function test_model_selection_is_serialized_and_late_startup_data_is_ignored() {
+        function test_model_picker_changes_selection_immediately_without_a_command() {
             capture.models = [
                 {
                     id: "openai/A"
@@ -482,23 +535,11 @@ Item {
             ];
             capture.openPicker("model");
             capture.choosePopup(0);
+            compare(capture.selectedModel, "openai/A");
             capture.openPicker("model");
             capture.choosePopup(1);
-            compare(requests.filter(function (r) {
-                return r.key === "model-select";
-            }).length, 1);
-            capture.commandFinished("model-select", {
-                ok: true,
-                data: null
-            }, 0);
-            compare(capture.selectedModel, "openai/A");
-            capture.commandFinished("model", {
-                ok: true,
-                data: {
-                    id: "old choice"
-                }
-            }, 0);
-            compare(capture.selectedModel, "openai/A");
+            compare(capture.selectedModel, "openai/B");
+            compare(requests.length, 0);
         }
         function test_confirmed_save_receipt_closes_only_after_success() {
             capture.updateText("entry", "Reviewed Entry", false);
@@ -610,17 +651,18 @@ Item {
                 }
             ];
             capture.updateText("entry", "read", false);
+            capture.updateText("description", "Captured context", false);
+            capture.updateText("translation-0", "Manual translation", false);
             capture.generate(false);
             var generated = requests[requests.length - 1];
             capture.suggest();
             var suggested = requests[requests.length - 1];
             capture.openPicker("model");
             capture.choosePopup(1);
-            capture.commandFinished("model-select", {
-                ok: true,
-                data: null
-            }, 0);
             compare(capture.selectedModel, "openai/B");
+            compare(capture.draft.entry.text, "read");
+            compare(capture.draft.capturedDescription.text, "Captured context");
+            compare(capture.draft.descriptions[1].text, "Manual translation");
             capture.commandFinished("generate", {
                 ok: true,
                 data: {
@@ -647,6 +689,7 @@ Item {
             compare(capture.draft.senseName, "");
             compare(capture.draft.descriptions[0].text, "");
             compare(capture.draft.suggestions.length, 0);
+            compare(capture.draft.descriptions[1].text, "Manual translation");
         }
         function test_old_suggestions_do_not_finish_the_new_models_pending_request() {
             capture.selectedModel = "openai/A";
@@ -663,10 +706,6 @@ Item {
             var old = requests[requests.length - 1];
             capture.openPicker("model");
             capture.choosePopup(1);
-            capture.commandFinished("model-select", {
-                ok: true,
-                data: null
-            }, 0);
             capture.suggest();
             var current = requests[requests.length - 1];
             capture.commandFinished("suggest", {
@@ -725,10 +764,6 @@ Item {
             }, request.revision);
             capture.openPicker("model");
             capture.choosePopup(1);
-            capture.commandFinished("model-select", {
-                ok: true,
-                data: null
-            }, 0);
             keyClick(Qt.Key_R, Qt.ControlModifier);
             compare(capture.draft.senseName, "");
             compare(capture.draft.descriptions[0].text, "");
