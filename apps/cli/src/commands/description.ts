@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+import { resolveCommandModel } from "../app/resolve-command-model";
 
 import type { CliContext, CliDependencies } from "../app/types";
 import {
@@ -258,8 +259,12 @@ export const registerDescriptionCommands = (
               sourceDescriptionId: descriptionId,
             },
           });
-        const model = await dependencies.modelSelectionService.resolve({
-          override: options.model,
+        const configuration = await context.getConfiguration();
+        if (configuration instanceof Error)
+          return handleExpectedError(context, configuration);
+        const model = resolveCommandModel({
+          override: options.model ?? null,
+          configured: configuration.settings.defaultModel,
         });
         if (model instanceof Error)
           return handleExpectedError(context, model, {

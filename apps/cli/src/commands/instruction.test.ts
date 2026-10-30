@@ -6,6 +6,7 @@ import { Command } from "commander";
 
 import { createCliContext } from "../app/context";
 import { registerInstructionCommands } from "./instruction";
+import { isolateProcessEnvironment } from "../app/cli-fixture";
 
 const originalDataHome = process.env.XDG_DATA_HOME;
 
@@ -19,7 +20,7 @@ test("instruction list --json returns saved multiline text in one JSON envelope"
   const root = await fs.mkdtemp(
     path.join(os.tmpdir(), "dictos-cli-instruction-")
   );
-  process.env.XDG_DATA_HOME = root;
+  const restore = isolateProcessEnvironment(root);
   const lines: string[] = [];
   const errors: string[] = [];
   const context = createCliContext();
@@ -48,6 +49,7 @@ test("instruction list --json returns saved multiline text in one JSON envelope"
     await program.parseAsync(["instruction", "list"], { from: "user" });
     expect(lines).toEqual([`${id}\tPolski\t${text}`]);
   } finally {
+    restore();
     await fs.rm(root, { recursive: true, force: true });
   }
 });

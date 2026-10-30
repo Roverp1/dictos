@@ -8,6 +8,5 @@ export * from "./screen-entry-generation-service";
 export * from "./screen-entry-save-service";
 export * from "./provider-connection-service";
 export * from "./model-catalog-service";
-export * from "./model-selection-service";
 export * from "./auth-service";
 export * from "./sync-service";

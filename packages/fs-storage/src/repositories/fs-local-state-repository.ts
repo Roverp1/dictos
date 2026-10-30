@@ -6,7 +6,6 @@ import {
   StorageError,
   type LocalState,
   type LocalStateRepository,
-  type SelectedModel,
 } from "@dictos/core";
 import * as errore from "@dictos/errore";
 
@@ -82,17 +81,7 @@ export class FsLocalStateRepository implements LocalStateRepository {
       parsed === null ||
       !("deviceId" in parsed) ||
       typeof parsed.deviceId !== "string" ||
-      !parsed.deviceId ||
-      ("selectedModel" in parsed &&
-        parsed.selectedModel !== null &&
-        (typeof parsed.selectedModel !== "object" ||
-          !parsed.selectedModel ||
-          !("providerId" in parsed.selectedModel) ||
-          typeof parsed.selectedModel.providerId !== "string" ||
-          !parsed.selectedModel.providerId ||
-          !("modelId" in parsed.selectedModel) ||
-          typeof parsed.selectedModel.modelId !== "string" ||
-          !parsed.selectedModel.modelId))
+      !parsed.deviceId
     )
       return new StorageError({
         operation: "parse_local_state",
@@ -101,10 +90,6 @@ export class FsLocalStateRepository implements LocalStateRepository {
 
     return {
       deviceId: parsed.deviceId,
-      selectedModel:
-        "selectedModel" in parsed
-          ? (parsed.selectedModel as SelectedModel | null)
-          : null,
     };
   }
 
@@ -160,26 +145,11 @@ export class FsLocalStateRepository implements LocalStateRepository {
       const state = await this.read();
       if (state instanceof Error) return state;
       if (state !== null) return state;
-      return this.write({ deviceId: randomUUID(), selectedModel: null });
-    });
-  }
-
-  async setSelectedModel(
-    value: SelectedModel | null
-  ): Promise<LocalState | StorageError> {
-    return this.locked(async () => {
-      const state = await this.read();
-      if (state instanceof Error) return state;
-      return this.write({
-        deviceId: state?.deviceId ?? randomUUID(),
-        selectedModel: value,
-      });
+      return this.write({ deviceId: randomUUID() });
     });
   }
 
   async resetLocalState(): Promise<LocalState | StorageError> {
-    return this.locked(() =>
-      this.write({ deviceId: randomUUID(), selectedModel: null })
-    );
+    return this.locked(() => this.write({ deviceId: randomUUID() }));
   }
 }

@@ -7,7 +7,6 @@ import type {
   InstructionService,
   ModelCatalogPort,
   ModelCatalogService,
-  ModelSelectionService,
   ProviderConnectionService,
   ScreenEntryGenerationService,
   ScreenEntrySaveService,
@@ -16,6 +15,11 @@ import type {
   SyncService,
 } from "@dictos/core";
 import type { Logger } from "@dictos/logger";
+import type { ConfigurationSnapshot, ConfigurationError } from "@dictos/config";
+
+export type ConfigurationLoader = () => Promise<
+  ConfigurationSnapshot | ConfigurationError
+>;
 
 import type {
   CliDependencyError,
@@ -29,6 +33,7 @@ export const CliExitCode = {
   UsageError: 2,
   ExpectedFailure: 3,
   DatabaseInUse: 4,
+  ConfigurationFailure: 5,
 } as const;
 
 export type CliExitCode = (typeof CliExitCode)[keyof typeof CliExitCode];
@@ -36,7 +41,6 @@ export type CliExitCode = (typeof CliExitCode)[keyof typeof CliExitCode];
 export type CliProviderDependencies = {
   providerConnectionService: ProviderConnectionService;
   modelCatalogService: ModelCatalogService;
-  modelSelectionService: ModelSelectionService;
   modelCatalog: ModelCatalogPort;
   screenEntryGenerationService: ScreenEntryGenerationService;
   logger: Logger;
@@ -70,14 +74,18 @@ export type TerminalPrompt = {
 };
 
 export type CliDependencyResult =
-  CliDependencies | CliDependencyError | DatabaseInUseError;
+  | CliDependencies
+  | CliDependencyError
+  | DatabaseInUseError
+  | ConfigurationError;
 
 export type CliProviderDependencyResult =
-  CliProviderDependencies | CliDependencyError;
+  CliProviderDependencies | CliDependencyError | ConfigurationError;
 
 export type CliContext = {
   output: CliOutput;
   terminalPrompt: TerminalPrompt;
+  getConfiguration: ConfigurationLoader;
   getProviderDependencies(): Promise<CliProviderDependencyResult>;
   getDependencies(): Promise<CliDependencyResult>;
 };

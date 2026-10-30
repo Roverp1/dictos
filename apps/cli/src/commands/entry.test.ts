@@ -11,6 +11,7 @@ import type { Logger } from "@dictos/logger";
 
 import { createCliProgram } from "../app/program";
 import type { CliContext, CliDependencies } from "../app/types";
+import { resolveConfiguration } from "@dictos/config";
 
 const testLogger: Logger = {
   trace: () => {},
@@ -42,6 +43,12 @@ async function createFixture() {
     entryService,
   } as CliDependencies;
   const context: CliContext = {
+    getConfiguration: async () =>
+      resolveConfiguration({
+        client: "cli",
+        documents: {},
+        environment: { ocrLanguages: null },
+      }),
     output: {
       writeData(text) {
         output.push(text);

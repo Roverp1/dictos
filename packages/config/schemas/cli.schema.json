@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "overrides": {
+      "type": "object",
+      "properties": {
+        "generation": {
+          "type": "object",
+          "properties": {
+            "default_model": {
+              "type": "string",
+              "pattern": "^[^\\s/]+\\/[^\\s]+$",
+              "description": "Qualified provider/model ID used to initialize new work.",
+              "examples": [
+                "openai/MODEL_ID"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "logging": {
+          "type": "object",
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": [
+                "trace",
+                "debug",
+                "info",
+                "warn",
+                "error",
+                "fatal"
+              ],
+              "description": "Minimum logging level for the Command Client, including Overlay subprocesses.",
+              "examples": [
+                "debug"
+              ],
+              "default": "info"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -56,9 +56,13 @@ _Avoid_: Provider, Provider Connection
 Local metadata listing supported Providers and eligible text-generation Models. A listing does not prove account access or guarantee Description Generation will succeed.
 _Avoid_: Model discovery (when referring to catalog metadata)
 
+**Default Model**:
+An explicitly configured Model that initializes new work, with permitted client-specific overrides. It is a starting preference and is never chosen automatically as a fallback.
+_Avoid_: Selected Model (when referring to the configured starting preference)
+
 **Selected Model**:
-The device-local Model choice used for Description Generation unless a client explicitly chooses another Model.
-_Avoid_: Default Model (when referring to an automatic fallback)
+The Model chosen for one command or client workflow, initialized from its Default Model or an explicit choice. Changing it leaves configuration unchanged.
+_Avoid_: Default Model (when referring to the current runtime choice)
 
 **Activity**:
 A daily record logging the count of actions a user has taken (e.g., adding entries) to power heatmaps and future gamification. Distinct from future "Statistics".

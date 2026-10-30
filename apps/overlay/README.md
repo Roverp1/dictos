@@ -10,7 +10,11 @@ Run `bun install` at the repository root, then launch from your graphical sessio
 devenv --profile overlay shell -- bun run dev:overlay
 ```
 
-`run.sh` chooses Hyprland's focused monitor (or the first monitor), captures it once with `grim`, and starts Quickshell from project paths. It builds `native/ocr-server` if missing or older than its C++ source. The helper initializes once per session and serves full-image and crop OCR over a private Unix socket. Normal shutdown stops it and removes the temporary screenshot, socket, and helper logs.
+`run.sh` delegates to the shared `launch.sh` coordinator. Before capture or OCR startup, it runs CLI bootstrap to initialize missing `config.toml`, `cli.toml`, and `overlay.toml` starters and resolve shared → CLI → Overlay settings. Starters have local editor-schema directives and commented examples; existing files are never rewritten. Bootstrap needs no Dictionary, credentials, device identity, or network access. See the [configuration reference](../../docs/configuration.md) for locations, allowed overrides, precedence, and editor setup.
+
+The launcher then chooses Hyprland's focused monitor (or the first monitor), captures it once with `grim`, and starts Quickshell from project paths. It builds `native/ocr-server` if missing or older than its C++ source. The helper initializes once per session and serves full-image and crop OCR over a private Unix socket. Normal shutdown stops it and removes the temporary screenshot, socket, and helper logs.
+
+Each opening keeps its resolved configuration. The internal process-local `DICTOS_OVERLAY_CONFIG_SNAPSHOT` variable carries that snapshot through Quickshell to every CLI child. It is not a user preference. Children retain the opening's settings, including the CLI logging threshold inherited from shared/CLI files, without rereading or creating TOML files or reapplying environment overrides. File edits take effect on the next opening; bootstrap always reads fresh files even if a parent snapshot exists. An invalid inherited snapshot fails with exit 5 without falling back to disk. The CLI logging setting does not control QML warnings, launcher output, or native OCR diagnostics.
 
 For a repeatable image or a specific monitor:
 
@@ -26,11 +30,20 @@ The normal hardware renderer failed in the recorded Wayland smoke run; Qt's soft
 QT_QUICK_BACKEND=software devenv --profile overlay shell -- bun run dev:overlay
 ```
 
-The smoke run did not verify overall UI polish, mixed-scale alignment, or paid AI behavior. Notification placement and sizing remain provisional.
+Reported manual checks cover TOML LSP support (editor not reported), Default Model setup, CLI use without a Default Model, and switching OCR from English to Polish. The full interactive Wayland workflow, mixed-scale/multimonitor alignment, live paid generation, and browser/WASM behavior remain unverified. Notification placement and sizing remain provisional.
 
 ## Native build and checks
 
-The overlay profile supplies Quickshell, screenshot tools, a C++ compiler, `pkg-config`, Tesseract/Leptonica, and Qt test tools. OCR defaults to `eng+pol`; check installed language data with `tesseract --list-langs`. Set `DICTOS_OCR_LANG=eng` (or another installed language combination) before launching to override it.
+The overlay profile supplies Quickshell, screenshot tools, a C++ compiler, `pkg-config`, Tesseract/Leptonica, and Qt test tools. OCR defaults to English (`["eng"]`). To choose languages, edit `overlay.toml`:
+
+```toml
+[ocr]
+languages = ["eng", "pol"]
+```
+
+Check installed language data with `tesseract --list-langs`. Each array element is one identifier. A nonempty `DICTOS_OCR_LANG=pol` or `DICTOS_OCR_LANG=eng+pol` replaces the complete configured list for that opening; it does not append languages or edit the file. Unset or empty means no environment override.
+
+The native helper must load every requested language before publishing readiness. Missing or partially loaded language data stops startup without opening Quickshell or falling back to English. Launcher stderr names confirmed missing identifiers before cleanup; when the cause is unknown, it names the requested languages and gives setup guidance. Raw helper stderr is not the user-facing error protocol.
 
 From the repository root, run each check inside the profile:
 
@@ -40,7 +53,7 @@ devenv --profile overlay shell -- bun run --cwd apps/overlay test
 devenv --profile overlay shell -- bun run --cwd apps/overlay test:native
 ```
 
-`build-native.sh` uses `${CXX:-c++}` and `pkg-config` to link Tesseract and Leptonica. `test` runs Bun checks and an offscreen QML workflow with software rendering. `test:native` builds the helper, then runs Bun integration tests against its real Unix socket and the OCR client process. Automated checks do not replace a graphical-session review.
+`build-native.sh` uses `${CXX:-c++}` and `pkg-config` to link Tesseract and Leptonica. `test` runs Bun checks and an offscreen QML workflow with software rendering. `test:native` builds the helper, then runs Bun integration tests against its real Unix socket and the OCR client process. It also exercises the launch coordinator → Quickshell → `CliCommandRunner` → `CommandJob` → CLI handoff, including inherited configuration after file edits and malformed-snapshot failure without replacement files. The headless fixture shares production command components but does not instantiate the production screen root. Root tests alone do not cover this native process suite, and automated checks do not replace a graphical-session review.
 
 Qt tests need imports and plugins from the same Qt version as `qmltestrunner`. If inherited desktop paths produce a Qt private-API or plugin-version error, run with the profile's paths:
 
@@ -94,9 +107,11 @@ The last Instruction text and selected Description Types are remembered in owner
 { "version": 1, "instructionText": "", "selectedTypes": ["definition"] }
 ```
 
-`version: 1` identifies the file format. Empty text clears the remembered Instruction. Writes replace complete snapshots through an instance-local queue and atomic rename; across processes, the last completed replacement wins. Corrupt state reports a failure and is not silently replaced. Screenshots, draft text, and undo history are not persisted there. Selected Model stays in the separate device-local `local-state.json`.
+`version: 1` identifies the file format. Empty text clears the remembered Instruction. Writes replace complete snapshots through an instance-local queue and atomic rename; across processes, the last completed replacement wins. Corrupt state reports a failure and is not silently replaced. Screenshots, draft text, undo history, and Selected Model are not persisted there. The separate device-local `local-state.json` stores device identity.
 
-Set up Provider credentials through the [CLI](../cli/README.md#overlay-command-protocol-development), then choose an eligible Model from the picker. Catalog eligibility does not guarantee account access. Manual editing and Save need no Model. Suggest Senses and Generate require a usable Selected Model, return unsaved drafts, and do not open or write the Dictionary.
+Set up Provider credentials and a file-based Default Model through the [CLI workflow](../cli/README.md#configuration-and-models). On opening, the Overlay initializes its Selected Model from the resolved default, inheriting the CLI default unless `overlay.toml` overrides it. There is no built-in default or automatic fallback. Choosing an eligible Model from the picker changes only this opening; separate overlays keep independent selections. Closing and reopening, including after Cancel, starts from the configured default. Picker changes preserve editor text and never write configuration or remembered state.
+
+Each Suggest Senses or Generate request carries the current Selected Model explicitly. Catalog eligibility does not guarantee account access; generation checks the actual Model and Provider Connection when used. Manual editing and Save need no Model. Suggestions and generation return unsaved drafts and do not open or write the Dictionary.
 
 Suggest Senses offers up to 20 names with short definition previews. Choosing one fills the Sense field and starts generation as an undoable switch. It retains every Description card and all manual or edited text, clearing only unedited generated text from the previous Sense. Output fills existing empty slots before adding cards; if manual text fills every slot of a requested Type, generation appends another card. Same-Type card order is preserved. Previews are not saved automatically.
 
@@ -118,7 +133,9 @@ Right-column saves require a nonblank Sense and at least one nonempty typed Desc
 
 Save blocks duplicate submissions while pending. The overlay validates the returned IDs, captured-record presence, Sense presence, and typed Description count against the submitted Save mode. A valid success receipt blocks further saves and starts the local-state flush before exit. Failed saves keep the overlay open with text intact. A dead child, unreadable response, or contradictory receipt means the outcome is unknown; check the Dictionary before repeating it. There is no automatic Save retry.
 
-OCR, local-state, picker, generation, and Save failures show a Notification. Copy drafts copies labeled Entry, captured Description, Instruction, Sense, and nonempty typed Descriptions to the system clipboard. There is no dedicated Retry button: correct the problem and invoke the action again. If local-state flushing fails, the overlay stays open; an explicit exit afterward may lose the latest remembered Instruction/Type changes.
+OCR, local-state, picker, generation, and Save failures show a Notification. Configuration failures before opening reach launcher stderr with a safe source/key/reason summary; CLI children return `CONFIGURATION_ERROR` with exit 5 and supplemental structured issues. Notifications display the response message directly, without relying on stderr or decoding the issue list, and preserve draft text. Invalid loaded configuration stops the operation rather than substituting defaults.
+
+Copy drafts copies labeled Entry, captured Description, Instruction, Sense, and nonempty typed Descriptions to the system clipboard. There is no dedicated Retry button: correct the problem and invoke the action again. If local-state flushing fails, the overlay stays open; an explicit exit afterward may lose the latest remembered Instruction/Type changes.
 
 A successful Save retries dirty local state even after an earlier preference write failed. It closes only after that flush succeeds; another failure keeps the saved session open without repeating the Dictionary write.
 

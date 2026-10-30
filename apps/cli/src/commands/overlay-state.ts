@@ -5,6 +5,7 @@ import {
   type OverlayCaptureLocalState,
 } from "@dictos/fs-storage";
 import type { Command } from "commander";
+import { ConfigurationError } from "@dictos/config";
 
 import {
   readOverlayJsonRequest,
@@ -48,13 +49,19 @@ export function registerOverlayStateCommands(
 
   function respond(result: OverlayCaptureLocalState | Error): void {
     context.output.writeData(serializeOverlayJsonResponse(result).slice(0, -1));
-    if (result instanceof Error) process.exitCode = CliExitCode.ExpectedFailure;
+    if (result instanceof Error)
+      process.exitCode =
+        result instanceof ConfigurationError
+          ? CliExitCode.ConfigurationFailure
+          : CliExitCode.ExpectedFailure;
   }
 
   state
     .command("read")
     .requiredOption("--json", "Output JSON")
     .action(async () => {
+      const configuration = await context.getConfiguration();
+      if (configuration instanceof Error) return respond(configuration);
       const dataDir = await getDictosDataDir();
       if (dataDir instanceof Error) return respond(dataDir);
       respond(await new FsOverlayCaptureStateRepository(dataDir).read());
@@ -69,6 +76,8 @@ export function registerOverlayStateCommands(
         validate: validateState,
       });
       if (request instanceof Error) return respond(request);
+      const configuration = await context.getConfiguration();
+      if (configuration instanceof Error) return respond(configuration);
       const dataDir = await getDictosDataDir();
       if (dataDir instanceof Error) return respond(dataDir);
       respond(

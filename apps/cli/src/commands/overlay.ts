@@ -1,7 +1,11 @@
 import type { Command } from "commander";
+import { ConfigurationError } from "@dictos/config";
+import { configurationFailureResponse } from "../app/configuration-error";
+import { loadNativeConfiguration } from "../app/configuration";
 import type { Logger } from "@dictos/logger";
 import {
   descriptionTypes,
+  parseQualifiedModelId,
   type DescriptionType,
   type ScreenDescriptionInput,
   type ScreenEntrySaveInput,
@@ -21,6 +25,7 @@ import {
 import { registerOverlayStateCommands } from "./overlay-state";
 
 type SuggestRequest = {
+  model: string;
   entryText: string;
   descriptionText: string | null;
   instructionText: string;
@@ -68,10 +73,13 @@ function suggestRequest(value: unknown): SuggestRequest | Error {
     !record(value) ||
     !text(value.entryText) ||
     !optionalText(value.descriptionText) ||
-    !text(value.instructionText)
+    !text(value.instructionText) ||
+    !text(value.model) ||
+    parseQualifiedModelId(value.model) instanceof Error
   )
     return invalidRequest();
   return {
+    model: value.model,
     entryText: value.entryText,
     descriptionText: value.descriptionText,
     instructionText: value.instructionText,
@@ -137,6 +145,13 @@ export function registerOverlayCommands(
     .description("Review screen text in Dictos");
   registerOverlayStateCommands(overlay, context, options);
 
+  overlay
+    .command("bootstrap")
+    .requiredOption("--json", "Output the opening's configuration snapshot")
+    .action(async () =>
+      respond({ result: await loadNativeConfiguration("overlay"), json: true })
+    );
+
   function respond<T>({
     result,
     json,
@@ -162,12 +177,20 @@ export function registerOverlayCommands(
     if (result instanceof Error) {
       if (log)
         logOperationFailed({ ...log, error: result, redactDetails: true });
-      if (!json) context.output.writeError(result.message);
-      process.exitCode = failedInput
-        ? CliExitCode.UsageError
-        : result instanceof DatabaseInUseError
-          ? CliExitCode.DatabaseInUse
-          : CliExitCode.ExpectedFailure;
+      if (!json)
+        context.output.writeError(
+          result instanceof ConfigurationError
+            ? configurationFailureResponse({ error: result }).error.message
+            : result.message
+        );
+      process.exitCode =
+        result instanceof ConfigurationError
+          ? CliExitCode.ConfigurationFailure
+          : failedInput
+            ? CliExitCode.UsageError
+            : result instanceof DatabaseInUseError
+              ? CliExitCode.DatabaseInUse
+              : CliExitCode.ExpectedFailure;
       return;
     }
     if (!json) human(result);
@@ -192,7 +215,7 @@ export function registerOverlayCommands(
       if (deps instanceof Error)
         return respond({ result: deps, json: json === true });
       const log = { logger: deps.logger, operation: "overlay.suggest" };
-      const model = await deps.modelSelectionService.resolve({});
+      const model = parseQualifiedModelId(request.model);
       if (model instanceof Error)
         return respond({ result: model, json: json === true, log });
       const senses = await deps.screenEntryGenerationService.suggestSenses({
@@ -230,7 +253,7 @@ export function registerOverlayCommands(
       if (deps instanceof Error)
         return respond({ result: deps, json: json === true });
       const log = { logger: deps.logger, operation: "overlay.generate" };
-      const model = await deps.modelSelectionService.resolve({});
+      const model = parseQualifiedModelId(request.model);
       if (model instanceof Error)
         return respond({ result: model, json: json === true, log });
       const result =

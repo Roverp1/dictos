@@ -4,22 +4,36 @@ import {
 } from "./dependencies";
 import { createCliOutput } from "./output";
 import { createTerminalPrompt } from "./terminal-prompt";
-import type { CliContext, CliDependencyResult } from "./types";
+import { loadCliConfiguration } from "./configuration";
+import type {
+  CliContext,
+  CliDependencyResult,
+  ConfigurationLoader,
+} from "./types";
 
-export const createCliContext = (): CliContext => {
+export const createCliContext = ({
+  loadConfiguration = loadCliConfiguration,
+}: { loadConfiguration?: ConfigurationLoader } = {}): CliContext => {
+  let configuration: ReturnType<ConfigurationLoader> | null = null;
+  const getConfiguration: ConfigurationLoader = () =>
+    (configuration ??= loadConfiguration());
   let providerDependencies: ReturnType<
     typeof createProviderDependencies
   > | null = null;
   let dependencies: Promise<CliDependencyResult> | null = null;
 
   const getProviderGraph = () => {
-    providerDependencies ??= createProviderDependencies();
+    providerDependencies ??= getConfiguration().then((configuration) => {
+      if (configuration instanceof Error) return configuration;
+      return createProviderDependencies({ configuration });
+    });
     return providerDependencies;
   };
 
   return {
     output: createCliOutput(),
     terminalPrompt: createTerminalPrompt(),
+    getConfiguration,
 
     async getProviderDependencies() {
       const provider = await getProviderGraph();

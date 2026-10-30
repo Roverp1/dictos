@@ -6,6 +6,35 @@ Run `bun install` from the repo root, then use the CLI directly:
 bun run dev:cli entry create --text "hello"
 ```
 
+## Configuration and Models
+
+Normal direct commands initialize missing `config.toml` and `cli.toml` starter files, then load shared → CLI settings. Starters contain local editor-schema directives and commented examples; existing files are never rewritten. Help/version and parser usage failures do not initialize configuration. See the [configuration reference](../../docs/configuration.md) for locations, scope rules, precedence, and editor setup.
+
+Connect a Provider and inspect its eligible Models:
+
+```bash
+bun run dev:cli provider available
+bun run dev:cli provider connect openai
+bun run dev:cli models --json
+```
+
+`provider connect` uses a hidden credential prompt. To set the Default Model, edit `generation.default_model` in `config.toml`, using an ID returned by `models`:
+
+```toml
+[generation]
+default_model = "openai/MODEL_ID"
+```
+
+There is no built-in Default Model and no `model` command group. Saved-Description generation uses the resolved Default Model unless `--model` supplies a choice for that command:
+
+```bash
+bun run dev:cli description generate DESCRIPTION_ID --instruction INSTRUCTION_ID --types definition --model openai/MODEL_ID
+```
+
+That choice changes no configuration or device-wide state. A syntactically valid but unavailable default does not prevent a usable explicit choice. Configuration validates shape; generation checks Model eligibility and Provider access when used. There is no automatic fallback. Missing or unavailable Models do not block unrelated Dictionary operations or manual reviewed Save when configuration is valid. Disconnecting a Provider leaves the configured default unchanged.
+
+The CLI logger defaults to `info` and accepts `trace`, `debug`, `info`, `warn`, `error`, or `fatal` through shared/CLI configuration. This threshold also applies to Overlay CLI children; it does not configure QML, launcher, or native OCR diagnostics.
+
 ## Overlay command protocol (development)
 
 Launch the review overlay from the repository root in a Wayland/Hyprland session:
@@ -18,18 +47,14 @@ See the [overlay README](../overlay/README.md) for fixtures, native OCR builds, 
 
 ### Provider and picker setup
 
-Configure a Provider Connection through the CLI's hidden credential prompt, then select a Model listed for that configured Provider:
+After [Provider setup](#configuration-and-models), the Overlay can list Models and saved Instructions:
 
 ```bash
-bun run dev:cli provider available
-bun run dev:cli provider connect openai
 bun run dev:cli models --json
-bun run dev:cli model select openai/MODEL_ID
-bun run dev:cli model current --json
 bun run dev:cli instruction list --json
 ```
 
-Replace `openai/MODEL_ID` with an ID returned by `models`. The Model picker lists eligible catalog Models for configured Provider Connections, without a free-text input. Listing does not probe account access. Credentials and Selected Model stay device-local. Manual overlay saves need neither a Model nor a saved Instruction; suggestions and generation require a usable Selected Model. A blank inline Instruction adds no user directive.
+The Model picker lists eligible catalog Models for configured Provider Connections, without a free-text input. Listing does not probe account access. Each opening initializes its Selected Model from its resolved Default Model; picker changes affect only that opening and are not persisted. Manual overlay saves need neither a Model nor a saved Instruction; suggestions and generation require a usable Selected Model. A blank inline Instruction adds no user directive.
 
 Picker commands return the same envelope shape as overlay commands. Their success `data` is:
 
@@ -37,15 +62,24 @@ Picker commands return the same envelope shape as overlay commands. Their succes
 | ----------------------------- | ------------------------------------------------------------ |
 | `instruction list --json`     | Array of `{id, name, text}`; `name` can be null              |
 | `models [provider-id] --json` | Array of `{id, name, status}` for eligible configured Models |
-| `model current --json`        | `{id}` or null when no Model is selected                     |
 
-`models --json` writes catalog provenance to stderr. `model select <provider/model>` retains plain output and has no `--json` flag. Model listing/selection do not open the Dictionary; saved Instruction listing does and can fail if another client holds its lock. A stale current Model returns `MODEL_UNAVAILABLE`.
+`models --json` writes catalog provenance to stderr. Model listing does not open the Dictionary; saved Instruction listing does and can fail if another client holds its lock.
+
+### Bootstrap and child configuration
+
+```bash
+bun run dev:cli overlay bootstrap --json
+```
+
+Bootstrap reads no stdin. It initializes missing files in the `config.toml` → `cli.toml` → `overlay.toml` chain, resolves supported environment input, and returns one newline-terminated success envelope with a version-1 Overlay configuration snapshot in `data`. It does not open the Dictionary, initialize device identity, read credentials, check Model access, or contact the network. It ignores inherited snapshots so each new opening reads current files.
+
+The launcher validates bootstrap output and passes the immutable snapshot through the internal, process-local `DICTOS_OVERLAY_CONFIG_SNAPSHOT` transport variable to Quickshell and its CLI children. Users do not configure this variable. Children use the opening's settings, including inherited CLI logging, without rereading or creating TOML files or reapplying `DICTOS_OCR_LANG`. A present invalid, oversized, or wrong-client snapshot fails with exit 5 rather than falling back to disk. File edits apply to the next opening. Runtime Selected Model choices travel in individual generation requests, outside the snapshot.
 
 ### Request framing and results
 
 `overlay suggest`, `overlay generate`, and `overlay save` read one UTF-8 JSON line from stdin, including in human-output mode. With `--json`, stdout is exactly one newline-terminated envelope for success or a handled failure:
 
-```json
+```jsonl
 {"ok":true,"data":{"senses":[{"name":"greeting","definition":"A word used to greet someone."}]}}
 {"ok":false,"error":{"code":"OPERATION_FAILED","message":"Operation failed"}}
 ```
@@ -55,16 +89,18 @@ These are two separate example responses. Send one serialized object followed by
 From the repository root, examples using shell `printf` to add the delimiter:
 
 ```bash
-printf '%s\n' '{"entryText":"cześć","descriptionText":"Cześć!\nJak się masz?","instructionText":""}' |
+printf '%s\n' '{"model":"openai/MODEL_ID","entryText":"cześć","descriptionText":"Cześć!\nJak się masz?","instructionText":""}' |
   bun run dev:cli overlay suggest --json
 
-printf '%s\n' '{"entryText":"cześć","descriptionText":null,"instructionText":"","senseName":null,"descriptions":[],"targetTypes":["definition","translation"]}' |
+printf '%s\n' '{"model":"openai/MODEL_ID","entryText":"cześć","descriptionText":null,"instructionText":"","senseName":null,"descriptions":[],"targetTypes":["definition","translation"]}' |
   bun run dev:cli overlay generate --json
 ```
 
 Suggestions return `{senses:[{name,definition}]}`, with at most 20 distinct candidates. Generation returns `{senseName,descriptions:[{type,text}]}`. It uses nonempty supplied Descriptions as context and requests every selected Type, even when supplied drafts of that Type have text. Types are `definition`, `translation`, `example`, and `misc`. A supplied nonblank Sense is preserved; when it is blank or null, generation proposes a Sense name. Both operations use Provider-only dependencies and return unsaved text without opening or writing the Dictionary. Existing `description generate <description-id>` keeps its saved-Description workflow.
 
 The CLI returns drafts without applying them to an editor. In the overlay, explicit Generate replaces all checked-Type drafts as one undoable action. Choosing a suggested Sense retains manual or edited text and clears only unedited generated text. New output fills empty slots before adding cards; completed results remain available for redo.
+
+Both requests require an explicit qualified `model` ID. Replace `openai/MODEL_ID` with an eligible ID from `models`; omitting or malforming it is `INVALID_REQUEST`, even when a Default Model is configured. A valid but unusable Model fails without a fallback. Save and state payloads have no Model field.
 
 ### Reviewed saves
 
@@ -101,21 +137,31 @@ printf '%s\n' '{"version":1,"instructionText":"","selectedTypes":["definition"]}
 
 Both return the state object in `data`. The example write clears the remembered Instruction and selects `definition`. State lives in owner-only `<dataDir>/overlay-capture/state.json` with schema `{version:1,instructionText:string,selectedTypes:DescriptionType[]}`; `version` identifies the file format. Missing state defaults to empty Instruction text and `["definition"]`; corrupt state returns a failure without replacing the file. Each write replaces the complete snapshot using instance-local queuing and atomic rename. Across processes, the last completed replacement wins; there are no persistent lock directories.
 
-The overlay debounces Instruction/Type changes and flushes on normal exit, including Cancel. Choosing a saved Instruction copies its text; editing it never writes a database Instruction. This file stores no screenshot, other draft text, or undo history. Selected Model stays separately in `local-state.json`.
+The overlay debounces Instruction/Type changes and flushes on normal exit, including Cancel. Choosing a saved Instruction copies its text; editing it never writes a database Instruction. This file stores no screenshot, other draft text, undo history, or Selected Model. `local-state.json` stores device identity; Model choices are runtime-only.
 
 ### Handled failures
 
-Read both the envelope and exit status. Overlay request failures use `INVALID_REQUEST`, `REQUEST_TOO_LARGE`, or `REQUEST_READ_FAILED`. Other handled failures use `OPERATION_FAILED`, or `DATABASE_IN_USE` when the Dictionary is locked. Missing/stale Model and Provider failures in suggest/generate currently use the generic `OPERATION_FAILED` envelope.
+Read both the envelope and exit status. Overlay request failures use `INVALID_REQUEST`, `REQUEST_TOO_LARGE`, or `REQUEST_READ_FAILED`. Other handled failures use `OPERATION_FAILED`, or `DATABASE_IN_USE` when the Dictionary is locked. Unavailable Model and Provider failures in suggest/generate use the generic `OPERATION_FAILED` envelope.
+
+Configuration failures use exit 5 and `CONFIGURATION_ERROR`, including Model/Instruction listing, bootstrap, state helpers, and CLI children. Human stderr and JSON `error.message` give the same safe source/key/reason summary, with source locations when available. The nonempty `issues` array supplies additional structured detail; clients can display the message directly without parsing stderr or formatting issues. For example:
+
+<!-- prettier-ignore -->
+```jsonl
+{"ok":false,"error":{"code":"CONFIGURATION_ERROR","message":"/home/example/.config/dictos/cli.toml (overrides.logging.level): Expected trace, debug, info, warn, error, or fatal.","issues":[{"kind":"validate","source":"/home/example/.config/dictos/cli.toml","keyPath":["overrides","logging","level"],"line":null,"column":null,"message":"Expected trace, debug, info, warn, error, or fatal."}]}}
+```
+
+Invalid loaded files stop the operation; later overrides cannot hide them. Output does not expose raw TOML, environment payloads, or parser causes. The Overlay displays the configuration summary in a Notification and preserves drafts.
 
 When the dependency graph provides a Logger, overlay operations and JSON Instruction-list failures write structured diagnostics to `<dataDir>/dictos-cli.log`. Events include the operation and error type, but redact draft text, bound database values, credentials, and raw Provider/parser causes. JSON stdout remains the safe response channel.
 
-| Exit | Meaning                                                                                         |
-| ---- | ----------------------------------------------------------------------------------------------- |
-| 0    | Success                                                                                         |
-| 1    | Unexpected failure; a usable envelope is not guaranteed                                         |
-| 2    | Usage or invalid request for suggest/generate/save                                              |
-| 3    | Expected operation failure; also all handled state read/write failures, including invalid input |
-| 4    | Dictionary already open by another process                                                      |
+| Exit | Meaning                                                                                       |
+| ---- | --------------------------------------------------------------------------------------------- |
+| 0    | Success                                                                                       |
+| 1    | Unexpected failure; a usable envelope is not guaranteed                                       |
+| 2    | Usage or invalid request for suggest/generate/save                                            |
+| 3    | Expected operation failure; non-configuration state read/write failures include invalid input |
+| 4    | Dictionary already open by another process                                                    |
+| 5    | Configuration initialization, loading, validation, or inherited-snapshot failure              |
 
 Picker dependency failures can use exit 1 with a safe envelope. An empty or unusable response is not confirmation of success, especially after Save.
 

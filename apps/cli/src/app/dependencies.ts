@@ -1,6 +1,7 @@
 import pino from "pino";
 import path from "path";
 import * as errore from "@dictos/errore";
+import type { ConfigurationSnapshot, ConfigurationError } from "@dictos/config";
 
 import {
   FsLocalStateRepository,
@@ -43,7 +44,6 @@ import {
   FolderService,
   InstructionService,
   ModelCatalogService,
-  ModelSelectionService,
   ProviderConnectionService,
   SenseService,
   ScreenEntryGenerationService,
@@ -69,9 +69,11 @@ type ProviderGraph = {
   providerConnectionRepo: FsProviderConnectionRepository;
 };
 
-export const createProviderDependencies = async (): Promise<
-  ProviderGraph | CliDependencyError
-> => {
+export const createProviderDependencies = async ({
+  configuration,
+}: {
+  configuration: ConfigurationSnapshot;
+}): Promise<ProviderGraph | CliDependencyError | ConfigurationError> => {
   const dataDir = await getDictosDataDir();
   if (dataDir instanceof Error)
     return new CliDependencyError({ step: "resolve_data_dir", cause: dataDir });
@@ -80,7 +82,7 @@ export const createProviderDependencies = async (): Promise<
     () =>
       new PinoLoggerAdapter(
         pino(
-          { level: "trace" },
+          { level: configuration.settings.logLevel },
           pino.destination({
             dest: path.join(dataDir, "dictos-cli.log"),
             append: true,
@@ -117,13 +119,7 @@ export const createProviderDependencies = async (): Promise<
       modelCatalogService,
       providerConnectionService: new ProviderConnectionService(
         providerConnectionRepo,
-        modelCatalogService,
-        localStateRepo
-      ),
-      modelSelectionService: new ModelSelectionService(
-        modelCatalogService,
-        providerConnectionRepo,
-        localStateRepo
+        modelCatalogService
       ),
       screenEntryGenerationService: new ScreenEntryGenerationService(
         providerConnectionRepo,

@@ -4,12 +4,13 @@
 
 ## Core Entities
 
-### LocalState (Device Config)
+### LocalState (Device Identity)
 
-Represents the persistent, device-specific configuration stored outside the synced database.
+`LocalState` holds persistent device identity outside the synced database. Its complete core shape is `{ deviceId: string }`.
 
 - `deviceId`: Persistent UUIDv4 identifying the physical installation. Used to namespace activity CRDTs.
-- `selectedModel`: `SelectedModel | null`, a device-local `{ providerId, modelId }` pair for Description Generation; `null` means no Model is selected. The filesystem adapter persists it beside `deviceId` in `<dataDir>/local-state.json`. Selection updates preserve the existing `deviceId`; an existing file with only `deviceId` reads as unselected, and an explicit reset clears the selection and creates a new device ID. The browser local-state adapter uses `dictos_local_state` in local storage instead of this file.
+
+The filesystem adapter uses `<dataDir>/local-state.json`. A missing file initializes an identity; reading an existing valid identity preserves it without rewriting the file. Invalid JSON or an invalid device identity returns `StorageError` rather than generating a replacement. Only explicit reset replaces identity. There is no Model field or selection setter. The retained browser adapter uses `dictos_local_state` in local storage; this port adjustment adds no browser configuration support.
 
 ### AuthSession (Thin Session)
 
@@ -18,6 +19,14 @@ Represents the temporary authentication secrets.
 - `userId`: Link to the synced `User` profile.
 - `token`: Central API JWT.
 - `turso`: Cloud database credentials (`url`, `token`).
+
+The native session store is `<dataDir>/session.json`, separate from identity, Provider credentials, and TOML settings. The `User` profile remains a synced database record; session secrets do not Sync or enter Mirroring.
+
+### Application Configuration and Runtime Model Choice
+
+Native application settings live in the configuration directory, independently of `<dataDir>`. The global, CLI, and Overlay files and their rules are defined in the [configuration reference](../../configuration.md). They contain no device identity, authentication session, Provider credential, Model Catalog cache, or remembered Overlay input.
+
+The optional Default Model initializes a command or workflow's Selected Model. Explicit CLI `--model` and the Overlay picker affect only the current command or workflow, without persisting selection or editing configuration. An Overlay keeps one immutable version-1 configuration snapshot with effective settings and provenance for its children. The runtime Selected Model is not a snapshot field. Configuration files, process snapshots, runtime Model choices, and remembered Overlay Instruction/Type state are all outside Sync and Mirroring.
 
 ### SyncResult
 
@@ -50,10 +59,10 @@ Reports sync operation metrics to the UI.
 
 ### `instructionsTable`
 
-- Reusable Instructions are shared SQLite records with an ID, optional name, text, and lifecycle timestamps. They Sync with the Dictionary content used for Description Generation, unlike the device-local Provider Connection and Selected Model.
+- Reusable Instructions are shared SQLite records with an ID, optional name, text, and lifecycle timestamps. They Sync with the Dictionary content used for Description Generation, unlike device-local Provider Connections, configuration, and runtime Selected Models.
 
 ### Device-Local Provider Connections and Model Catalog
 
 - Provider Connections are keyed by stable Provider ID; `<dataDir>/providers.json` stores one API key per configured Provider ID. Each device needs its own credentials. This file is not part of Sync or Mirroring.
-- The Model Catalog has a bundled snapshot and an optional validated device-local version 2 cache at `<dataDir>/model-catalog.json` (`version`, `fetchedAt`, supported Providers, and Models with a derived `textGeneration: true` marker). A version 1 cache falls back to the bundled snapshot until explicitly refreshed. The cache is metadata for local Model browsing, not proof of account access; it is not part of Sync or Mirroring. The Selected Model in `local-state.json` is also neither synced nor mirrored.
+- The Model Catalog has a bundled snapshot and an optional validated device-local version 2 cache at `<dataDir>/model-catalog.json` (`version`, `fetchedAt`, supported Providers, and Models with a derived `textGeneration: true` marker). A version 1 cache falls back to the bundled snapshot until explicitly refreshed. The cache is metadata for local Model browsing, not proof of account access; it is not part of Sync or Mirroring.
 - None of these device-local records adds a table or column to the shared SQLite/Drizzle schema or requires a synced database migration.

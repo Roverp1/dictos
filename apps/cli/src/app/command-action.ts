@@ -1,4 +1,6 @@
 import { DbError } from "@dictos/core";
+import { ConfigurationError } from "@dictos/config";
+import { configurationFailureResponse } from "./configuration-error";
 import type { Context, Logger } from "@dictos/logger";
 
 import { DatabaseInUseError } from "./errors";
@@ -15,6 +17,15 @@ type CliOperationLog = {
   context?: Context;
 };
 
+export const getConfigurationOrExit = async (context: CliContext) => {
+  const configuration = await context.getConfiguration();
+  if (configuration instanceof Error) {
+    dependencyFailure(context, configuration);
+    return null;
+  }
+  return configuration;
+};
+
 export const getDependenciesOrExit = async (
   context: CliContext
 ): Promise<CliDependencies | null> => {
@@ -27,8 +38,7 @@ export const getDependenciesOrExit = async (
   }
 
   if (dependencies instanceof Error) {
-    context.output.writeError(dependencies.message);
-    process.exitCode = CliExitCode.UnexpectedFailure;
+    dependencyFailure(context, dependencies);
     return null;
   }
 
@@ -40,8 +50,7 @@ export const getProviderDependenciesOrExit = async (
 ): Promise<CliProviderDependencies | null> => {
   const dependencies = await context.getProviderDependencies();
   if (dependencies instanceof Error) {
-    context.output.writeError(dependencies.message);
-    process.exitCode = CliExitCode.UnexpectedFailure;
+    dependencyFailure(context, dependencies);
     return null;
   }
   return dependencies;
@@ -64,6 +73,10 @@ export const handleExpectedError = (
   error: Error,
   log?: CliOperationLog
 ): void => {
+  if (error instanceof ConfigurationError) {
+    dependencyFailure(context, error);
+    return;
+  }
   if (log) logOperationFailed({ ...log, error });
   context.output.writeError(error.message);
   process.exitCode = CliExitCode.ExpectedFailure;
@@ -110,9 +123,21 @@ function sanitizeLogError({
       reason: "Database operation failed",
       cause: new Error("Database failure details omitted from logs"),
     });
-  if (!redactDetails) return error;
+  if (!redactDetails && !(error instanceof ConfigurationError)) return error;
   // Parser and provider causes can contain draft text or credentials.
   const sanitized = new Error("Operation failure details omitted from logs");
   sanitized.name = error.name;
   return sanitized;
+}
+
+function dependencyFailure(context: CliContext, error: Error) {
+  context.output.writeError(
+    error instanceof ConfigurationError
+      ? configurationFailureResponse({ error }).error.message
+      : error.message
+  );
+  process.exitCode =
+    error instanceof ConfigurationError
+      ? CliExitCode.ConfigurationFailure
+      : CliExitCode.UnexpectedFailure;
 }

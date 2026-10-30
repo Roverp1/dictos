@@ -1,6 +1,6 @@
 # Domain: Sync
 
-**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Sep 29, 2026
+**Parent**: [System Overview](../../system-overview.md) | **Last Updated**: Oct 26, 2026
 
 ## Module Responsibility
 
@@ -13,8 +13,8 @@ Sync replicates private local data in both directions across a single user's dev
 1. The user logs in via the Central Server API.
 2. The server provisions or fetches a dedicated Turso database and returns an `AuthResult` containing both the `User` profile and `AuthSession` secrets.
 3. The `AuthService` saves the `User` profile into the local, synced Turso SQLite database (via `UserRepository`) using `INSERT ... ON CONFLICT DO UPDATE`.
-4. The `AuthService` saves the device-specific `AuthSession` (JWT and Turso URL/Token) to a local, un-synced configuration file (via `SessionRepository`).
-5. On app startup, the TUI reads the `userId` from the local config file, then queries the latest synced profile from the local Turso database to hydrate.
+4. The `AuthService` saves the device-specific `AuthSession` (JWT and Turso URL/Token) to the local, unsynced `<dataDir>/session.json` file (via `SessionRepository`). This session file is separate from application configuration.
+5. On app startup, the TUI reads the `userId` from the local session, then queries the latest synced profile from the local Turso database to hydrate.
 
 ### Synchronization (Push & Pull)
 
@@ -33,7 +33,8 @@ Sync replicates private local data in both directions across a single user's dev
 - **Device-Isolated Activity Counters**: To track activity without unique constraint crashes during sync, the `activities` table drops the `UNIQUE(date)` constraint. It uses a UUIDv5 based on `date:deviceId`, allowing multiple isolated rows per date that the UI simply sums together (a basic CRDT pattern).
 - **Thin Session Pattern**: Because Turso syncs the entire SQLite file, storing JWTs inside the database would cause devices to log each other out upon sync. Device state stays in the local file system.
 - **Synced Dictionary Content**: Entries, Folders, Descriptions (including generated Descriptions and their Type/Sense assignments), Senses, and reusable Instructions live in the shared Dictionary database and participate in Sync. Senses remain distinct even when created offline with the same interpretation.
-- **Device-Local Description Generation Setup**: Provider Connections and API keys, the Model Catalog cache, and the Selected Model remain outside the Dictionary database, Sync, and Mirroring. Each device configures its own credentials and choice; replicating credentials would expose them across devices, while a cached catalog and Model choice describe this device's available setup rather than Dictionary content. A bundled catalog or device-local cache can support offline Model browsing without turning catalog metadata into synced user data. Syncing generated Descriptions does not sync the Provider Connection or Model used to produce them.
+- **Device-Local Description Generation Setup**: Provider Connections and API keys, the Model Catalog cache, and configuration files remain outside the Dictionary database, Sync, and Mirroring. Each device configures its own credentials and Default Model. The Selected Model belongs only to one command or client workflow and is never persisted. A bundled catalog or device-local cache supports offline Model browsing without becoming synced user data. Syncing generated Descriptions does not sync the Provider Connection or Model used to produce them. Disconnecting a Provider removes only its credential and leaves configuration unchanged.
+- **Identity and Configuration Separation**: `LocalState` contains only `deviceId`, which activity counters use to distinguish devices. Its operations get or explicitly reset that identity. Application settings live separately in native TOML files. `@dictos/config` owns portable validation, defaults, resolution, provenance, and snapshots; `@dictos/fs-storage/configuration` handles native discovery, TOML, and starter-file creation when files are missing. Core remains configuration-free. An Overlay holds its opening's immutable configuration while its Selected Model can change in memory. None of these settings or snapshots participates in Sync or Mirroring. See the [configuration reference](../../configuration.md).
 - **Destructive Baseline Reset**: The Description Generation schema was introduced through a fresh pre-release baseline rather than an incremental data migration. Any replica still using the earlier migration journal must be recreated from the current baseline before reconnecting to Sync.
 - **Non-Blocking Background Sync**: Sync operations and connection initializations are wrapped in IIFEs (Immediately Invoked Function Expressions) during app bootstrap so the TUI can render the local database in milliseconds.
 
@@ -46,3 +47,4 @@ Sync replicates private local data in both directions across a single user's dev
 
 - [Data Model & State](./data-model.md)
 - [Interfaces & Contracts](./contracts.md)
+- [Configuration reference](../../configuration.md)

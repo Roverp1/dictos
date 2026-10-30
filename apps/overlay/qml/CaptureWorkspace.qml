@@ -40,6 +40,7 @@ Item {
     property int popupIndex: 0
     property var instructions: []
     property var models: []
+    property var initialModel: null
     property string selectedModel: ""
     onSelectedModelChanged: {
         draft = State.modelChanged(draft);
@@ -48,8 +49,6 @@ Item {
         loadingGenerationRevision = -1;
         loadingSuggestionRevision = -1;
     }
-    property string pendingModel: ""
-    property bool modelTouched: false
     property string notification: ""
     property bool ocrLoading: true
     property bool generationLoading: false
@@ -64,7 +63,7 @@ Item {
     property bool stateWriteFailed: false
     property bool stateWritePending: false
     property bool closing: false
-    readonly property bool canGenerate: !!draft.entry.text.trim() && !!selectedModel && !pendingModel && draft.selectedTypes.length > 0
+    readonly property bool canGenerate: !!draft.entry.text.trim() && !!selectedModel && draft.selectedTypes.length > 0
     readonly property bool canSaveSense: !!draft.entry.text.trim() && !!draft.senseName.trim() && draft.descriptions.some(function (d) {
         return !!d.text.trim();
     })
@@ -267,23 +266,27 @@ Item {
             entryText: draft.entry.text,
             descriptionText: draft.capturedDescription.text || null,
             instructionText: draft.instructionText,
+            model: selectedModel,
             senseName: draft.senseName || null,
             descriptions: contextDescriptions,
             targetTypes: draft.selectedTypes
         }, draft.activeGenerationActionRevision);
     }
     function suggest() {
+        if (!draft.entry.text.trim() || !selectedModel || saving)
+            return;
         drawerMode = "pinned";
         suggestionLoading = true;
         loadingSuggestionRevision = draft.generationRevision;
         commandRequested("suggest", ["overlay", "suggest", "--json"], {
             entryText: draft.entry.text,
             descriptionText: draft.capturedDescription.text || null,
-            instructionText: draft.instructionText
+            instructionText: draft.instructionText,
+            model: selectedModel
         }, draft.generationRevision);
     }
     function chooseSense(name) {
-        if (pendingModel || saving)
+        if (saving)
             return;
         draft = State.chooseSense(draft, name);
         generate(true);
@@ -300,8 +303,6 @@ Item {
         commandRequested("save", ["overlay", "save", "--json"], pendingSave, 0);
     }
     function openPicker(kind) {
-        if (kind === "model" && pendingModel)
-            return;
         popupKind = kind;
         popupIndex = 0;
         mode = "popup";
@@ -309,7 +310,7 @@ Item {
         keys.forceActiveFocus();
     }
     function choosePopup(index) {
-        if (!popupKind || (popupKind === "model" && pendingModel))
+        if (!popupKind)
             return;
         var items = popupKind === "instruction" ? instructions : models;
         var selected = items[index];
@@ -317,11 +318,8 @@ Item {
             return;
         if (popupKind === "instruction")
             updateText("instruction", selected.text, true);
-        else {
-            pendingModel = selected.id;
-            modelTouched = true;
-            commandRequested("model-select", ["model", "select", selected.id], null, 0);
-        }
+        else
+            selectedModel = selected.id;
         popupKind = "";
         mode = "navigation";
         keys.forceActiveFocus();
@@ -332,17 +330,6 @@ Item {
             openDrawer(true);
     }
     function commandFinished(key, response, revision) {
-        if (key === "model" && modelTouched)
-            return;
-        if (key === "model-select") {
-            var chosen = pendingModel;
-            pendingModel = "";
-            if (response.ok === true)
-                selectedModel = chosen;
-            else
-                error(key, response);
-            return;
-        }
         if (key === "state-write") {
             stateWritePending = false;
             if (!response.ok) {
@@ -402,8 +389,6 @@ Item {
             instructions = response.data;
         else if (key === "models")
             models = response.data;
-        else if (key === "model")
-            selectedModel = response.data?.id || "";
         else if (key === "state-read" && !stateTouched) {
             var nextState = State.copy(draft);
             nextState.instructionText = response.data.instructionText;
@@ -481,12 +466,12 @@ Item {
         onTriggered: workspace.flushState()
     }
     Component.onCompleted: {
+        selectedModel = initialModel || "";
         if (!autoLoad)
             return;
         commandRequested("state-read", ["overlay", "state", "read", "--json"], null, 0);
         commandRequested("instructions", ["instruction", "list", "--json"], null, 0);
         commandRequested("models", ["models", "--json"], null, 0);
-        commandRequested("model", ["model", "current", "--json"], null, 0);
     }
     PanelKeyCatcher {
         id: keys
@@ -976,7 +961,7 @@ Item {
                                 color: Tokens.surfaceVariantText
                             }
                         }
-                        enabled: !workspace.saving && !workspace.pendingModel && !!workspace.selectedModel && workspace.draft.selectedTypes.length > 0
+                        enabled: !workspace.saving && !!workspace.selectedModel && workspace.draft.selectedTypes.length > 0
                         onPerform: workspace.chooseSense(modelData.name)
                     }
                 }
@@ -1032,8 +1017,8 @@ Item {
                     WorkflowButton {
                         nodeId: "model"
                         width: parent.width
-                        text: workspace.pendingModel ? "Selecting Model…" : workspace.selectedModel || "Choose a Model"
-                        enabled: !workspace.saving && !workspace.pendingModel
+                        text: workspace.selectedModel || "Choose a Model"
+                        enabled: !workspace.saving
                         onPerform: workspace.openPicker("model")
                     }
                     Text {
@@ -1078,7 +1063,7 @@ Item {
                         nodeId: "suggest"
                         width: (parent.width - 8) / 2
                         text: "Suggest Senses"
-                        enabled: !!workspace.draft.entry.text.trim() && !!workspace.selectedModel && !workspace.pendingModel && !workspace.suggestionLoading && !workspace.saving
+                        enabled: !!workspace.draft.entry.text.trim() && !!workspace.selectedModel && !workspace.suggestionLoading && !workspace.saving
                         onPerform: workspace.suggest()
                     }
                     WorkflowButton {
@@ -1207,6 +1192,8 @@ Item {
         radius: 12
         Text {
             id: errorText
+            objectName: "configuration-notification"
+            textFormat: Text.PlainText
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.margins: 14

@@ -450,7 +450,7 @@ test("Polish OCR and the client process preserve Unicode", async () => {
   expect(cropped.region).toEqual({ x: 10, y: 10, width: 440, height: 140 });
 }, 45_000);
 
-test("startup failures preserve existing files and emit no ready response", async () => {
+test("startup failures preserve existing files and emit a finite failure record", async () => {
   await using cleanup = new errore.AsyncDisposableStack();
   const { folder, image, address } = workspace(cleanup);
   fs.writeFileSync(address, "keep me");
@@ -465,11 +465,47 @@ test("startup failures preserve existing files and emit no ready response", asyn
       timeoutMs: 15_000,
     });
     expect(result.exitCode).not.toBe(0);
-    expect(result.stdout).toBe("");
+    expect(result.stdout.endsWith("\n")).toBe(true);
+    expect(result.stdout.length).toBeLessThanOrEqual(16_384);
+    expect(parseJson(result.stdout)).toMatchObject({
+      ready: false,
+      error: {
+        code: expect.stringMatching(
+          /^OCR_(STARTUP_FAILED|INITIALIZATION_FAILED|LANGUAGE_UNAVAILABLE)$/
+        ),
+      },
+    });
   }
   expect(fs.readFileSync(address, "utf8")).toBe("keep me");
   expect(fs.existsSync(path.join(folder, "new"))).toBe(false);
 }, 45_000);
+
+test("a partially available language combination never publishes readiness", async () => {
+  await using cleanup = new errore.AsyncDisposableStack();
+  const { image, address } = workspace(cleanup);
+  const result = await run({
+    args: [serverPath, address, image, "eng+dictos_missing_language"],
+    timeoutMs: 15_000,
+  });
+  expect(result.exitCode).not.toBe(0);
+  expect(parseJson(result.stdout)).toEqual({
+    ready: false,
+    error: {
+      code: "OCR_LANGUAGE_UNAVAILABLE",
+      missingLanguages: ["dictos_missing_language"],
+    },
+  });
+  expect(fs.existsSync(address)).toBe(false);
+}, 20_000);
+
+test("an explicitly available language combination serves real OCR without fallback", async () => {
+  await using cleanup = new errore.AsyncDisposableStack();
+  const { image, address } = workspace(cleanup);
+  await fixture({ image });
+  await session({ cleanup, image, address, language: "eng+pol" });
+  const result = await request({ address, command: "FULL 6\n" });
+  expect(result.words.map((word) => word.text)).toContain("HELLO");
+}, 30_000);
 
 test("truncated and stalled requests do not block the next OCR request", async () => {
   await using cleanup = new errore.AsyncDisposableStack();

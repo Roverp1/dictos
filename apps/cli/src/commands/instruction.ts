@@ -1,9 +1,12 @@
 import type { Command } from "commander";
+import { ConfigurationError } from "@dictos/config";
+import { configurationFailureResponse } from "../app/configuration-error";
 import { ValidationError } from "@dictos/core";
 import { CliExitCode, type CliContext } from "../app/types";
 import { DatabaseInUseError } from "../app/errors";
 import { serializeOverlayJsonResponse } from "../app/overlay-json";
 import {
+  getConfigurationOrExit,
   getDependenciesOrExit,
   handleExpectedError,
   logOperationCompleted,
@@ -55,13 +58,19 @@ export const registerInstructionCommands = (
           ).slice(0, -1)
         );
         context.output.writeError(
-          databaseInUse
-            ? "Dictos database is already open by another process"
-            : "Operation failed"
+          dependencies instanceof ConfigurationError
+            ? configurationFailureResponse({ error: dependencies }).error
+                .message
+            : databaseInUse
+              ? "Dictos database is already open by another process"
+              : "Operation failed"
         );
-        process.exitCode = databaseInUse
-          ? CliExitCode.DatabaseInUse
-          : CliExitCode.UnexpectedFailure;
+        process.exitCode =
+          dependencies instanceof ConfigurationError
+            ? CliExitCode.ConfigurationFailure
+            : databaseInUse
+              ? CliExitCode.DatabaseInUse
+              : CliExitCode.UnexpectedFailure;
         return;
       }
       if (dependencies === null) return;
@@ -115,6 +124,8 @@ export const registerInstructionCommands = (
         id: string,
         options: { text?: string; name?: string; clearName?: boolean }
       ) => {
+        const configuration = await getConfigurationOrExit(context);
+        if (configuration === null) return;
         if (options.name !== undefined && options.clearName)
           return handleExpectedError(
             context,
